@@ -12,6 +12,7 @@ as ``dict[str, Any]`` rather than ``TypedDict``: a TypedDict forbids the dynamic
 intent and give every function signature that passes them a real type.
 """
 
+from collections.abc import Mapping
 from typing import Any, TypeAlias
 
 import numpy as np
@@ -40,6 +41,10 @@ Stats: TypeAlias = dict[str, Any]
 # ``stats.pop("Magic DT%")``, both of which a TypedDict forbids.
 EnemyStats: TypeAlias = dict[str, float]
 
-# Buff tables (see buffs.py) are deeply/heterogeneously nested; consumers narrow
-# on access.
-Buffs: TypeAlias = dict[str, Any]
+# Active buff sheet from aggregate_buffs(): source name ("brd", "cor", "geo",
+# "whm", "food") -> stat name -> numeric amount. Non-numeric food keys ("Name",
+# "Type", ...) are filtered out before they reach here, so leaves are all numeric.
+# Read-only Mapping (not dict) because consumers only iterate/read it, and the
+# covariant value type lets callers pass int- or float-valued dicts (dict is
+# invariant and would reject dict[str, int] literals against a float leaf).
+Buffs: TypeAlias = Mapping[str, Mapping[str, float]]

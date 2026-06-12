@@ -1156,7 +1156,8 @@ if __name__ == "__main__":
                 "ring2" : Gere_Ring,
                 "back" : Empty}
 
-    Grape_Daifuku2 = {"Name": "Grape Daifuku +1", "Type":"Food","STR":3, "VIT":4, "Food Attack":55, "Food Ranged Attack":55, "Accuracy":85, "Ranged Accuracy":85, "Magic Attack":4}
+    # Mirrors aggregate_buffs() output: metadata keys ("Name", "Type") are stripped, leaving numeric stats.
+    Grape_Daifuku2 = {"STR":3, "VIT":4, "Food Attack":55, "Food Ranged Attack":55, "Accuracy":85, "Ranged Accuracy":85, "Magic Attack":4}
     buffs = {"food": Grape_Daifuku2,
              "brd": {"Attack": 0, "Accuracy": 0, "Ranged Accuracy": 0,"STR":0,"DEX":0, "VIT":0, "AGI":0, "INT":0, "MND":0, "CHR":0,},
              "cor": {"Attack%": 0., "Ranged Attack%":0., "Store TP": 0, "Accuracy": 0, "Magic Attack": 0, "DA":0, "Crit Rate": 0},
