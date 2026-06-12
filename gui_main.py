@@ -67,9 +67,9 @@ class application(QtWidgets.QMainWindow):
 
         # Automatically re-equip gear to see changes immediately.
         for slot in self.equipment_button_positions:
-            self.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], self.quicklook_equipped_dict, "quicklook"))
-            self.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], self.tp_quicklook_equipped_dict, "tp"))
-            self.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], self.ws_quicklook_equipped_dict, "ws"))
+            self.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], "quicklook"))
+            self.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], "tp"))
+            self.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], "ws"))
 
         # Automatically reset main and subjobs to trigger refreshing the gear selection lists.
         self.update_job("main static")
@@ -604,10 +604,11 @@ class application(QtWidgets.QMainWindow):
         Remove equipment in other slots if the new combination is not possible.
 
 
+        selection is a 3-tuple:
         slot:                equipment slot under consideration
         new_item_name:       The name of the radio button clicked to trigger this function
-        equipped_items_dict: The equipment dictionary to be modified by the selection
-        source:              A way to track which part of the code called this function to avoid TP/WS sets affecting quicklook tab.
+        source:              Which caller ("quicklook"/"tp"/"ws") — selects the equipment
+                             dict to modify and avoids TP/WS sets affecting the quicklook tab.
         '''
         slot, new_item_name, source = selection
 
@@ -2743,9 +2744,9 @@ class application(QtWidgets.QMainWindow):
             self.update_job("main")
             self.update_job("sub")
             for slot in self.quicklook_equipped_dict:
-                self.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], self.quicklook_equipped_dict, "quicklook"))
-                self.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], self.tp_quicklook_equipped_dict, "tp"))
-                self.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], self.ws_quicklook_equipped_dict, "ws"))
+                self.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], "quicklook"))
+                self.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], "tp"))
+                self.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], "ws"))
 
         self.set_visible_frame(self.quicklook_scrollframes["main"])
         self.set_visible_frame(self.tp_quicklook_scrollframes["main"])
