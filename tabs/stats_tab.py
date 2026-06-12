@@ -40,7 +40,7 @@ class StatsTab(QtWidgets.QWidget):
         ]):
             button = QtWidgets.QPushButton(label)
             button.setFixedSize(150, 30)
-            button.clicked.connect(lambda checked=False, e=event: self.ctx.quicklook(e))
+            button.clicked.connect(lambda checked=False, e=event: self.ctx.simulate_tab.quicklook(e))
             buttons_layout.addWidget(button, 0, col)
 
         stats_frame = QtWidgets.QFrame()

@@ -3,8 +3,9 @@ Optimize tab: per-slot gear checkboxes, selection filters, DT requirements,
 set metrics, and the buttons that launch optimizer runs.
 
 The tab owns its input widgets and the `optimize_scrollframes` registry. The
-optimizer run itself and "Equip best set" live on the controller for now
-(`ctx.quicklook`, `ctx.equip_best_set`); they move to their owning tabs later.
+optimizer run is driven by SimulateTab (`ctx.simulate_tab.quicklook`). "Equip
+best set" emits `bestSetReady`, which QuicklookTab consumes to equip the gear.
+Job changes arrive via `apply_slot_refilter` (QuicklookTab.slotsRefiltered).
 '''
 
 import numpy as np
@@ -18,6 +19,8 @@ from virtual_frames import VirtualCheckboxFrame
 
 class OptimizeTab(QtWidgets.QWidget):
     '''Gear-selection grid and optimizer controls.'''
+
+    bestSetReady = QtCore.Signal(dict)  # Emitted with the best gearset when "Equip best set" is clicked.
 
     def __init__(self, ctx, parent=None):
         super().__init__(parent)
@@ -225,16 +228,30 @@ class OptimizeTab(QtWidgets.QWidget):
         ]:
             button = QtWidgets.QPushButton(label)
             button.setFixedSize(100, 30)
-            button.clicked.connect(lambda checked=False, e=event: self.ctx.quicklook(e))
+            button.clicked.connect(lambda checked=False, e=event: self.ctx.simulate_tab.quicklook(e))
             optimize_buttons_layout.addWidget(button, pos[0], pos[1])
 
         self.equip_best_set_button = QtWidgets.QPushButton("Equip best set")
         self.equip_best_set_button.setFixedSize(100, 30)
         self.equip_best_set_button.setEnabled(False)
-        self.equip_best_set_button.clicked.connect(lambda checked=False: self.ctx.equip_best_set())
+        self.equip_best_set_button.clicked.connect(lambda checked=False: self.bestSetReady.emit(self.ctx.best_player.gearset))
         optimize_buttons_layout.addWidget(self.equip_best_set_button, 1, 1)
 
         self.ctx.set_visible_frame(self.optimize_scrollframes["main"])
+
+    def apply_slot_refilter(self, updates):
+        '''
+        Slot for QuicklookTab.slotsRefiltered. Refresh each affected optimize
+        scrollframe with the job-filtered item list (computed by QuicklookTab).
+        updates maps slot -> (filtered_item_list, deselect_spec), where
+        deselect_spec is "all", a list of item names, or None.
+        '''
+        for slot, (data, deselect) in updates.items():
+            self.optimize_scrollframes[slot].set_visible_data(data)
+            if deselect == "all":
+                self.optimize_scrollframes[slot].deselect("all")
+            elif deselect is not None:
+                self.optimize_scrollframes[slot].deselect(deselect)
 
     def update_visible_optimize_frame(self, slot):
         '''Raise the selected slot's scrollframe and record it as the visible slot.'''
