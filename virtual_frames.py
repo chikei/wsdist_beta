@@ -1,189 +1,112 @@
 """
-Virtual checkbox and radio frame widgets.
+Checkbox and radio frame widgets backed by native Qt list views.
 
-Native Qt list widgets that render a fixed window of ``N`` rows over a larger
-backing dataset, scrolled with a sidebar/mouse wheel.
+``QListWidget`` virtualizes rendering natively, so these are thin wrappers that
+keep selection state and a filterable visible window over a master dataset.
 """
 
 from PySide6 import QtCore, QtWidgets
 
 
-class _VirtualFrameBase(QtWidgets.QGroupBox):
-    def __init__(self, parent=None, text=""):
+class VirtualRadioFrame(QtWidgets.QGroupBox):
+    """
+    Single-selection list backed by a native ``QListWidget``.
+
+    Qt's item views virtualize rendering, so no manual row windowing is needed.
+    ``N`` is accepted for call-site compatibility but no longer affects sizing
+    (parent containers are fixed-size with a stacked layout).
+    """
+
+    def __init__(self, parent=None, master_data=None, N=12, command=None, equipment_slot=None, selection_type=None, text=""):
         super().__init__(str(text), parent)
-
-    def _build_list_layout(self):
-        self.setLayout(QtWidgets.QGridLayout())
-        self.layout().setContentsMargins(4, 4, 4, 4)
-        self.layout().setSpacing(2)
-
-        self.inner = QtWidgets.QWidget(self)
-        self.inner_layout = QtWidgets.QVBoxLayout(self.inner)
-        self.inner_layout.setContentsMargins(0, 0, 0, 0)
-        self.inner_layout.setSpacing(0)
-        self.layout().addWidget(self.inner, 0, 0)
-
-        self.scrollbar = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Vertical, self)
-        self.scrollbar.valueChanged.connect(self._on_scrollbar_value_changed)
-        self.layout().addWidget(self.scrollbar, 0, 1)
-
-    def _install_wheel_filter(self, *widgets):
-        for widget in widgets:
-            widget.installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        if event.type() == QtCore.QEvent.Type.Wheel:
-            self._scroll_by_delta(event.angleDelta().y())
-            return True
-        return super().eventFilter(obj, event)
-
-    def wheelEvent(self, event):
-        self._scroll_by_delta(event.angleDelta().y())
-        event.accept()
-
-    def _scroll_by_delta(self, delta):
-        if self.total_items <= self.N:
-            return
-        self.start_index += -1 if delta > 0 else 1
-        self._clamp()
-        self._refresh()
-
-    def _on_scrollbar_value_changed(self, value):
-        if getattr(self, "_updating_scrollbar", False):
-            return
-        self.start_index = value
-        self._clamp()
-        self._refresh()
-
-    def _clamp(self):
-        self.start_index = max(0, min(self.start_index, max(0, self.total_items - self.N)))
-
-    def _update_scrollbar_visibility(self):
-        self.scrollbar.setVisible(self.total_items > self.N)
-
-    def _update_scrollbar(self):
-        maximum = max(0, self.total_items - self.N)
-        self._updating_scrollbar = True
-        self.scrollbar.setRange(0, maximum)
-        self.scrollbar.setPageStep(max(1, self.N))
-        self.scrollbar.setValue(self.start_index)
-        self._updating_scrollbar = False
-
-
-class VirtualRadioFrame(_VirtualFrameBase):
-    def __init__(self, parent, master_data, N=12, command=None, equipment_slot=None, selection_type=None, text=""):
-        super().__init__(parent, text=text)
         self.N = N
-        self.master_data = sorted(master_data)
-        self.visible_data = self.master_data.copy()
-        self.total_items = len(self.visible_data)
-        self.start_index = 0
+        self.master_data = sorted(master_data or [])
+        self.master_set = set(self.master_data)
         self.selected_value = ""
 
         self.equipment_slot = equipment_slot
         self.command = command
         self.selection_type = selection_type
 
-        self._build_list_layout()
-        self.button_group = QtWidgets.QButtonGroup(self)
-        self.button_group.setExclusive(True)
-        self.radio_buttons = []
-        for i in range(self.N):
-            rb = QtWidgets.QRadioButton("", self.inner)
-            rb.toggled.connect(lambda checked, idx=i: self._on_button_toggled(idx, checked))
-            self.inner_layout.addWidget(rb)
-            self.button_group.addButton(rb)
-            self.radio_buttons.append(rb)
-            self._install_wheel_filter(rb)
-        self.inner_layout.addStretch(1)
-        self._install_wheel_filter(self, self.inner)
+        self._updating = False
 
-        self._update_scrollbar_visibility()
-        self._refresh()
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        self.list_widget = QtWidgets.QListWidget(self)
+        self.list_widget.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.list_widget.setUniformItemSizes(True)
+        self.list_widget.currentItemChanged.connect(self._on_current_changed)
+        layout.addWidget(self.list_widget)
+
+        self.set_visible_data(self.master_data)
 
     def set_visible_data(self, filtered_list):
         """
         Update the visible items by passing a list.
         Show items that are in the input list and the master "all items" list.
         """
-        self.visible_data = sorted([x for x in filtered_list if x in self.master_data])
-        self.total_items = len(self.visible_data)
-        self.start_index = 0
-        self._update_scrollbar_visibility()
-        self._refresh()
+        visible = sorted(x for x in filtered_list if x in self.master_set)
+        self._updating = True
+        self.list_widget.clear()
+        self.list_widget.addItems(visible)
+        self._restore_selection()
+        self._updating = False
 
     def get_selected(self):
         return self.selected_value
 
     def set_selected(self, value):
-        if value in self.master_data:
+        if value in self.master_set:
             self.selected_value = value
-        self._refresh()
+        self._updating = True
+        self._restore_selection()
+        self._updating = False
 
-    def _refresh(self):
-        for i in range(self.N):
-            idx = self.start_index + i
-            rb = self.radio_buttons[i]
-            if idx < self.total_items:
-                val = self.visible_data[idx]
-                rb.blockSignals(True)
-                rb.setText(val)
-                rb.setProperty("item_value", val)
-                rb.setChecked(val == self.selected_value)
-                rb.setEnabled(True)
-                rb.blockSignals(False)
-            else:
-                rb.blockSignals(True)
-                rb.setText("")
-                rb.setProperty("item_value", "")
-                rb.setChecked(False)
-                rb.setEnabled(False)
-                rb.blockSignals(False)
-        self._update_scrollbar()
+    def _restore_selection(self):
+        if not self.selected_value:
+            self.list_widget.setCurrentItem(None)
+            return
+        matches = self.list_widget.findItems(self.selected_value, QtCore.Qt.MatchFlag.MatchExactly)
+        self.list_widget.setCurrentItem(matches[0] if matches else None)
 
-    def _on_button_toggled(self, widget_index, checked):
-        if not checked:
+    def _on_current_changed(self, current, previous):
+        if self._updating or current is None:
             return
-        idx = self.start_index + widget_index
-        if idx >= self.total_items:
-            return
-        self.selected_value = self.visible_data[idx]
+        self.selected_value = current.text()
         if self.command:
-            event = (self.equipment_slot, self.selected_value, self.selection_type)
-            self.command(event)
+            self.command((self.equipment_slot, self.selected_value, self.selection_type))
 
 
-class VirtualCheckboxFrame(_VirtualFrameBase):
-    def __init__(self, parent, master_data, N=12, text=""):
-        super().__init__(parent, text=text)
+class VirtualCheckboxFrame(QtWidgets.QGroupBox):
+    """
+    Multi-selection checkbox list backed by a native ``QListWidget``.
+
+    ``selection_state`` over the full master dataset is the source of truth;
+    check state of the (filtered) visible rows mirrors it. ``N`` is accepted
+    for call-site compatibility but no longer affects sizing.
+    """
+
+    def __init__(self, parent=None, master_data=None, N=12, text=""):
+        super().__init__(str(text), parent)
         self.N = N
-        self.master_data = sorted(master_data)
+        self.master_data = sorted(master_data or [])
+        self.master_set = set(self.master_data)
         self.visible_data = self.master_data.copy()
-        self.total_items = len(self.visible_data)
-        self.start_index = 0
-
         self.selection_state = {name: False for name in self.master_data}
 
-        self._build_list_layout()
-        self.checkbuttons = []
-        for i in range(self.N):
-            cb = QtWidgets.QCheckBox("", self.inner)
-            cb.toggled.connect(lambda checked, idx=i: self._update_selection(idx, checked))
-            self.inner_layout.addWidget(cb)
-            self.checkbuttons.append(cb)
-            self._install_wheel_filter(cb)
-        self.inner_layout.addStretch(1)
-        self._install_wheel_filter(self, self.inner)
+        self._updating = False
 
-        self._update_scrollbar_visibility()
-        self._refresh()
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        self.list_widget = QtWidgets.QListWidget(self)
+        self.list_widget.setUniformItemSizes(True)
+        self.list_widget.itemChanged.connect(self._on_item_changed)
+        layout.addWidget(self.list_widget)
+
+        self._populate(self.master_data)
 
     def set_visible_data(self, filtered_list):
-        self.visible_data = sorted([x for x in filtered_list if x in self.master_data])
-        self.total_items = len(self.visible_data)
-        self.start_index = 0
-        self._update_scrollbar_visibility()
-        self._refresh()
+        self._populate(filtered_list)
 
     def get_selected(self):
         return [k for k, v in self.selection_state.items() if v]
@@ -192,27 +115,21 @@ class VirtualCheckboxFrame(_VirtualFrameBase):
         for name in names:
             if name in self.selection_state:
                 self.selection_state[name] = True
-        self._refresh()
+        self._refresh_checks()
 
     def deselect(self, name):
         targets = self._resolve_targets(
             name,
             "deselect() expects 'all', 'visible', a string, or a list/tuple/set of strings",
         )
-        for k in targets:
-            if isinstance(k, str) and k in self.selection_state:
-                self.selection_state[k] = False
-        self._refresh()
+        self._apply(targets, False)
 
     def select(self, name):
         targets = self._resolve_targets(
             name,
             "select() expects 'all', 'visible', a string, or a list/tuple/set of strings",
         )
-        for k in targets:
-            if isinstance(k, str) and k in self.selection_state:
-                self.selection_state[k] = True
-        self._refresh()
+        self._apply(targets, True)
 
     def _resolve_targets(self, name, error_message):
         if name == "all":
@@ -225,30 +142,38 @@ class VirtualCheckboxFrame(_VirtualFrameBase):
             return name
         raise TypeError(error_message)
 
-    def _update_selection(self, widget_index, checked):
-        idx = self.start_index + widget_index
-        if idx < self.total_items:
-            name = self.visible_data[idx]
-            self.selection_state[name] = bool(checked)
+    def _apply(self, targets, value):
+        for k in targets:
+            if isinstance(k, str) and k in self.selection_state:
+                self.selection_state[k] = value
+        self._refresh_checks()
 
-    def _refresh(self):
-        for i in range(self.N):
-            idx = self.start_index + i
-            cb = self.checkbuttons[i]
-            if idx < self.total_items:
-                name = self.visible_data[idx]
-                cb.blockSignals(True)
-                cb.setText(name)
-                cb.setChecked(self.selection_state.get(name, False))
-                cb.setEnabled(True)
-                cb.blockSignals(False)
-            else:
-                cb.blockSignals(True)
-                cb.setText("")
-                cb.setChecked(False)
-                cb.setEnabled(False)
-                cb.blockSignals(False)
-        self._update_scrollbar()
+    def _populate(self, visible):
+        self.visible_data = sorted(x for x in visible if x in self.master_set)
+        self._updating = True
+        self.list_widget.clear()
+        for name in self.visible_data:
+            item = QtWidgets.QListWidgetItem(name)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
+            checked = self.selection_state.get(name, False)
+            item.setCheckState(QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked)
+            self.list_widget.addItem(item)
+        self._updating = False
+
+    def _refresh_checks(self):
+        self._updating = True
+        for i in range(self.list_widget.count()):
+            item = self.list_widget.item(i)
+            checked = self.selection_state.get(item.text(), False)
+            item.setCheckState(QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked)
+        self._updating = False
+
+    def _on_item_changed(self, item):
+        if self._updating:
+            return
+        name = item.text()
+        if name in self.selection_state:
+            self.selection_state[name] = item.checkState() == QtCore.Qt.CheckState.Checked
 
 
 def generate_data(n=5000):

@@ -28,7 +28,6 @@ import actions as actions_pyfile
 import buffs as buffs_pyfile
 import wsdist as wsdist_pyfile
 import fancy_plot as fancy_plot_pyfile
-from lumo_scrollablelabelframe import ScrollableLabelFrame # TODO: Replace with ChatGPT's virtual_frames
 from gpt_manage_defaults import *
 
 from virtual_frames import VirtualCheckboxFrame, VirtualRadioFrame
@@ -1686,10 +1685,21 @@ class application(QtWidgets.QMainWindow):
           Build the frame containing player abilities
         ===============================================
         '''
-        sf = ScrollableLabelFrame(inputs_frame, text="  Special Toggles  ")
+        sf = QtWidgets.QGroupBox("  Special Toggles  ", inputs_frame)
         sf.setFixedSize(200, 210)
         inputs_frame_layout.addWidget(sf, 0, 1, QtCore.Qt.AlignmentFlag.AlignTop)
-        toggles_layout = sf.interior.layout()
+
+        sf_scroll = QtWidgets.QScrollArea(sf)
+        sf_scroll.setWidgetResizable(True)
+        sf_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        sf_interior = QtWidgets.QFrame()
+        toggles_layout = QtWidgets.QVBoxLayout(sf_interior)
+        toggles_layout.setContentsMargins(0, 0, 0, 0)
+        toggles_layout.setSpacing(2)
+        sf_scroll.setWidget(sf_interior)
+        sf_layout = QtWidgets.QGridLayout(sf)
+        sf_layout.setContentsMargins(0, 0, 0, 0)
+        sf_layout.addWidget(sf_scroll, 0, 0)
 
         # Be careful here. The buff names here must match exactly what is presented in the "buffs.py" file under "misc_buffs" dict. # TODO: move this to buffs.py with debuffs
         self.all_special_toggles_dict = dict(sorted({
