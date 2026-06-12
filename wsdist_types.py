@@ -4,12 +4,12 @@ Central home for the reused structural shapes (gear pieces, gearsets, stat
 sheets, buff tables) and the numpy float-array alias used across the calc
 engine.
 
-The gear/stat dictionaries are accessed with runtime-computed string keys and
-hold heterogeneous values (a stat is usually a number, but e.g. ``"WSC"`` holds
-a list, and gear metadata keys hold strings/lists). They are therefore aliased
-as ``dict[str, Any]`` rather than ``TypedDict``: a TypedDict forbids the dynamic
-``piece[stat]`` access these dicts are built around. The aliases still document
-intent and give every function signature that passes them a real type.
+The gear dictionaries are accessed with runtime-computed string keys and hold
+heterogeneous values (a stat is usually a number, but gear metadata keys hold
+strings/lists). They are therefore aliased as ``dict[str, Any]`` rather than
+``TypedDict``: a TypedDict forbids the dynamic ``piece[stat]`` access these
+dicts are built around. The aliases still document intent and give every
+function signature that passes them a real type.
 """
 
 from collections.abc import Mapping
@@ -30,9 +30,10 @@ GearPiece: TypeAlias = dict[str, Any]
 # Equipment set: slot name ("main", "sub", "head", ...) -> gear piece.
 Gearset: TypeAlias = dict[str, GearPiece]
 
-# Accumulated player stat sheet keyed by stat name. Mostly float values, with a
-# few keys (e.g. "WSC") holding lists.
-Stats: TypeAlias = dict[str, Any]
+# Accumulated player stat sheet keyed by stat name. Every value is numeric;
+# non-float data (the WSC list, the Wyvern attack flag) lives in dedicated
+# create_player attributes instead.
+Stats: TypeAlias = dict[str, float]
 
 # Enemy stat sheet keyed by stat name. Unlike the player sheet, every value is
 # numeric (Defense, Evasion, VIT, ..., Magic Damage Taken) -- no list/str keys --

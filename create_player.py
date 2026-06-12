@@ -54,6 +54,12 @@ class create_player:
         # Create a dictionary to contain all of the stats provided to the character from their selected <main_job>, <sub_job>, traits, job points, and merits.
         self.stats: Stats = {}
 
+        # Non-float stat data lives outside <stats> so the sheet stays purely numeric.
+        # WSC: weapon-skill stat-contribution bonuses from gear, as (stat_name, coeff) pairs.
+        self.wsc: list[tuple[str, float]] = []
+        # Wyvern Bonus Attack%: flags the +20% attack a fully leveled Wyvern grants a DRG.
+        self.wyvern_bonus_attack: bool = False
+
         # Add base stats (ignoring gear or buffs).
         self.add_base_stats()
 
@@ -543,11 +549,11 @@ class create_player:
         #
         # Add Smite.
         if self.gearset["main"]["Skill Type"] in (two_handed+["Hand-to-Hand"]):
-            smite_level = self.stats.get("Smite",0)
+            smite_level = int(self.stats.get("Smite",0))
             self.stats["Attack%"] = self.stats.get("Attack%",0) + {5:304./1024, 4:256./1024, 3:204./1024, 2:152./1024, 1:100./1024, 0:0.}[smite_level]
         # Add Fencer.
         if (self.gearset["sub"]["Type"] in ["Shield","None"]) and (self.gearset["main"]["Skill Type"]!="Hand-to-Hand") and (self.gearset["main"]["Skill Type"] not in two_handed):
-            fencer_level = 8 if self.stats.get("Fencer",0) > 8 else self.stats.get("Fencer",0)
+            fencer_level = 8 if self.stats.get("Fencer",0) > 8 else int(self.stats.get("Fencer",0))
             fencer_bonuses = {0:[0,0], 1:[200,3], 2:[300,5], 3:[400,7], 4:[450,9], 5:[500,10], 6:[550,11], 7:[600,12], 8:[630,13]}[fencer_level]
             self.stats["TP Bonus"] = self.stats.get("TP Bonus",0) + fencer_bonuses[0] + self.stats.get("Fencer TP Bonus",0)
             self.stats["Crit Rate"] = self.stats.get("Crit Rate",0) + fencer_bonuses[1]
@@ -773,7 +779,8 @@ class create_player:
                         if stat in ["FUA","OA8","OA7","OA6","OA5","OA4","OA3","OA2","EnSpell Damage","EnSpell Damage%"] and slot in ["main", "sub"]: # OAX stats apply only to the weapon they are attached to.
                             self.stats[f"{stat} {slot}"] = self.stats.get(f"{stat} {slot}",0) + self.gearset[slot][stat]
                         elif stat=="WSC":
-                            self.stats[stat] = self.stats.get(stat,[]) + [self.gearset[slot][stat]]
+                            name, coeff = self.gearset[slot][stat]
+                            self.wsc.append((name, coeff))
                         else:
                             self.stats[stat] = self.stats.get(stat,0) + self.gearset[slot][stat]
                     else:
@@ -1116,7 +1123,7 @@ class create_player:
             self.stats["CHR"] = self.stats.get("CHR",0) + 1+5-2
 
         if self.main_job == "drg": # Bonus stats for having a fully leveled Wyvern pet:
-            self.stats["Wyvern Bonus Attack%"] = True # This represents the +20% attack that will be applied later for having a wyvern out. Additive bonus with smite, berserk, chaos roll, etc.
+            self.wyvern_bonus_attack = True # This represents the +20% attack that will be applied later for having a wyvern out. Additive bonus with smite, berserk, chaos roll, etc.
             self.stats["Weapon Skill Damage Trait"] = self.stats.get("Weapon Skill Damage Trait",0) + 10 
             self.stats["JA Haste"] = self.stats.get("JA Haste",0) + 10
             self.stats["DA"] = self.stats.get("DA",0) + 15

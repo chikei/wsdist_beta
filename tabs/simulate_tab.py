@@ -9,7 +9,7 @@ shared helpers, and `best_player` are reached through `ctx`.
 '''
 
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 from PySide6 import QtCore, QtWidgets
 
@@ -433,24 +433,13 @@ class SimulateTab(QtWidgets.QWidget):
                 if pet_stat:
                     stat = "Pet:" + stat
 
-                if stat.lower() == "wsc":
-
-                    param: Any = ""
-                    if isinstance(tp_stat, list):
-                        param, tp_stat = cast("tuple[Any, Any]", tp_stat[0])
-                    else:
-                        tp_stat = 0
-
-                    if isinstance(ws_stat, list):
-                        param, ws_stat = cast("tuple[Any, Any]", ws_stat[0])
-                    else:
-                        ws_stat = 0
-                    tp_stat = f"{tp_stat:.0f}%"
-                    ws_stat = f"{ws_stat:.0f}%"
-
-                    stat = f"{stat}:{param}"
-
                 print(f"{stat:>{max_stat_name_length}}   {tp_stat:>10}   {ws_stat:<10}")
+
+            # WSC lives outside <stats> now; show the first contribution pair from each player.
+            tp_param, tp_coeff = tp_player.wsc[0] if tp_player.wsc else ("", 0)
+            ws_param, ws_coeff = ws_player.wsc[0] if ws_player.wsc else ("", 0)
+            wsc_label = f"WSC:{tp_param or ws_param}"
+            print(f"{wsc_label:>{max_stat_name_length}}   {f'{tp_coeff:.0f}%':>10}   {f'{ws_coeff:.0f}%':<10}")
 
         if "show stats" in trigger:
 

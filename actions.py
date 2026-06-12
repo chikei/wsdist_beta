@@ -1530,7 +1530,7 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
         stp = player.stats.get("Store TP",0)/100
         occult_acumen = player.stats.get("Occult Acumen",0)/100
 
-        tp_return = int(mp_cost * occult_acumen) * (1 + stp)
+        tp_return = int(int(mp_cost) * occult_acumen) * (1 + stp)
 
         if input_metric=="Damage dealt":
             metric = damage
@@ -1739,7 +1739,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
     hover_shot = player.abilities.get("Hover Shot",False)*(ws_type=="ranged")
 
-    ws_info = weaponskill_info(ws_name, tp, player, enemy, player.stats.get("WSC",[]), dual_wield,)
+    ws_info = weaponskill_info(ws_name, tp, player, enemy, player.wsc, dual_wield,)
 
     nhits = ws_info["nhits"]
     wsc = ws_info["wsc"]

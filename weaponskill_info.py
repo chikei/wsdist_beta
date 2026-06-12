@@ -85,7 +85,7 @@ def _apply_shining_one(ctx: WSContext, ws_name: str) -> None:
     ctx.crit_rate += np.interp(ctx.tp, [1000, 2000, 3000], crit_boost)
 
 
-def weaponskill_info(ws_name: str, tp: float, player: "create_player", enemy: "create_enemy", wsc_bonus: list[list[Any]], dual_wield: bool) -> dict[str, Any]:
+def weaponskill_info(ws_name: str, tp: float, player: "create_player", enemy: "create_enemy", wsc_bonus: list[tuple[str, float]], dual_wield: bool) -> dict[str, Any]:
     #
     # Setup weaponskill statistics (TP scaling, # of hits, ftp replication, WSC, etc)
     #
