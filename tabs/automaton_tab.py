@@ -6,6 +6,8 @@ at the controller call site; the tab still builds standalone for development.
 Buttons print their slot id pending real attachment-selection logic.
 '''
 
+from typing import Any
+
 import numpy as np
 
 from PySide6 import QtCore, QtWidgets
@@ -14,13 +16,13 @@ from PySide6 import QtCore, QtWidgets
 class AutomatonTab(QtWidgets.QWidget):
     '''Pet head/frame, attachment grid, and maneuver column for Puppetmaster.'''
 
-    def __init__(self, ctx, parent=None):
+    def __init__(self, ctx: Any, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
 
         layout = QtWidgets.QGridLayout(self)
 
-        self.automaton_equipped_dict = {f"slot{i}": {} for i in range(21)}  # 16 attachments, 3 maneuvers, head, frame
+        self.automaton_equipped_dict: dict[str, dict[str, Any]] = {f"slot{i}": {} for i in range(21)}  # 16 attachments, 3 maneuvers, head, frame
 
         container = QtWidgets.QFrame()
         container.setFrameShape(QtWidgets.QFrame.Shape.Box)

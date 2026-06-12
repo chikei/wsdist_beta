@@ -6,13 +6,15 @@ sim driver populates those labels; the three buttons re-run `quicklook` for the
 quicklook / TP / WS gear sets.
 '''
 
+from typing import Any
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class StatsTab(QtWidgets.QWidget):
     '''Displays computed player stats grouped by category.'''
 
-    def __init__(self, ctx, parent=None):
+    def __init__(self, ctx: Any, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
 
@@ -52,7 +54,7 @@ class StatsTab(QtWidgets.QWidget):
         stats_frame_layout.setSpacing(2)
         layout.addWidget(stats_frame, 1, 0)
 
-        stats_subframes = []
+        stats_subframes: list[QtWidgets.QGridLayout] = []
         for sub_row in range(3):
             sub = QtWidgets.QWidget()
             sub_layout = QtWidgets.QGridLayout(sub)
@@ -71,11 +73,11 @@ class StatsTab(QtWidgets.QWidget):
                         ["PDT", "MDT", "DT", "Evasion", "Magic Evasion", "Magic Defense", "Subtle Blow", "Subtle Blow II", ],
                         ["Regain", "Store TP", "Crit Rate", "Crit Damage", "Ranged Crit Damage", "Weapon Skill Damage", "Weapon Skill Damage Trait", "Skillchain Bonus", "PDL", "PDL Trait", "TP Bonus", ]
                         ]
-        self.stats_dict = {stat: {} for k in useful_stats for stat in k}
+        self.stats_dict: dict[str, dict[str, Any]] = {stat: {} for k in useful_stats for stat in k}
 
         stat_font = QtGui.QFont("Courier", 10)
 
-        def build_stat_group(parent_layout, title, stats_list, size, title_align, grid_pos, sticky=None):
+        def build_stat_group(parent_layout: QtWidgets.QGridLayout, title: str, stats_list: list[str], size: tuple[int, int], title_align: QtCore.Qt.AlignmentFlag, grid_pos: tuple[int, int], sticky: str | None = None) -> QtWidgets.QGroupBox:
             group = QtWidgets.QGroupBox(title)
             group.setAlignment(title_align)
             group.setFixedSize(*size)

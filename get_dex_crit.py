@@ -3,10 +3,10 @@ File containing calculations for determining critical hit rate bonus from player
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_dex_crit(player_dex, enemy_agi):
+def get_dex_crit(player_dex: float, enemy_agi: float) -> float:
     #
     # Calculate DEX-based critical hit rate bonus using the equation from BG wiki
     # https://www.bg-wiki.com/ffxi/Critical_Hit_Rate

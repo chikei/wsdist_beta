@@ -3,10 +3,10 @@ File containing calculations for real-world time (seconds) between attack rounds
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_delay_timing(delay1, delay2, dw, marts, magic_haste, ja_haste, gear_haste):
+def get_delay_timing(delay1: float, delay2: float, dw: float, marts: float, magic_haste: float, ja_haste: float, gear_haste: float) -> float:
     #
     # Uses your modified delay to calculate seconds between attack rounds.
     # 1 real-world second per 60 weapon delay.
@@ -24,8 +24,6 @@ def get_delay_timing(delay1, delay2, dw, marts, magic_haste, ja_haste, gear_hast
 
     rdelay = (delay-marts)*(1-dw)*(1-total_haste) # Reduced weapon delay, including martial arts, dual wield, and all forms of haste
     rdelay = 0.2*delay if rdelay < 0.2*delay else rdelay # -80% delay cap, including Dual Wield, Martial Arts, and Haste
-
-    delay_reduction = 1 - rdelay/delay # Should be between 0 and 0.8
 
     tpa = rdelay/60 # Convert reduced delay into real-world seconds.
 

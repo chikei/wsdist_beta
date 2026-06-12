@@ -3,10 +3,12 @@ File containing calculations for magic damage dealt.
 
 Author: Kastra (Asura server)
 '''
+from typing import Any
+
 from get_dint_m_v import *
 import numpy as np
 
-def get_enspell_damage(enhancing_magic_skill, enspell_damage_percent, enspell_damage):
+def get_enspell_damage(enhancing_magic_skill: float, enspell_damage_percent: float, enspell_damage: float) -> float:
     '''
     Calculate EnSpell damage based on Enhancing Magic Skill and EnSpell enhancing equipment.
     Using values obtained from personal data collection for the range 500-650 enhancing skill.
@@ -22,7 +24,7 @@ def get_enspell_damage(enhancing_magic_skill, enspell_damage_percent, enspell_da
     return(damage)
 
 
-def quickdraw(rng_dmg, ammo_dmg, element, gearset, player_matk, player_magic_damage, enemy_int, enemy_mdb, enemy_meva, job_abilities):
+def quickdraw(rng_dmg: float, ammo_dmg: float, element: str, gearset: Any, player_matk: float, player_magic_damage: float, enemy_int: float, enemy_mdb: float, enemy_meva: float, job_abilities: dict[str, Any]) -> float:
     #
     # Calculate Quick Draw damage
     #
@@ -202,7 +204,7 @@ def quickdraw(rng_dmg, ammo_dmg, element, gearset, player_matk, player_magic_dam
 #     return(d)
 
 @njit
-def get_dstat_macc(player_stat, enemy_stat):
+def get_dstat_macc(player_stat: float, enemy_stat: float) -> float:
     #
     # Calculate the magic accuracy obtained from player stats vs enemy stats.
     #
@@ -252,7 +254,7 @@ def get_dstat_macc(player_stat, enemy_stat):
     return(dstat_macc)
 
 @njit
-def get_magic_hit_rate(player_macc, enemy_meva=0):
+def get_magic_hit_rate(player_macc: float, enemy_meva: float = 0) -> float:
     #
     # https://www.bg-wiki.com/ffxi/Magic_Hit_Rate
     # These equations are straightforward without room for other interpretations.
@@ -265,7 +267,7 @@ def get_magic_hit_rate(player_macc, enemy_meva=0):
     magic_hit_rate = 0 if magic_hit_rate < 0 else magic_hit_rate # Minimum is 0% hit rate, which always leads to a 1/8 resist.
     return(magic_hit_rate)
 
-def get_resist_state(magic_hit_rate):
+def get_resist_state(magic_hit_rate: float) -> float:
     #
     # https://www.bg-wiki.com/ffxi/Resist
     # Sounds like this bit simply rolls three times or until your roll wins.
@@ -280,7 +282,7 @@ def get_resist_state(magic_hit_rate):
     # resist_state = 1*(1-0.5*(roll1 > magic_hit_rate)) * (1-0.5*(roll2 > magic_hit_rate)) * (1-0.5*(roll3 > magic_hit_rate))
 
     resist_state = 1.0
-    for k in range(3):
+    for _ in range(3):
         if magic_hit_rate >= np.random.uniform(0,1):
             break
         else:
@@ -289,7 +291,7 @@ def get_resist_state(magic_hit_rate):
     return(resist_state)
 
 @njit
-def get_resist_state_average(magic_hit_rate):
+def get_resist_state_average(magic_hit_rate: float) -> float:
     #
     # Estimate the average resist coefficient using magic hit rate
     #
@@ -311,4 +313,4 @@ if __name__ == "__main__":
     #
     player_INT = 254
     enemy_INT = 217
-    print(get_macc_dstat(player_INT, enemy_INT))
+    print(get_dstat_macc(player_INT, enemy_INT))

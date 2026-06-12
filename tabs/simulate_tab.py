@@ -8,7 +8,9 @@ QuicklookTab via `ctx.quicklook_tab.gather_player_inputs()`; the menu toggles,
 shared helpers, and `best_player` are reached through `ctx`.
 '''
 
-import numpy as np
+from collections.abc import Callable
+from typing import Any, cast
+
 from PySide6 import QtCore, QtWidgets
 
 import gear as gear_pyfile
@@ -22,7 +24,7 @@ from virtual_frames import VirtualRadioFrame
 class SimulateTab(QtWidgets.QWidget):
     '''TP/WS gear sets and the simulation controls.'''
 
-    def __init__(self, ctx, parent=None):
+    def __init__(self, ctx: Any, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
 
@@ -31,8 +33,8 @@ class SimulateTab(QtWidgets.QWidget):
         layout.setSpacing(5)
         layout.setColumnStretch(0, 1)
 
-        def build_simulation_set(set_type, group_title, equipped_dict, scrollframes, visible_cb,
-                                 copy_inputs_event, copy_clip_event):
+        def build_simulation_set(set_type: str, group_title: str, equipped_dict: dict[str, Any], scrollframes: dict[str, Any], visible_cb: Callable[..., Any],
+                                 copy_inputs_event: str, copy_clip_event: str) -> QtWidgets.QWidget:
             '''Build one Equipped-set frame (TP or WS): copy buttons, gear grid, slot pickers.'''
             outer = QtWidgets.QWidget()
             outer.setFixedSize(650, 300)
@@ -95,14 +97,14 @@ class SimulateTab(QtWidgets.QWidget):
             return outer
 
         # Top frame: TP set.
-        self.tp_quicklook_equipped_dict = {slot: {"icon": self.ctx.get_equipment_icon(), "item": gear_pyfile.Empty} for slot in self.ctx.state.all_equipment_dict}
-        self.tp_quicklook_scrollframes = {}
+        self.tp_quicklook_equipped_dict: dict[str, dict[str, Any]] = {slot: {"icon": self.ctx.get_equipment_icon(), "item": gear_pyfile.Empty} for slot in self.ctx.state.all_equipment_dict}
+        self.tp_quicklook_scrollframes: dict[str, Any] = {}
         simulations_tp_frame = build_simulation_set("tp", "Equipped TP set", self.tp_quicklook_equipped_dict, self.tp_quicklook_scrollframes, self.update_visible_quicklook_frame_tp, "tp to quicklook", "tp")
         layout.addWidget(simulations_tp_frame, 0, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
 
         # Bottom frame: WS set.
-        self.ws_quicklook_equipped_dict = {slot: {"icon": self.ctx.get_equipment_icon(), "item": gear_pyfile.Empty} for slot in self.ctx.state.all_equipment_dict}
-        self.ws_quicklook_scrollframes = {}
+        self.ws_quicklook_equipped_dict: dict[str, dict[str, Any]] = {slot: {"icon": self.ctx.get_equipment_icon(), "item": gear_pyfile.Empty} for slot in self.ctx.state.all_equipment_dict}
+        self.ws_quicklook_scrollframes: dict[str, Any] = {}
         simulations_ws_frame = build_simulation_set("ws", "Equipped WS set", self.ws_quicklook_equipped_dict, self.ws_quicklook_scrollframes, self.update_visible_quicklook_frame_ws, "ws to quicklook", "ws")
         layout.addWidget(simulations_ws_frame, 1, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
 
@@ -133,17 +135,17 @@ class SimulateTab(QtWidgets.QWidget):
         compare_sets.clicked.connect(lambda checked=False: self.quicklook("compare tp ws stats"))
         simulation_button_layout.addWidget(compare_sets, 0, 2)
 
-    def update_visible_quicklook_frame_tp(self, slot):
+    def update_visible_quicklook_frame_tp(self, slot: str) -> None:
         '''Raise the TP set's scrollframe for the selected slot.'''
         self.ctx.set_visible_frame(self.tp_quicklook_scrollframes[slot])
         self.tp_visible_quicklook_frame_slot = slot
 
-    def update_visible_quicklook_frame_ws(self, slot):
+    def update_visible_quicklook_frame_ws(self, slot: str) -> None:
         '''Raise the WS set's scrollframe for the selected slot.'''
         self.ctx.set_visible_frame(self.ws_quicklook_scrollframes[slot])
         self.ws_visible_quicklook_frame_slot = slot
 
-    def copy_gearset_dict(self, event):
+    def copy_gearset_dict(self, event: Any) -> None:
         '''
         When clicking the Copy to TP/WS/Quickook buttons
         Copy the gearset displayed at the source to the destination.
@@ -168,6 +170,8 @@ class SimulateTab(QtWidgets.QWidget):
             destination_dict = self.ctx.quicklook_tab.quicklook_equipped_dict
             destination_scrollframe = self.ctx.quicklook_tab.quicklook_scrollframes
             destination_tab = "0"
+        else:
+            return
 
         for slot in destination_dict:
             destination_dict[slot]["item"] = source_dict[slot]["item"]
@@ -180,7 +184,7 @@ class SimulateTab(QtWidgets.QWidget):
 
         self.ctx.notebook.setCurrentIndex(int(destination_tab))
 
-    def quicklook(self, trigger):
+    def quicklook(self, trigger: Any) -> None:
         '''
         When clicking the "Quicklook WS" button.
         Compile the player stats from selected buffs and equipment.
@@ -321,9 +325,9 @@ class SimulateTab(QtWidgets.QWidget):
             equipped_ws_gearset = {slot:self.ws_quicklook_equipped_dict[slot]["item"] for slot in self.ws_quicklook_equipped_dict}
             ws_player = create_player_pyfile.create_player(main_job, sub_job, master_level, gearset=equipped_ws_gearset, buffs=active_buffs, abilities=special_toggles_dict,)
 
-            damage_list = []
-            tp_list = []
-            for k in range(20000): # Sample 20,000 WSs with a fixed TP value
+            damage_list: list[Any] = []
+            tp_list: list[Any] = []
+            for _ in range(20000): # Sample 20,000 WSs with a fixed TP value
                 outputs = actions_pyfile.average_ws(ws_player, enemy, ws_name, tp_entry_value, ws_type, "Damage dealt", simulation=True, single=True, verbose=False)
                 damage_list.append(outputs[0])
                 tp_list.append(outputs[1])
@@ -346,10 +350,12 @@ class SimulateTab(QtWidgets.QWidget):
 
             # Calculate time per WS
             tp_output_tp = actions_pyfile.average_attack_round(tp_player, enemy, 0, tp_entry_value, "Time to WS")
-            tp_player_time = np.round(tp_output_tp[0], 3)
+            tp_player_time = round(float(tp_output_tp[0]), 3)
             tp_output_ws = actions_pyfile.average_attack_round(ws_player, enemy, 0, tp_entry_value, "Time to WS")
-            ws_player_time = np.round(tp_output_ws[0], 3)
+            ws_player_time = round(float(tp_output_ws[0]), 3)
 
+            tp_player_spell = 0.0
+            ws_player_spell = 0.0
             if spell_name != "None":
                 # Calculate damage dealt by selected spell
                 if "ton: " in spell_name.lower():
@@ -429,13 +435,14 @@ class SimulateTab(QtWidgets.QWidget):
 
                 if stat.lower() == "wsc":
 
+                    param: Any = ""
                     if isinstance(tp_stat, list):
-                        param, tp_stat = tp_stat[0]
+                        param, tp_stat = cast("tuple[Any, Any]", tp_stat[0])
                     else:
                         tp_stat = 0
 
                     if isinstance(ws_stat, list):
-                        param, ws_stat = ws_stat[0]
+                        param, ws_stat = cast("tuple[Any, Any]", ws_stat[0])
                     else:
                         ws_stat = 0
                     tp_stat = f"{tp_stat:.0f}%"

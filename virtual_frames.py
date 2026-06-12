@@ -5,6 +5,9 @@ Checkbox and radio frame widgets backed by native Qt list views.
 keep selection state and a filterable visible window over a master dataset.
 """
 
+from collections.abc import Callable, Iterable
+from typing import Any, cast
+
 from PySide6 import QtCore, QtWidgets
 
 
@@ -17,7 +20,7 @@ class VirtualRadioFrame(QtWidgets.QGroupBox):
     (parent containers are fixed-size with a stacked layout).
     """
 
-    def __init__(self, parent=None, master_data=None, N=12, command=None, equipment_slot=None, selection_type=None, text=""):
+    def __init__(self, parent: QtWidgets.QWidget | None = None, master_data: list[str] | None = None, N: int = 12, command: Callable[..., Any] | None = None, equipment_slot: str | None = None, selection_type: str | None = None, text: str = "") -> None:
         super().__init__(str(text), parent)
         self.N = N
         self.master_data = sorted(master_data or [])
@@ -40,7 +43,7 @@ class VirtualRadioFrame(QtWidgets.QGroupBox):
 
         self.set_visible_data(self.master_data)
 
-    def set_visible_data(self, filtered_list):
+    def set_visible_data(self, filtered_list: list[str]) -> None:
         """
         Update the visible items by passing a list.
         Show items that are in the input list and the master "all items" list.
@@ -52,24 +55,24 @@ class VirtualRadioFrame(QtWidgets.QGroupBox):
         self._restore_selection()
         self._updating = False
 
-    def get_selected(self):
+    def get_selected(self) -> str:
         return self.selected_value
 
-    def set_selected(self, value):
+    def set_selected(self, value: str) -> None:
         if value in self.master_set:
             self.selected_value = value
         self._updating = True
         self._restore_selection()
         self._updating = False
 
-    def _restore_selection(self):
+    def _restore_selection(self) -> None:
         if not self.selected_value:
-            self.list_widget.setCurrentItem(None)
+            self.list_widget.setCurrentItem(None)  # pyright: ignore[reportArgumentType]  # None clears selection at runtime
             return
         matches = self.list_widget.findItems(self.selected_value, QtCore.Qt.MatchFlag.MatchExactly)
-        self.list_widget.setCurrentItem(matches[0] if matches else None)
+        self.list_widget.setCurrentItem(matches[0] if matches else None)  # pyright: ignore[reportArgumentType]  # None clears selection at runtime
 
-    def _on_current_changed(self, current, previous):
+    def _on_current_changed(self, current: QtWidgets.QListWidgetItem | None, previous: QtWidgets.QListWidgetItem | None) -> None:
         if self._updating or current is None:
             return
         self.selected_value = current.text()
@@ -86,7 +89,7 @@ class VirtualCheckboxFrame(QtWidgets.QGroupBox):
     for call-site compatibility but no longer affects sizing.
     """
 
-    def __init__(self, parent=None, master_data=None, N=12, text=""):
+    def __init__(self, parent: QtWidgets.QWidget | None = None, master_data: list[str] | None = None, N: int = 12, text: str = "") -> None:
         super().__init__(str(text), parent)
         self.N = N
         self.master_data = sorted(master_data or [])
@@ -105,33 +108,33 @@ class VirtualCheckboxFrame(QtWidgets.QGroupBox):
 
         self._populate(self.master_data)
 
-    def set_visible_data(self, filtered_list):
+    def set_visible_data(self, filtered_list: list[str]) -> None:
         self._populate(filtered_list)
 
-    def get_selected(self):
+    def get_selected(self) -> list[str]:
         return [k for k, v in self.selection_state.items() if v]
 
-    def set_selected(self, names):
+    def set_selected(self, names: list[str]) -> None:
         for name in names:
             if name in self.selection_state:
                 self.selection_state[name] = True
         self._refresh_checks()
 
-    def deselect(self, name):
+    def deselect(self, name: Any) -> None:
         targets = self._resolve_targets(
             name,
             "deselect() expects 'all', 'visible', a string, or a list/tuple/set of strings",
         )
         self._apply(targets, False)
 
-    def select(self, name):
+    def select(self, name: Any) -> None:
         targets = self._resolve_targets(
             name,
             "select() expects 'all', 'visible', a string, or a list/tuple/set of strings",
         )
         self._apply(targets, True)
 
-    def _resolve_targets(self, name, error_message):
+    def _resolve_targets(self, name: Any, error_message: str) -> Iterable[Any]:
         if name == "all":
             return self.selection_state.keys()
         if name == "visible":
@@ -139,16 +142,16 @@ class VirtualCheckboxFrame(QtWidgets.QGroupBox):
         if isinstance(name, str):
             return [name]
         if isinstance(name, (list, tuple, set)):
-            return name
+            return cast("Iterable[Any]", name)
         raise TypeError(error_message)
 
-    def _apply(self, targets, value):
+    def _apply(self, targets: Iterable[Any], value: bool) -> None:
         for k in targets:
             if isinstance(k, str) and k in self.selection_state:
                 self.selection_state[k] = value
         self._refresh_checks()
 
-    def _populate(self, visible):
+    def _populate(self, visible: list[str]) -> None:
         self.visible_data = sorted(x for x in visible if x in self.master_set)
         self._updating = True
         self.list_widget.clear()
@@ -160,7 +163,7 @@ class VirtualCheckboxFrame(QtWidgets.QGroupBox):
             self.list_widget.addItem(item)
         self._updating = False
 
-    def _refresh_checks(self):
+    def _refresh_checks(self) -> None:
         self._updating = True
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
@@ -168,7 +171,7 @@ class VirtualCheckboxFrame(QtWidgets.QGroupBox):
             item.setCheckState(QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked)
         self._updating = False
 
-    def _on_item_changed(self, item):
+    def _on_item_changed(self, item: QtWidgets.QListWidgetItem) -> None:
         if self._updating:
             return
         name = item.text()
@@ -176,13 +179,13 @@ class VirtualCheckboxFrame(QtWidgets.QGroupBox):
             self.selection_state[name] = item.checkState() == QtCore.Qt.CheckState.Checked
 
 
-def generate_data(n=5000):
+def generate_data(n: int = 5000) -> list[str]:
     import random
 
     return [f"Item {i:04d} - " + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=5)) for i in range(n)]
 
 
-def main():
+def main() -> None:
     app = QtWidgets.QApplication([])
     root = QtWidgets.QWidget()
     root.setWindowTitle("Virtual Frames External Filtering Demo")
@@ -200,7 +203,7 @@ def main():
     layout.addWidget(radio_frame, 1, 0)
     layout.addWidget(checkbox_frame, 1, 1)
 
-    def apply_filter(text):
+    def apply_filter(text: str) -> None:
         ft = text.lower()
         filtered_list = [x for x in master_data if ft in x.lower()]
         radio_frame.set_visible_data(filtered_list)

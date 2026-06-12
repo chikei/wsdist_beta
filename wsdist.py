@@ -10,20 +10,25 @@ This algorithm may get caught in a crit build if starting from a crit build, but
     
 Author: Kastra (Asura server)
 '''
-from create_player import *
-import numpy as np
-from actions import *
+import os
 import sys
 from datetime import datetime # For timestamping new sets to put on BG Wiki
+from typing import Any, cast
+
+from create_player import *
+from actions import *
+
+from wsdist_types import Buffs, GearPiece, Gearset
 
 # Use an external gear.py file
 # https://stackoverflow.com/questions/47350078/importing-external-module-in-single-file-exe-created-with-pyinstaller
-import sys
-import os
 sys.path.append(os.path.dirname(sys.executable))
 from gear import *
 
-def format_bgwiki(ws_name, tp, player, best_metric):
+# Imported last so the numpy alias is not shadowed by the wildcard imports above.
+import numpy as np
+
+def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric: Any) -> None:
     #
     # Input: A player class containing job and gear info.
     # Output: None
@@ -37,12 +42,12 @@ def format_bgwiki(ws_name, tp, player, best_metric):
     item_list = np.loadtxt("item_list.csv", unpack=False, dtype=str, delimiter=';', usecols=(1,2), skiprows=1)
     name_map = {k[0].lower():k[1] for k in item_list}
 
-    backaugs = []
+    backaugs: list[str] = []
     for stat in player.gearset["back"]:
         if stat.lower() in ["str","dex","vit","agi","int","mnd","chr","da","store tp","dual wield","crit rate","weapon skill damage", "magic attack"]:
             backaugs.append(stat)
 
-    linosaugs = []
+    linosaugs: list[str] = []
     for stat in player.gearset["ranged"]:
         if stat.lower() in ["str","dex","vit","agi","int","mnd","chr","da","store tp","dual wield","crit rate","weapon skill damage", "magic attack","qa","da","ta"]:
             linosaugs.append(stat)
@@ -141,14 +146,22 @@ def format_bgwiki(ws_name, tp, player, best_metric):
     """
     print(bgwiki_text)
 
-def build_set(main_job, sub_job, master_level, buffs, abilities, enemy, ws_name, spell_name, action_type, min_tp, check_gear, starting_gearset, pdt_requirement, mdt_requirement, input_metric, print_swaps, next_best_percent, ):
+def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abilities: dict[str, Any], enemy: "create_enemy", ws_name: str, spell_name: str, action_type: str, min_tp: float, check_gear: dict[str, Any], starting_gearset: Gearset, pdt_requirement: float, mdt_requirement: float, input_metric: str, print_swaps: bool, next_best_percent: float, ) -> tuple[Any, Any]:
     #
     # Build a valid gear set, test it, and return the best set found.
     #
     # action_type = "ranged attack", "weapon skill", "tp round", "spell cast"
     #
     n_iter = 10
-    fitn = 2
+    fitn: int = 2
+
+    # Defaults for values otherwise only set inside the optimization loop / branches.
+    best_metric = 0.0001
+    best_output: list[Any] = [0.0, 0.0, 0.0]
+    invert = 1
+    decimals = 1
+    nondecimals = 8
+    swaps: dict[str, list[Any]] = {}
 
     verbose_swaps = abilities.get("Verbose Swaps", False)
 
@@ -277,7 +290,7 @@ def build_set(main_job, sub_job, master_level, buffs, abilities, enemy, ws_name,
             swaps = {"ammo":[],"head":[],"neck":[],"ear1":[],"ear2":[],"body":[],"hands":[],"ring1":[],"ring2":[],"waist":[],"legs":[],"feet":[]}
 
             # Randomize the order that we check gear slots in
-            check_slots = np.array([k for k in check_gear])
+            check_slots: list[str] = list(check_gear)
             np.random.shuffle(check_slots)
 
             # For now, the code will only support two simultaneous swaps. Adding a third requires only adding a new for loop, but it adds a significant amount of computation time.
@@ -289,23 +302,28 @@ def build_set(main_job, sub_job, master_level, buffs, abilities, enemy, ws_name,
                         continue
                     
                     # Only check single item swaps if fitn==1
-                    if fitn==1:
+                    if fitn==1:  # pyright: ignore[reportUnnecessaryComparison]  # fitn is a feature toggle, currently fixed to 2
                         if i2 != i1:
                             continue
 
-                    test_set = best_set.copy()
+                    test_set: Gearset = {slot: cast(GearPiece, piece) for slot, piece in best_set.items()}
                     
                     # Randomize the order that the gear in each slot is checked.
                     np.random.shuffle(check_gear[slot1])
                     np.random.shuffle(check_gear[slot2])
 
-                    for j1,item1 in enumerate(check_gear[slot1]):
-                        for j2,item2 in enumerate(check_gear[slot2]):
+                    for item1 in cast("list[GearPiece]", check_gear[slot1]):
+                        for item2 in cast("list[GearPiece]", check_gear[slot2]):
 
                             if (slot1==slot2) and (item1!=item2): # Do not try to equip two different items in the same slot.
                                 continue
 
-                            if (main_job not in item1["Jobs"]) or (main_job not in item2["Jobs"]): # Do not equip items your main job can not use.
+                            # Booleans (rather than a direct `main_job not in ...`) so the
+                            # membership test does not flow-narrow main_job against the Any-typed
+                            # "Jobs" lists.
+                            item1_usable = main_job in cast("list[str]", item1["Jobs"])
+                            item2_usable = main_job in cast("list[str]", item2["Jobs"])
+                            if (not item1_usable) or (not item2_usable): # Do not equip items your main job can not use.
                                 continue
 
                             if (item1==best_set[slot1]) or (item2==best_set[slot2]): # If an item is already equipped in one of the slots, then skip the iteration. I let the "item1==item2" cases handle single-item swaps.
@@ -314,6 +332,12 @@ def build_set(main_job, sub_job, master_level, buffs, abilities, enemy, ws_name,
                             # Equip the items and check that the test_set is valid.
                             test_set[slot1] = item1
                             test_set[slot2] = item2
+
+                            # Re-bind to reset pyright's flow narrowing: across this large
+                            # nested loop with dozens of membership tests, both types
+                            # otherwise degrade to "Unknown" downstream.
+                            main_job = cast(str, main_job)
+                            test_set = cast(Gearset, test_set)  # pyright: ignore[reportUnnecessaryCast]
 
 
                             if (test_set["ring1"]==test_set["ring2"]) and (test_set["ring1"]["Name"]!="Empty"): # Do not try to equip a second unique ring (unless the item is "Empty").
@@ -418,7 +442,10 @@ def build_set(main_job, sub_job, master_level, buffs, abilities, enemy, ws_name,
                                 #print("test14")
 
                                 # Reject sets if their main-hand weapon or ranged weapon can't use the selected weapon skill.
-                                if (ws_name not in ws_dict.get(test_set["main"]["Skill Type"],[])) and (ws_name not in ws_dict.get(test_set["ranged"]["Skill Type"],[])):
+                                # Booleans so the membership tests do not flow-narrow ws_name against the Any-typed skill lists.
+                                ws_on_main = ws_name in ws_dict.get(test_set["main"]["Skill Type"], [])
+                                ws_on_ranged = ws_name in ws_dict.get(test_set["ranged"]["Skill Type"], [])
+                                if (not ws_on_main) and (not ws_on_ranged):
                                     continue
                                 #print("test15")
                             
@@ -572,7 +599,7 @@ def build_set(main_job, sub_job, master_level, buffs, abilities, enemy, ws_name,
 
     # Print additional output formatted for BG Wiki item sets.
     if False:
-        format_bgwiki(header, (min_tp), best_player, best_metric)
+        format_bgwiki(ws_name, (min_tp), best_player, best_metric)
 
     return(best_player, best_output)
 
@@ -581,15 +608,15 @@ if __name__ == "__main__":
     main_job = sys.argv[1]
     sub_job = sys.argv[2]
     master_level = int(sys.argv[3])
-    buffs = {}
-    abilities = {}
-    enemy = create_enemy(apex_toad)
+    buffs: dict[str, Any] = {}
+    abilities: dict[str, Any] = {}
+    enemy = create_enemy(preset_enemies["Apex Toad"])
     ws_name = "Blade: Metsu"
     spell_name = "Waterja"
     action_type = "weapon skill"
     min_tp = 1000
     check_gear = gear_dict
-    starting_gearset = { "main" : Heishi,
+    starting_gearset: Gearset = { "main" : Heishi,
                         'sub' : Crepuscular_Knife,
                         'ranged' : Empty,
                         'ammo' : Seki,
@@ -604,7 +631,7 @@ if __name__ == "__main__":
                         'ear2' : Telos_Earring,
                         'ring1' : Gere_Ring,
                         'ring2' : Epona_Ring,
-                        'back' : np.random.choice([k for k in capes if "nin" in k["Jobs"] and "DEX Store TP" in k["Name2"] and "Ranged" not in k])}
+                        'back' : np.random.choice(cast(Any, [k for k in capes if "nin" in k["Jobs"] and "DEX Store TP" in k["Name2"] and "Ranged" not in k]))}
     pdt_requirement = -50
     mdt_requirement = -21
     print_swaps = True

@@ -8,6 +8,8 @@ best set" emits `bestSetReady`, which QuicklookTab consumes to equip the gear.
 Job changes arrive via `apply_slot_refilter` (QuicklookTab.slotsRefiltered).
 '''
 
+from typing import Any, cast
+
 import numpy as np
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -22,7 +24,13 @@ class OptimizeTab(QtWidgets.QWidget):
 
     bestSetReady = QtCore.Signal(dict)  # Emitted with the best gearset when "Equip best set" is clicked.
 
-    def __init__(self, ctx, parent=None):
+    # Comboboxes attached dynamically via setattr() (keyed by their object_name).
+    mastery_rank_combobox: QtWidgets.QComboBox
+    ody_rank_combobox: QtWidgets.QComboBox
+    soa_ring_combobox: QtWidgets.QComboBox
+    tvr_ring_combobox: QtWidgets.QComboBox
+
+    def __init__(self, ctx: Any, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
         self.visible_optimize_frame_slot = "main"
@@ -61,7 +69,7 @@ class OptimizeTab(QtWidgets.QWidget):
         optimize_frame_topleft_layout.addWidget(buttons_grid_frame1, 0, 0, align_hcenter)
 
         button_size = 48
-        select_buttons_dict = {slot: {} for slot in self.ctx.state.equipment_button_positions}
+        select_buttons_dict: dict[str, dict[str, Any]] = {slot: {} for slot in self.ctx.state.equipment_button_positions}
         for slot in self.ctx.state.equipment_button_positions:
             button = QtWidgets.QPushButton(slot)
             button.setFixedSize(button_size, button_size)
@@ -132,7 +140,7 @@ class OptimizeTab(QtWidgets.QWidget):
         optimize_frame_top_layout.addWidget(opt_scrollframe_relative_frame, 0, 1)
 
         opt_scrollframe_stack = QtWidgets.QStackedLayout(opt_scrollframe_relative_frame)
-        self.optimize_scrollframes = {}
+        self.optimize_scrollframes: dict[str, Any] = {}
         for slot in self.ctx.state.all_equipment_dict:
             equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict[slot]])
             self.optimize_scrollframes[slot] = VirtualCheckboxFrame(opt_scrollframe_relative_frame,
@@ -239,7 +247,7 @@ class OptimizeTab(QtWidgets.QWidget):
 
         self.ctx.set_visible_frame(self.optimize_scrollframes["main"])
 
-    def apply_slot_refilter(self, updates):
+    def apply_slot_refilter(self, updates: dict[str, Any]) -> None:
         '''
         Slot for QuicklookTab.slotsRefiltered. Refresh each affected optimize
         scrollframe with the job-filtered item list (computed by QuicklookTab).
@@ -253,12 +261,12 @@ class OptimizeTab(QtWidgets.QWidget):
             elif deselect is not None:
                 self.optimize_scrollframes[slot].deselect(deselect)
 
-    def update_visible_optimize_frame(self, slot):
+    def update_visible_optimize_frame(self, slot: str) -> None:
         '''Raise the selected slot's scrollframe and record it as the visible slot.'''
         self.ctx.set_visible_frame(self.optimize_scrollframes[slot])
         self.visible_optimize_frame_slot = slot
 
-    def select_gear_opt(self, event):
+    def select_gear_opt(self, event: Any) -> None:
         '''Select or unselect gear in the optimize scrollframes based on the button pressed.'''
         tvr_ring_names = [k.lower() + " ring" for k in self.ctx.state.tvr_rings]
         soa_ring_names = [k.lower() + " ring +1" for k in self.ctx.state.soa_rings]
@@ -267,7 +275,7 @@ class OptimizeTab(QtWidgets.QWidget):
         relic_names = ["Pedagogy", "Hesychast", "Vitiation", "Mochizuki", "Fallen", "Horos", "Pitre", "Luhlaza", "Plunderer", "Bagua", "Archmage", "Piety", "Agoge", "Caballarius", "Wakido", "Ankusa", "Bihu", "Glyphic", "Lanun", "Arcadian", "Pteroslaver", "Futhark"]
         af_names = ["Academic", "Anchorite", "Atrophy", "Hachiya", "Ignominy", "Maxixi", "Foire", "Assimilator", "Pillager", "Geomancy", "Spaekona", "Theophany", "Pummeler", "Reverence", "Sakonji", "Totemic", "Brioso", "Convoker", "Laksamana", "Orion", "Vishap", "Runeist"]
 
-        input_items_full = []  # Full item names
+        input_items_full: list[str] = []  # Full item names
         if event == "select all file":
             filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Select file', './')
 
@@ -276,7 +284,8 @@ class OptimizeTab(QtWidgets.QWidget):
                     for line in ifile:
                         try:
                             item_name_abbreviated = line.split('"')[1]
-                            item_index = np.flatnonzero(np.char.lower(self.ctx.state.item_id_dict["name2"]) == item_name_abbreviated.lower())
+                            name_match_mask = cast(Any, np.char.lower(self.ctx.state.item_id_dict["name2"]) == item_name_abbreviated.lower())
+                            item_index = np.flatnonzero(name_match_mask)
                             if len(item_index) > 0:
                                 input_items_full.append(str(self.ctx.state.item_id_dict["name"][item_index[0]]))
                             else:

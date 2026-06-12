@@ -1,17 +1,30 @@
+# pyright: basic
+# This module is almost entirely matplotlib calls, whose bundled stubs are
+# incomplete and would emit dozens of reportUnknown* diagnostics under the
+# project's strict mode without catching real bugs. It is checked at "basic"
+# instead; the public function signatures below are still annotated so importers
+# (gui_main, tabs) see real types.
 '''
 File containing code to plot a histogram of weapon skill damage values after N simulations.
-    
+
 Author: Kastra (Asura server)
 '''
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.image as mpimg
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+from wsdist_types import Gearset
+
+if TYPE_CHECKING:
+    from create_player import create_player
+
 # Create a fancy plot of a weapon skill distribution.
 
-def get_image_ids(gearset):
+def get_image_ids(gearset: Gearset) -> list[int]:
 
     items_file = "item_list.csv"
     icons_path = "icons32/"
@@ -31,7 +44,7 @@ def get_image_ids(gearset):
 
     return(ids)
 
-def plot_final(damage, player, tp1, WS_name,):
+def plot_final(damage: Any, player: "create_player", tp1: float, WS_name: str,) -> None:
 
     items_file = "item_list.txt"
     icons_path = "icons32/"
@@ -47,25 +60,25 @@ def plot_final(damage, player, tp1, WS_name,):
 
     # https://jakevdp.github.io/PythonDataScienceHandbook/04.08-multiple-subplots.html
     fig = plt.figure(figsize=(10,5))
-    ax   = fig.add_axes([0.175, 0.1, 0.8, 0.75])
+    ax   = fig.add_axes((0.175, 0.1, 0.8, 0.75))
 
     # 16 subplots, one for each equipment slot.
-    ax1  = fig.add_axes([-0.1+0.11,        0.76,        0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax2  = fig.add_axes([-0.1+0.11+1*0.04, 0.76,        0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax3  = fig.add_axes([-0.1+0.11+2*0.04, 0.76,        0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax4  = fig.add_axes([-0.1+0.11+3*0.04, 0.76,        0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax5  = fig.add_axes([-0.1+0.11,        0.76-0.08,   0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax6  = fig.add_axes([-0.1+0.11+1*0.04, 0.76-0.08,   0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax7  = fig.add_axes([-0.1+0.11+2*0.04, 0.76-0.08,   0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax8  = fig.add_axes([-0.1+0.11+3*0.04, 0.76-0.08,   0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax9  = fig.add_axes([-0.1+0.11,        0.76-2*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax10 = fig.add_axes([-0.1+0.11+1*0.04, 0.76-2*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax11 = fig.add_axes([-0.1+0.11+2*0.04, 0.76-2*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax12 = fig.add_axes([-0.1+0.11+3*0.04, 0.76-2*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax13 = fig.add_axes([-0.1+0.11,        0.76-3*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax14 = fig.add_axes([-0.1+0.11+1*0.04, 0.76-3*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax15 = fig.add_axes([-0.1+0.11+2*0.04, 0.76-3*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
-    ax16 = fig.add_axes([-0.1+0.11+3*0.04, 0.76-3*0.08, 0.15/4, 0.3/4],xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax1  = fig.add_axes((-0.1+0.11,        0.76,        0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax2  = fig.add_axes((-0.1+0.11+1*0.04, 0.76,        0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax3  = fig.add_axes((-0.1+0.11+2*0.04, 0.76,        0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax4  = fig.add_axes((-0.1+0.11+3*0.04, 0.76,        0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax5  = fig.add_axes((-0.1+0.11,        0.76-0.08,   0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax6  = fig.add_axes((-0.1+0.11+1*0.04, 0.76-0.08,   0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax7  = fig.add_axes((-0.1+0.11+2*0.04, 0.76-0.08,   0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax8  = fig.add_axes((-0.1+0.11+3*0.04, 0.76-0.08,   0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax9  = fig.add_axes((-0.1+0.11,        0.76-2*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax10 = fig.add_axes((-0.1+0.11+1*0.04, 0.76-2*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax11 = fig.add_axes((-0.1+0.11+2*0.04, 0.76-2*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax12 = fig.add_axes((-0.1+0.11+3*0.04, 0.76-2*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax13 = fig.add_axes((-0.1+0.11,        0.76-3*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax14 = fig.add_axes((-0.1+0.11+1*0.04, 0.76-3*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax15 = fig.add_axes((-0.1+0.11+2*0.04, 0.76-3*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
+    ax16 = fig.add_axes((-0.1+0.11+3*0.04, 0.76-3*0.08, 0.15/4, 0.3/4),xticklabels=[],xticks=[],yticks=[],yticklabels=[])
     gear_ax = [ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9, ax10, ax11, ax12, ax13, ax14, ax15, ax16]
 
     # Obtain player stats to be printed on the plot under the gear set.

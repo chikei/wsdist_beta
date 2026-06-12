@@ -3,17 +3,20 @@ File containing code to build a player character with gear and aggregate stats.
 
 Author: Kastra (Asura server)
 '''
+from typing import Any
+
 from enemies import *
+from wsdist_types import Buffs, Gearset, Stats
 
 class create_enemy:
     #
     # Create an enemy class so that we may modify its stats more easily.
     #
-    def __init__(self, enemy):
+    def __init__(self, enemy: dict[str, Any]) -> None:
         #
         #
         #
-        self.stats = {}
+        self.stats: Stats = {}
         ignore_stats = ["Name", "Location"] # Ignore the strings to create a dictionary of numeric values
         for stat in enemy:
             if stat not in ignore_stats:
@@ -34,7 +37,7 @@ class create_player:
     #    abilities
     #    stats
     #
-    def __init__(self, main_job, sub_job, master_level=20, gearset={}, buffs={}, abilities={},):
+    def __init__(self, main_job: str, sub_job: str, master_level: int = 20, gearset: Gearset = {}, buffs: Buffs = {}, abilities: dict[str, Any] = {},) -> None:
         #
         #
         #
@@ -49,7 +52,7 @@ class create_player:
         self.sub_job_level = self.main_job_level//2 + self.master_level//5
 
         # Create a dictionary to contain all of the stats provided to the character from their selected <main_job>, <sub_job>, traits, job points, and merits.
-        self.stats = {}
+        self.stats: Stats = {}
 
         # Add base stats (ignoring gear or buffs).
         self.add_base_stats()
@@ -66,7 +69,7 @@ class create_player:
         # Sort the player stats alphabetically.
         self.stats = dict(sorted(self.stats.items()))
 
-    def get_skill_accuracy(self, skill_level):
+    def get_skill_accuracy(self, skill_level: float) -> float:
         #
         # Calculate accuracy from weapon-type skill.
         # The contribution from skill changes with different skill levels. We need to add the contributions separately
@@ -85,7 +88,7 @@ class create_player:
 
 
 
-    def finalize_stats(self,):
+    def finalize_stats(self,) -> None:
         #
         # Finalize the player stats. Create main/off-hand attacks/accuracies, increase Evasion based on skill/AGI, etc.
         # We ignore weapon skill bonuses (such as Blade: Shun's attack bonus) here.
@@ -105,7 +108,7 @@ class create_player:
 
         # We'll apply caps to certain stats in the main code.
 
-    def finalize_offensive_stats(self,):
+    def finalize_offensive_stats(self,) -> None:
         #
         # Compute Evasion, per-hand Attack/Accuracy, and Ranged Attack/Accuracy from skill, STR/DEX/AGI, and buffs.
         #
@@ -157,7 +160,7 @@ class create_player:
         elif ranged_skill in ["Marksmanship Skill","Archery Skill"]:
             self.stats["Ranged Accuracy"] += int(0.75*(self.stats.get("AGI",0))) + self.get_skill_accuracy(ranged_skill_level)
 
-    def finalize_weapon_dmg_delay(self, dual_wield):
+    def finalize_weapon_dmg_delay(self, dual_wield: bool) -> None:
         #
         # Set weapon DMG/Delay stats and zero-out stats that don't apply to the gearset.
         #
@@ -193,7 +196,7 @@ class create_player:
             self.stats["Delay2"] = self.stats["Delay1"]
             self.stats["Dual Wield"] = 0
 
-    def finalize_haste_and_delay(self,):
+    def finalize_haste_and_delay(self,) -> None:
         #
         # Calculate total haste, Hand-to-Hand DMG/Delay specifics, and the final delay reduction.
         #
@@ -229,7 +232,7 @@ class create_player:
         self.stats["Delay Reduction"] = (1 - reduced_delay/base_delay) if (1 - reduced_delay/base_delay) < 0.8 else 0.8
 
     # def add_buffs(self, main_job, sub_job, master_level, stats, gearset, buffs, abilities): # We don't need to pass any of this in because they are all already part of self. TODO: remove these arguments
-    def add_buffs(self,):
+    def add_buffs(self,) -> None:
         #
         # Add stats from buffs and job abilities.
         #
@@ -257,7 +260,7 @@ class create_player:
         # Add buffs accessible to all jobs from assumed party members.
         self.add_universal_party_member_buffs()
 
-    def add_party_buffs(self,):
+    def add_party_buffs(self,) -> None:
         #
         # Add buffs from Food, COR, BRD, GEO, and WHM (everything in self.buffs).
         #
@@ -267,7 +270,7 @@ class create_player:
                 if stat not in ignore_stats:
                     self.stats[stat] = self.stats.get(stat,0) + self.buffs[source][stat]
 
-    def add_war_mnk_ability_buffs(self, jobs):
+    def add_war_mnk_ability_buffs(self, jobs: list[str]) -> None:
         #
         # Add buffs from Warrior and Monk job abilities.
         #
@@ -308,7 +311,7 @@ class create_player:
                     self.stats["Crit Rate"] = self.stats.get("Crit Rate",0) + 20*(1 - (99 - (self.sub_job_level))/100)
                     self.stats["Accuracy"] = self.stats.get("Accuracy",0) + 100*(1 - (99 - (self.sub_job_level))/100)
 
-    def add_caster_ability_buffs(self, jobs):
+    def add_caster_ability_buffs(self, jobs: list[str]) -> None:
         #
         # Add buffs from Black Mage and Red Mage job abilities.
         #
@@ -333,7 +336,7 @@ class create_player:
                     self.stats["EnSpell Damage%"] = self.stats.get("EnSpell Damage%",0) + 200 # +200% EnSpell damage from Composure
                     self.stats["EnSpell Damage"] = self.stats.get("EnSpell Damage",0)
 
-    def add_thf_pld_drk_ability_buffs(self, jobs, two_handed):
+    def add_thf_pld_drk_ability_buffs(self, jobs: list[str], two_handed: list[str]) -> None:
         #
         # Add buffs from Thief, Paladin, and Dark Knight job abilities.
         #
@@ -378,7 +381,7 @@ class create_player:
                     self.stats["Accuracy"] = self.stats.get("Accuracy",0) + 20
                     self.stats["Attack"] = self.stats.get("Attack",0) + (((dark_magic_skill + 20)/13 + 5)*2.5) * endark_potency + 20 # +125 attack at 600 skill
 
-    def add_rng_sam_nin_cor_ability_buffs(self, jobs, two_handed):
+    def add_rng_sam_nin_cor_ability_buffs(self, jobs: list[str], two_handed: list[str]) -> None:
         #
         # Add buffs from Ranger, Samurai, Ninja, and Corsair job abilities.
         #
@@ -457,7 +460,7 @@ class create_player:
                 self.stats["Triple Shot"] = 0
                 self.stats["Quad Shot"] = 0
 
-    def add_dnc_sch_geo_run_bst_ability_buffs(self, jobs):
+    def add_dnc_sch_geo_run_bst_ability_buffs(self, jobs: list[str]) -> None:
         #
         # Add buffs from Dancer, Scholar, Geomancer, Rune Fencer, and Beastmaster abilities.
         #
@@ -513,7 +516,7 @@ class create_player:
             if self.abilities.get("Frenzied Rage",False):
                 self.stats["Attack%"] = self.stats.get("Attack%",0) + 0.25
 
-    def add_pup_gear_bonus(self,):
+    def add_pup_gear_bonus(self,) -> None:
         #
         # Add the Puppetmaster exclusive gear bonus.
         #
@@ -534,7 +537,7 @@ class create_player:
         # ===========================================================================
         # ===========================================================================
 
-    def add_smite_and_fencer(self, two_handed):
+    def add_smite_and_fencer(self, two_handed: list[str]) -> None:
         #
         # Add Smite (two-handed/H2H Attack%) and Fencer (TP Bonus/Crit Rate).
         #
@@ -549,7 +552,7 @@ class create_player:
             self.stats["TP Bonus"] = self.stats.get("TP Bonus",0) + fencer_bonuses[0] + self.stats.get("Fencer TP Bonus",0)
             self.stats["Crit Rate"] = self.stats.get("Crit Rate",0) + fencer_bonuses[1]
 
-    def add_aftermath_buffs(self,):
+    def add_aftermath_buffs(self,) -> None:
         #
         # Add Relic, Mythic, and Prime weapon aftermath stats.
         #
@@ -564,7 +567,7 @@ class create_player:
 
             # Empyrean Aftermath is entirely handled in the main code when calculating damage.
 
-    def add_relic_aftermath(self, aftermath_level, main_wpn_name, ranged_wpn_name):
+    def add_relic_aftermath(self, aftermath_level: int, main_wpn_name: str, ranged_wpn_name: str) -> None:
         #
         # Add Relic weapon aftermath stats.
         #
@@ -605,7 +608,7 @@ class create_player:
                 self.stats["Kick Attacks"] = self.stats.get("Kick Attacks",0) + 15
                 self.stats["Subtle Blow"] = self.stats.get("Subtle Blow",0) + 10
 
-    def add_mythic_aftermath(self, aftermath_level, main_wpn_name, ranged_wpn_name):
+    def add_mythic_aftermath(self, aftermath_level: int, main_wpn_name: str, ranged_wpn_name: str) -> None:
         #
         # Add Mythic weapon aftermath stats (melee and ranged).
         #
@@ -614,7 +617,7 @@ class create_player:
             mythic_am_scaling = 0.85
             myth99max = (99-40)*mythic_am_scaling + 40 
             myth49max = (49-30)*mythic_am_scaling + 30
-            mythic_am_dict = {"Conqueror":[  ["Accuracy",myth49max], ["Attack",myth99max]   ],
+            mythic_am_dict: dict[str, list[list[Any]]] = {"Conqueror":[  ["Accuracy",myth49max], ["Attack",myth99max]   ],
                             "Glanzfaust":[  ["Accuracy",myth49max], ["Attack",myth99max]   ],
                             "Vajra":[  ["Accuracy",myth49max], ["Attack",myth99max]   ],
                             "Gastraphetes":[  ["Ranged Accuracy",myth49max], ["Ranged Attack",myth99max]   ],
@@ -647,7 +650,7 @@ class create_player:
             if ranged_wpn_name in mythic_am_dict and aftermath_level in [1,2]: # Ranged Mythic aftermath check. We deal with Lv2 later in the main code when calculating damage.
                     self.stats[mythic_am_dict[ranged_wpn_name][aftermath_level-1][0]] = self.stats.get(mythic_am_dict[ranged_wpn_name][aftermath_level-1][0],0) + mythic_am_dict[ranged_wpn_name][aftermath_level-1][1]
 
-    def add_prime_aftermath(self, aftermath_level, main_wpn_name, main_wpn_name2):
+    def add_prime_aftermath(self, aftermath_level: int, main_wpn_name: str, main_wpn_name2: str) -> None:
         #
         # Add Prime weapon aftermath effects (PDL, Magic Damage, Magic Attack).
         #
@@ -670,12 +673,13 @@ class create_player:
                     prime_pdl = (prime_aftermath_pdl[stage][2] - prime_aftermath_pdl[stage][1])*prime_aftermath_potency + prime_aftermath_pdl[stage][1]
                     prime_mdmg = (prime_aftermath_mdmg[stage][2] - prime_aftermath_mdmg[stage][1])*prime_aftermath_potency + prime_aftermath_mdmg[stage][1]
                     prime_matk = (prime_aftermath_matk[stage][2] - prime_aftermath_matk[stage][1])*prime_aftermath_potency + prime_aftermath_matk[stage][1]
-                elif aftermath_level==3:
+                ## aftermath_level==3
+                else:
                     prime_pdl = prime_aftermath_pdl[stage][2]
                     prime_mdmg = prime_aftermath_mdmg[stage][2]
                     prime_matk = prime_aftermath_matk[stage][2]
 
-                prime_am_dict = {"Caliburnus":[["PDL",prime_pdl]],
+                prime_am_dict: dict[str, list[list[Any]]] = {"Caliburnus":[["PDL",prime_pdl]],
                                 "Dokoku":[["PDL",prime_pdl]],
                                 "Earp":[["PDL",prime_pdl]],
                                 "Foenaria":[["PDL",prime_pdl]],
@@ -694,7 +698,7 @@ class create_player:
                     for stat in prime_am_dict[main_wpn_name]:
                         self.stats[stat[0]] = self.stats.get(stat[0],0) + stat[1]
 
-    def add_universal_party_member_buffs(self,):
+    def add_universal_party_member_buffs(self,) -> None:
         #
         # Add buffs accessible to all jobs from assumed party members (SMN, BLU, BST, WAR, etc).
         #
@@ -742,7 +746,7 @@ class create_player:
 
 
     # def add_gear_stats(self, stats, gearset):
-    def add_gear_stats(self,):
+    def add_gear_stats(self,) -> None:
         #
         # Add stats from the equipped gear, including set bonuses at the end.
         #
@@ -750,7 +754,7 @@ class create_player:
         set_counts = self.count_set_bonus_pieces()
         self.apply_set_bonuses(set_counts)
 
-    def accumulate_gear_stats(self,):
+    def accumulate_gear_stats(self,) -> None:
         #
         # Accumulate the individual stats from each equipped gear piece into self.stats.
         #
@@ -775,7 +779,7 @@ class create_player:
                     else:
                         self.stats[f"{slot} {stat}"] = self.stats.get(f"{slot} {stat}",0) + self.gearset[slot][stat]
 
-    def count_set_bonus_pieces(self,):
+    def count_set_bonus_pieces(self,) -> dict[str, int]:
         #
         # Count the number of equipped pieces for each set bonus, capping each at 5.
         #
@@ -829,7 +833,7 @@ class create_player:
                 "regal_ring":regal_ring_count, "regal_earring":regal_earring_count, "adhemar":adhemar_count,
                 "amalric":amalric_count, "lustratio":lustratio_count, "ryuo":ryuo_count}
 
-    def apply_set_bonuses(self, set_counts):
+    def apply_set_bonuses(self, set_counts: dict[str, int]) -> None:
         #
         # Apply the stat bonuses granted by each equipped armor set, given the piece counts.
         #
@@ -861,7 +865,7 @@ class create_player:
 
 
     # def add_base_stats(self, stats, main_job, sub_job, master_level=20):
-    def add_base_stats(self,):
+    def add_base_stats(self,) -> None:
         #
         # Include base stats (without any gear or buffs) to the <stats> dictionary.
         #
@@ -1135,7 +1139,7 @@ if __name__ == "__main__":
     main_job = sys.argv[1]
     sub_job = sys.argv[2]
     master_level = int(sys.argv[3])
-    gearset = { "main" : Heishi,
+    gearset: Gearset = { "main" : Heishi,
                 "sub" : Kraken_Club,
                 "ranged" : Empty,
                 "ammo" : Date,

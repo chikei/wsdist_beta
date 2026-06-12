@@ -4,16 +4,19 @@ File containing code to automatically find and return the state of GUI widgets i
 Authors: ChatGPT (GPT-5.1), OpenAI.  Kastra (Asura server)
 '''
 
+from collections.abc import Iterator
+from typing import Any
+
 from PySide6 import QtWidgets
 
 
-def walk_widgets(root):
+def walk_widgets(root: QtWidgets.QWidget) -> Iterator[QtWidgets.QWidget]:
     """Yield the root widget and all of its descendant widgets."""
     yield root
     yield from root.findChildren(QtWidgets.QWidget)
 
 
-def get_widget_state(widget):
+def get_widget_state(widget: QtWidgets.QWidget) -> Any:
     '''
     Given a widget object, return the relevant state/value of the widget.
     '''
@@ -35,7 +38,7 @@ def get_widget_state(widget):
     return None
 
 
-def set_widget_state(widget, value):
+def set_widget_state(widget: QtWidgets.QWidget, value: Any) -> None:
     '''
     Given a widget object and a previously saved value, update the widget object using the saved value.
     '''

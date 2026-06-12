@@ -3,12 +3,17 @@ File containing available weapon skills and their properties
 
 Author: Kastra (Asura server)
 '''
+from typing import TYPE_CHECKING, Any, cast
+
 import numpy as np
 from get_dex_crit import *
 from weaponskill_data import WS_TABLE, WSContext, interp
 
+if TYPE_CHECKING:
+    from create_player import create_enemy, create_player
 
-def _apply_naegling(ctx):
+
+def _apply_naegling(ctx: WSContext) -> None:
     # Naegling provides +1% attack per active buff. For now I assume this is +13% (protect, shell, haste, songx4, rollx2, signet). TODO: update later by counting buffs from the GUI
     player = ctx.player
     ws_atk_modifier = 0.13
@@ -21,7 +26,7 @@ def _apply_naegling(ctx):
         ctx.player_attack2 += player.stats.get("Food Attack", 0)
 
 
-def _apply_weapon_setup(ctx):
+def _apply_weapon_setup(ctx: WSContext) -> None:
     # Some main weapons modify attack or enemy defense before the WS-specific logic.
     main_name = ctx.player.gearset["main"]["Name"]
     if main_name == "Naegling":
@@ -31,7 +36,7 @@ def _apply_weapon_setup(ctx):
         ctx.enemy_def -= 0.03*ctx.enemy_basedef
 
 
-def _apply_ws_table(ctx, ws_name):
+def _apply_ws_table(ctx: WSContext, ws_name: str) -> None:
     # Populate the context from the data-driven weapon skill table.
     spec = WS_TABLE[ws_name]
 
@@ -48,7 +53,7 @@ def _apply_ws_table(ctx, ws_name):
         ctx.magical = True
         ctx.element = spec["element"]
         dstat = spec["dSTAT"]
-        ctx.dSTAT = dstat(ctx) if callable(dstat) else dstat
+        ctx.dSTAT = cast(float, dstat(ctx)) if callable(dstat) else dstat
 
     if spec.get("hybrid", False):
         ctx.hybrid = True
@@ -65,7 +70,7 @@ def _apply_ws_table(ctx, ws_name):
         hook(ctx)
 
 
-def _apply_shining_one(ctx, ws_name):
+def _apply_shining_one(ctx: WSContext, ws_name: str) -> None:
     # Shining One allows most weapon skills to crit. https://www.bg-wiki.com/ffxi/Shining_One
     ranged_ws = ["Flaming Arrow", "Namas Arrow", "Apex Arrow", "Refulgent Arrow", "Empyreal Arrow", "Sidewinder", "Piercing Arrow", "Jishnu's Radiance", "Blast Arrow", "Hot Shot", "Coronach", "Last Stand", "Detonator", "Blast Shot", "Slug Shot", "Split Shot", ]
     if ctx.player.gearset["main"]["Name"] != "Shining One" or ws_name in ranged_ws:
@@ -80,7 +85,7 @@ def _apply_shining_one(ctx, ws_name):
     ctx.crit_rate += np.interp(ctx.tp, [1000, 2000, 3000], crit_boost)
 
 
-def weaponskill_info(ws_name, tp, player, enemy, wsc_bonus, dual_wield):
+def weaponskill_info(ws_name: str, tp: float, player: "create_player", enemy: "create_enemy", wsc_bonus: list[list[Any]], dual_wield: bool) -> dict[str, Any]:
     #
     # Setup weaponskill statistics (TP scaling, # of hits, ftp replication, WSC, etc)
     #

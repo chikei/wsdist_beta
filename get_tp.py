@@ -3,7 +3,7 @@ File containing code to calculate TP returned from an attack round or weapon ski
 
 Author: Kastra (Asura)
 '''
-def get_tp(swings, mdelay, stp, zanshin=False):
+def get_tp(swings: float, mdelay: float, stp: float, zanshin: bool = False) -> float:
     #
     # Calculate the TP return from an attack round based on the number of swings that landed, the modified weapon delay, and store TP.
     # For weaponskills, only the first main and sub hits gain full TP, the others only get 10*(1+store_TP) TP.

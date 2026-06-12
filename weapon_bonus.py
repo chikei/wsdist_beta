@@ -3,10 +3,7 @@ File containing weapon skill bonuses from specific weapons.
     
 Author: Kastra (Asura server)
 '''
-from get_dex_crit import *
-import numpy as np
-
-def get_weapon_bonus(main_wpn_name, rng_wpn_name, ws_name):
+def get_weapon_bonus(main_wpn_name: str, rng_wpn_name: str, ws_name: str) -> float:
 
     weapon_skill_bonuses = {
 

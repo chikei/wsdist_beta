@@ -7,10 +7,10 @@ Black Magic has not been tested properly yet, but is likely correct.
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_mv_ninjutsu(tier, dINT):
+def get_mv_ninjutsu(tier: str, dINT: float) -> tuple[float, float]:
     #
     # Determine the M and V values to use based on dINT and ninjutsu skill
     #
@@ -41,7 +41,8 @@ def get_mv_ninjutsu(tier, dINT):
         else:
             m=0.00; v=295.0
 
-    elif tier=="San":
+    # elif tier=="San":
+    else:
         if dINT <= -53:
             m=0.00; v=81.0
         elif dINT <= 1:
@@ -53,7 +54,7 @@ def get_mv_ninjutsu(tier, dINT):
 
     return(m,v)
     
-def get_mv_blm(element, tier, dINT):
+def get_mv_blm(element: str, tier: str, dINT: float) -> tuple[float, float, int]:
     #
     # Using the table from BG wiki
     #

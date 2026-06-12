@@ -3,10 +3,10 @@ File containing calculations for physical hit rate from the accuracy stat.
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_hit_rate(player_accuracy, enemy_evasion, hit_rate_cap):
+def get_hit_rate(player_accuracy: float, enemy_evasion: float, hit_rate_cap: float) -> float:
     #
     # Calculate hit rates based on player and enemy stats.
     # https://www.bg-wiki.com/ffxi/Hit_Rate

@@ -8,9 +8,10 @@ A proper calculation would be needed (with hundreds of terms added) after we det
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 import numpy as np
-import random
+
+from wsdist_types import FloatArray
 
 # @njit
 # def get_ma_rate2(nhits, qa, ta, da, oa3, oa2, dual_wield, hitrate_matrix):
@@ -179,7 +180,7 @@ import random
 #     return(main_hits, sub_hits)
 
 @njit
-def get_ma_rate3(main_job, nhits, qa, ta, da, oa_list, fua_list, dual_wield, hitrate_matrix, ranged_hitrate2, daken, kickattacks, zanshin, zanhasso, zanshin_hitrate, zanshin_oa2, striking_flourish=False, ternary_flourish=False, tp_round=False,):
+def get_ma_rate3(main_job: str, nhits: int, qa: float, ta: float, da: float, oa_list: FloatArray, fua_list: FloatArray, dual_wield: bool, hitrate_matrix: FloatArray, ranged_hitrate2: float, daken: float, kickattacks: float, zanshin: float, zanhasso: float, zanshin_hitrate: float, zanshin_oa2: float, striking_flourish: bool = False, ternary_flourish: bool = False, tp_round: bool = False,) -> tuple[float, float, float, float, float]:
     #
     # Calculate the expected number of attacks on a given attack round (nhits=1) or weapon skill (nhits=nhits).
     # Break up the results into main_hits, sub_hits, daken_hits, kickattack_hits, and zanshin_hits. The sum must be no larger than 8.
@@ -300,6 +301,7 @@ if __name__ == "__main__":
     oa3_sub = 0
     oa2_sub = 0
     oa_list = np.array([oa3_main,oa2_main,oa8_sub,oa7_sub,oa6_sub,oa5_sub,oa4_sub,oa3_sub,oa2_sub],dtype=np.float32)
+    fua_list = np.zeros(9, dtype=np.float32)
 
     hitrate_matrix = np.array([[0.95,0.], [0.95,0.]])
     # hitrate_matrix = np.ones_like(hitrate_matrix)
@@ -316,6 +318,6 @@ if __name__ == "__main__":
     # print(main_hits, sub_hits, main_hits+sub_hits)
     # main_hits, sub_hits = get_ma_rate2(nhits, qa, ta, da, oa3_main, oa2_main, dual_wield, hitrate_matrix,)
     # print(main_hits, sub_hits, main_hits+sub_hits)
-    main_hits, sub_hits, daken_hits, kickattack_hits, zanshin_hits  = get_ma_rate3("DRK", nhits, qa, ta, da, oa_list, dual_wield, hitrate_matrix, 0, daken, kickattacks, zanshin, zanhasso, zanshin_hitrate, zanshin_oa2, False, False, True)
+    main_hits, sub_hits, daken_hits, kickattack_hits, zanshin_hits  = get_ma_rate3("DRK", nhits, qa, ta, da, oa_list, fua_list, dual_wield, hitrate_matrix, 0, daken, kickattacks, zanshin, zanhasso, zanshin_hitrate, zanshin_oa2, False, False, True)
     print(main_hits, sub_hits, main_hits+sub_hits, zanshin_hits)
 

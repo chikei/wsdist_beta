@@ -3,10 +3,10 @@ File containing calculations for fSTR calculation.
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_fstr(dmg, player_str, enemy_vit):
+def get_fstr(dmg: float, player_str: float, enemy_vit: float) -> float:
     #
     # Calculate fSTR for melee attacks using the equation from BG wiki
     # https://www.bg-wiki.com/ffxi/FSTR
@@ -26,7 +26,8 @@ def get_fstr(dmg, player_str, enemy_vit):
         fstr = (dstr+7)/4
     elif dstr < 12:
         fstr = (dstr+6)/4
-    elif dstr >= 12:
+    # elif dstr >= 12:
+    else:
         fstr = (dstr+4)/4
 
     if fstr < -1*dmg/9.:
@@ -38,7 +39,7 @@ def get_fstr(dmg, player_str, enemy_vit):
     return(fstr)
 
 @njit
-def get_fstr2(rng_dmg, player_str, enemy_vit):
+def get_fstr2(rng_dmg: float, player_str: float, enemy_vit: float) -> float:
     #
     # Calculate fSTR for ranged attacks using the equation from BG wiki
     # https://www.bg-wiki.com/ffxi/FSTR
@@ -67,7 +68,8 @@ def get_fstr2(rng_dmg, player_str, enemy_vit):
         fstr = (dstr+7)/2
     elif dstr < 12:
         fstr = (dstr+6)/2
-    elif dstr >= 12:
+    # elif dstr >= 12:
+    else:
         fstr = (dstr+4)/2
 
     fstr = -2.0*wpn_rank if fstr < -2.0*wpn_rank else fstr

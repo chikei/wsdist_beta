@@ -9,16 +9,17 @@ widgets so it can be constructed and inspected without a running application.
 import numpy as np
 
 import gear as gear_pyfile
+from wsdist_types import GearPiece
 
 
 class AppState:
     '''Read-only reference data shared across all GUI tabs.'''
 
-    def __init__(self):
+    def __init__(self) -> None:
         item_tmp = np.loadtxt("item_list.csv", delimiter=";", skiprows=1, dtype=str, unpack=True)
         self.item_id_dict = {"id": item_tmp[0], "name": item_tmp[1], "name2": item_tmp[2]}
 
-        self.all_equipment_dict = {
+        self.all_equipment_dict: dict[str, list[GearPiece]] = {
             "main": gear_pyfile.mains,
             "sub": gear_pyfile.subs + gear_pyfile.grips,
             "ranged": gear_pyfile.ranged,

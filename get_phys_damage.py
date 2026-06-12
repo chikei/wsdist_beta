@@ -3,10 +3,10 @@ File containing calculations for physical damage dealt.
     
 Author: Kastra (Asura server)
 '''
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_phys_damage(wpn_dmg, fstr_wpn, wsc, pdif, ftp, crit, crit_dmg, wsd, ws_bonus, ws_trait, n, sneak_attack_bonus=0, trick_attack_bonus=0, climactic_flourish_bonus=0,striking_flourish_bonus=0,ternary_flourish_bonus=0):
+def get_phys_damage(wpn_dmg: float, fstr_wpn: float, wsc: float, pdif: float, ftp: float, crit: bool, crit_dmg: float, wsd: float, ws_bonus: float, ws_trait: float, n: int, sneak_attack_bonus: float = 0, trick_attack_bonus: float = 0, climactic_flourish_bonus: float = 0, striking_flourish_bonus: float = 0, ternary_flourish_bonus: float = 0) -> float:
     #
     # Calculate physical damage dealt for a single attack.
     # https://www.bg-wiki.com/ffxi/Weapon_Skill_Damage
@@ -20,7 +20,7 @@ def get_phys_damage(wpn_dmg, fstr_wpn, wsc, pdif, ftp, crit, crit_dmg, wsd, ws_b
     return(phys)
 
 @njit
-def get_avg_phys_damage(wpn_dmg, fstr_wpn, wsc, pdif, ftp, crit_rate, crit_dmg, wsd, ws_bonus, ws_trait, sneak_attack_bonus=0, trick_attack_bonus=0 ,climactic_flourish_bonus=0, striking_flourish_bonus=0,ternary_flourish_bonus=0):
+def get_avg_phys_damage(wpn_dmg: float, fstr_wpn: float, wsc: float, pdif: float, ftp: float, crit_rate: float, crit_dmg: float, wsd: float, ws_bonus: float, ws_trait: float, sneak_attack_bonus: float = 0, trick_attack_bonus: float = 0, climactic_flourish_bonus: float = 0, striking_flourish_bonus: float = 0, ternary_flourish_bonus: float = 0) -> float:
     #
     # Calculate average physical damage dealt for a single attack.
     # https://www.bg-wiki.com/ffxi/Weapon_Skill_Damage

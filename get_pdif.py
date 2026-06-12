@@ -4,10 +4,10 @@ File containing calculations for PDIF values used in physical damage dealt.
 Author: Kastra (Asura server)
 '''
 import random
-from numba import njit
+from typed_numba import njit
 
 @njit
-def get_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, enemy_defense=1300, crit_rate=0): # Values defined in this line use the Python format for: "Use these values as defaults if the user doesn't provide them"
+def get_pdif_melee(player_attack: float, wpn_type_skill: str, pdl_trait: float, pdl_gear: float = 0, enemy_defense: float = 1300, crit_rate: float = 0) -> tuple[float, bool]: # Values defined in this line use the Python format for: "Use these values as defaults if the user doesn't provide them"
     #
     # Calculate PDIF for physical melee hits using the process described on BG wiki
     # https://www.bg-wiki.com/ffxi/PDIF
@@ -19,7 +19,8 @@ def get_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, enemy_d
         pdif_base_cap = 3.5
     elif wpn_type_skill in ["Great Sword", "Staff", "Great Axe", "Polearm"]:
         pdif_base_cap = 3.75
-    elif wpn_type_skill=="Scythe":
+    # elif wpn_type_skill=="Scythe":
+    else:
         pdif_base_cap = 4.0
 
     # Define your capped PDIF value after including bonuses from traits and gear.
@@ -42,7 +43,7 @@ def get_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, enemy_d
         upper_qlim = wratio + 0.3
     elif wratio >= 1.2 and wratio < 1.5:
         upper_qlim = 1.25*wratio
-    elif wratio >= 1.5:
+    else:
         upper_qlim = wratio + 0.375
 
     if wratio >= 0.0 and wratio < 0.38:
@@ -53,7 +54,8 @@ def get_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, enemy_d
         lower_qlim = 1
     elif wratio >= 1.51 and wratio < 2.44:
         lower_qlim = (1176./1024.)*wratio - (755./1024.)
-    elif wratio >= 2.44:
+    # elif wratio >= 2.44:
+    else:
         lower_qlim = wratio - 0.375
 
     qratio = random.uniform(lower_qlim, upper_qlim) # Randomly pick a value between the lower and upper limits.
@@ -77,7 +79,7 @@ def get_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, enemy_d
 
 
 @njit
-def get_avg_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, enemy_defense=1300, crit_rate=0): # Values defined in this line use the Python format for: "Use these values as defaults if the user doesn't provide them"
+def get_avg_pdif_melee(player_attack: float, wpn_type_skill: str, pdl_trait: float, pdl_gear: float = 0, enemy_defense: float = 1300, crit_rate: float = 0) -> float: # Values defined in this line use the Python format for: "Use these values as defaults if the user doesn't provide them"
     #
     # Calculate PDIF for physical melee hits using the process described on BG wiki, but assuming the average random value is drawn.
     # https://www.bg-wiki.com/ffxi/PDIF
@@ -89,7 +91,8 @@ def get_avg_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, ene
         pdif_base_cap = 3.5
     elif wpn_type_skill in ["Great Sword", "Staff", "Great Axe", "Polearm"]:
         pdif_base_cap = 3.75
-    elif wpn_type_skill=="Scythe":
+    # elif wpn_type_skill=="Scythe":
+    else:
         pdif_base_cap = 4.0
 
     # Define your capped PDIF value after including bonuses from traits and gear.
@@ -112,7 +115,8 @@ def get_avg_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, ene
         upper_qlim = wratio + 0.3
     elif wratio >= 1.2 and wratio < 1.5:
         upper_qlim = 1.25*wratio
-    elif wratio >= 1.5:
+    # elif wratio >= 1.5:
+    else:
         upper_qlim = wratio + 0.375
 
     if wratio >= 0.0 and wratio < 0.38:
@@ -123,7 +127,8 @@ def get_avg_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, ene
         lower_qlim = 1
     elif wratio >= 1.51 and wratio < 2.44:
         lower_qlim = (1176./1024.)*wratio - (755./1024.)
-    elif wratio >= 2.44:
+    # elif wratio >= 2.44:
+    else:
         lower_qlim = wratio - 0.375
 
     qratio = 0.5*(upper_qlim+lower_qlim)
@@ -146,7 +151,7 @@ def get_avg_pdif_melee(player_attack, wpn_type_skill, pdl_trait, pdl_gear=0, ene
 
 
 @njit
-def get_pdif_ranged(player_ranged_attack, wpn_type_skill, pdl_trait, pdl_gear, enemy_defense=1300, crit_rate=0):
+def get_pdif_ranged(player_ranged_attack: float, wpn_type_skill: str, pdl_trait: float, pdl_gear: float, enemy_defense: float = 1300, crit_rate: float = 0) -> tuple[float, bool]:
 
     pdif_base_cap = 3.5 if wpn_type_skill=="Marksmanship" else 3.25
 
@@ -162,14 +167,16 @@ def get_pdif_ranged(player_ranged_attack, wpn_type_skill, pdl_trait, pdl_gear, e
         upper_qlim = wratio * (10./9.)
     elif wratio >= 0.9 and wratio < 1.1:
         upper_qlim = 1
-    elif wratio >= 1.1:
+    # elif wratio >= 1.1:
+    else:
         upper_qlim = wratio
 
     if wratio >= 0.0 and wratio < 0.9:
         lower_qlim = wratio
     elif wratio >= 0.9 and wratio < 1.1:
         lower_qlim = 1
-    elif wratio >= 1.1:
+    # elif wratio >= 1.1:
+    else:
         lower_qlim = wratio*(20./19) - (3./19)
 
     qratio = random.uniform(lower_qlim, upper_qlim)
@@ -188,7 +195,7 @@ def get_pdif_ranged(player_ranged_attack, wpn_type_skill, pdl_trait, pdl_gear, e
     return(pdif, crit)
 
 @njit
-def get_avg_pdif_ranged(player_ranged_attack, wpn_type_skill, pdl_trait, pdl_gear, enemy_defense=1300, crit_rate=0):
+def get_avg_pdif_ranged(player_ranged_attack: float, wpn_type_skill: str, pdl_trait: float, pdl_gear: float, enemy_defense: float = 1300, crit_rate: float = 0) -> float:
 
     pdif_base_cap = 3.5 if wpn_type_skill=="Marksmanship" else 3.25
 
@@ -202,14 +209,16 @@ def get_avg_pdif_ranged(player_ranged_attack, wpn_type_skill, pdl_trait, pdl_gea
         upper_qlim = wratio * (10./9.)
     elif wratio >= 0.9 and wratio < 1.1:
         upper_qlim = 1
-    elif wratio >= 1.1:
+    # elif wratio >= 1.1:
+    else:
         upper_qlim = wratio
 
     if wratio >= 0.0 and wratio < 0.9:
         lower_qlim = wratio
     elif wratio >= 0.9 and wratio < 1.1:
         lower_qlim = 1
-    elif wratio >= 1.1:
+    # elif wratio >= 1.1:
+    else:
         lower_qlim = wratio*(20./19) - (3./19)
 
     qratio = 0.5*(lower_qlim+upper_qlim)

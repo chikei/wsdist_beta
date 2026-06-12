@@ -11,8 +11,21 @@ preserved exactly.
 
 The shared anchor points used for TP interpolation.
 '''
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeAlias
+
 import numpy as np
 from get_dex_crit import get_dex_crit
+
+if TYPE_CHECKING:
+    from create_player import create_enemy, create_player
+
+# A hook mutates the per-WS context in place; a WSC callable returns a value.
+Hook: TypeAlias = Callable[["WSContext"], None]
+WSCFunc: TypeAlias = Callable[["WSContext"], float]
+# Each weapon skill spec mixes callables, numbers, lists and flags, so the value
+# type is open.
+WSSpec: TypeAlias = dict[str, Any]
 
 base_tp = [1000, 2000, 3000] # TP anchor points used for interpolation.
 
@@ -22,7 +35,7 @@ class WSContext:
     built up inside its giant if/elif chain.  Hooks read/write these fields and
     the final scaling dict is assembled from them.'''
 
-    def __init__(self, tp, player, enemy):
+    def __init__(self, tp: float, player: "create_player", enemy: "create_enemy") -> None:
         self.tp = tp
         self.player = player
         self.enemy = enemy
@@ -51,34 +64,34 @@ class WSContext:
         self.enemy_mnd = enemy.stats["MND"]
         self.enemy_chr = enemy.stats["MND"]
 
-        self.crit_rate = 0 # Start from zero crit rate. We add crit rate if the weapon skill is a crit weapon skill and/or if Shining One is equipped.
+        self.crit_rate: float = 0 # Start from zero crit rate. We add crit rate if the weapon skill is a crit weapon skill and/or if Shining One is equipped.
 
         # Set default values. We will modify these for special cases.
         self.crit_ws = False # Used to ensure that we do not double-count dDEX on crit WSs when using Shining One.
         self.hybrid = False
         self.magical = False
-        self.dSTAT = 0 # Magical WS dINT or dMND
+        self.dSTAT: float = 0 # Magical WS dINT or dMND
         self.element = "None" # Magical/Hybrid WS element
-        self.ftp_hybrid = 0 # Hybrid WSs have unique FTP rules.
+        self.ftp_hybrid: float = 0 # Hybrid WSs have unique FTP rules.
 
         # Populated from the WS table for each weapon skill.
-        self.ftp = 0
+        self.ftp: float = 0
         self.ftp_rep = False
-        self.wsc = 0
+        self.wsc: float = 0
         self.nhits = 0
 
 
-def interp(tp, points):
+def interp(tp: float, points: list[float]) -> float:
     '''Interpolate a 3-point [1k, 2k, 3k] table at the current TP.'''
-    return np.interp(tp, base_tp, points)
+    return float(np.interp(tp, base_tp, points))
 
 
-def crit_hook(crit_boost):
+def crit_hook(crit_boost: list[float]) -> Hook:
     '''Build a hook for the standard "critical hit" weapon skills (melee).
 
     These add gear crit rate, a TP-scaled crit bonus, and dDEX-based crit rate.
     '''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.crit_ws = True
         ctx.crit_rate += ctx.player.stats.get("Crit Rate", 0)/100
         ctx.crit_rate += interp(ctx.tp, crit_boost)
@@ -86,12 +99,12 @@ def crit_hook(crit_boost):
     return apply
 
 
-def ranged_crit_hook(crit_boost):
+def ranged_crit_hook(crit_boost: list[float]) -> Hook:
     '''Build a hook for ranged critical hit weapon skills.
 
     Ranged attacks gain crit rate from AGI rather than DEX.
     '''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.crit_ws = True
         ctx.crit_rate += ctx.player.stats.get("Crit Rate", 0)/100
         ctx.crit_rate += interp(ctx.tp, crit_boost)
@@ -99,9 +112,9 @@ def ranged_crit_hook(crit_boost):
     return apply
 
 
-def acc_hook(acc_boost, both_hands=True):
+def acc_hook(acc_boost: list[float], both_hands: bool = True) -> Hook:
     '''Build a hook that adds a TP-scaled accuracy bonus.'''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         acc_bonus = interp(ctx.tp, acc_boost)
         ctx.player_accuracy1 += acc_bonus
         if both_hands:
@@ -109,14 +122,14 @@ def acc_hook(acc_boost, both_hands=True):
     return apply
 
 
-def ranged_acc_hook(acc_boost):
+def ranged_acc_hook(acc_boost: list[float]) -> Hook:
     '''Build a hook that adds a TP-scaled ranged accuracy bonus.'''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.player_rangedaccuracy += interp(ctx.tp, acc_boost)
     return apply
 
 
-def _scale_attack(player, attack, modifier):
+def _scale_attack(player: "create_player", attack: float, modifier: float) -> float:
     '''Apply a weapon-skill attack% modifier, preserving food handling.
 
     Certain weapon skills increase/decrease attack by some percentage. We remove
@@ -130,31 +143,31 @@ def _scale_attack(player, attack, modifier):
     return attack
 
 
-def atk_hook(modifier, both_hands=True):
+def atk_hook(modifier: float, both_hands: bool = True) -> Hook:
     '''Build a hook that applies a fixed attack% modifier.
 
     When both_hands is True the off-hand is scaled too, but only if it has a
     nonzero attack value (matching the original `player_attack2 > 0` guard).
     '''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.player_attack1 = _scale_attack(ctx.player, ctx.player_attack1, modifier)
         if both_hands and ctx.player_attack2 > 0:
             ctx.player_attack2 = _scale_attack(ctx.player, ctx.player_attack2, modifier)
     return apply
 
 
-def atk_hook_unguarded(modifier):
+def atk_hook_unguarded(modifier: float) -> Hook:
     '''Like atk_hook but always scales the off-hand (Hand-to-Hand weapon skills,
     which scale player_attack2 without checking that it is positive).'''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.player_attack1 = _scale_attack(ctx.player, ctx.player_attack1, modifier)
         ctx.player_attack2 = _scale_attack(ctx.player, ctx.player_attack2, modifier)
     return apply
 
 
-def interp_atk_hook(atk_boost, both_hands=True):
+def interp_atk_hook(atk_boost: list[float], both_hands: bool = True) -> Hook:
     '''Build a hook applying a TP-scaled attack% modifier (modifier = value-1).'''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         modifier = interp(ctx.tp, atk_boost) - 1.0
         ctx.player_attack1 = _scale_attack(ctx.player, ctx.player_attack1, modifier)
         if both_hands and ctx.player_attack2 > 0:
@@ -162,7 +175,7 @@ def interp_atk_hook(atk_boost, both_hands=True):
     return apply
 
 
-def _scale_ranged_attack(player, attack, modifier):
+def _scale_ranged_attack(player: "create_player", attack: float, modifier: float) -> float:
     '''Apply a weapon-skill ranged attack% modifier, preserving food handling.'''
     food = player.stats.get("Food Ranged Attack", 0)
     attack -= food
@@ -171,21 +184,21 @@ def _scale_ranged_attack(player, attack, modifier):
     return attack
 
 
-def ranged_atk_hook(modifier):
+def ranged_atk_hook(modifier: float) -> Hook:
     '''Build a hook applying a fixed ranged attack% modifier.'''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.player_rangedattack = _scale_ranged_attack(ctx.player, ctx.player_rangedattack, modifier)
     return apply
 
 
-def kick_atk_hook():
+def kick_atk_hook() -> Hook:
     '''Build a hook for kick weapon skills (Dragon Kick, Tornado Kick).
 
     These may benefit from Footwork. We re-calculate player attack using the
     "Kick Attacks Attack%" stat, which is 0% without Footwork, or ~26% with
     Footwork.
     '''
-    def _recalc(player, attack, modifier):
+    def _recalc(player: "create_player", attack: float, modifier: float) -> float:
         food = player.stats.get("Food Attack", 0)
         attack -= food # Remove food bonuses
         attack /= (1 + player.stats.get("Attack%", 0)) # Remove multiplicative bonuses
@@ -194,17 +207,17 @@ def kick_atk_hook():
         attack += food # Reapply food
         return attack
 
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         modifier = ctx.player.stats.get("Kick Attacks Attack%", 0)
         ctx.player_attack1 = _recalc(ctx.player, ctx.player_attack1, modifier)
         ctx.player_attack2 = _recalc(ctx.player, ctx.player_attack2, modifier)
     return apply
 
 
-def def_down_hook(scaling):
+def def_down_hook(scaling: list[float]) -> Hook:
     '''Build a hook that lowers enemy defense by a TP-scaled fraction of base
     defense.'''
-    def apply(ctx):
+    def apply(ctx: "WSContext") -> None:
         ctx.enemy_def -= ctx.enemy_basedef * interp(ctx.tp, scaling)
     return apply
 
@@ -213,34 +226,34 @@ def def_down_hook(scaling):
 # Magical WSs compute dSTAT (the stat delta feeding the magic damage formula)
 # in a handful of different ways.  These callables reproduce each formula.
 
-def dstat_int_capped(ctx):
+def dstat_int_capped(ctx: "WSContext") -> float:
     '''Standard elemental WS: (dINT)/2 + 8, capped at 32.'''
     value = (ctx.player_int - ctx.enemy_int)/2 + 8
     return 32 if value > 32 else value
 
 
-def dstat_int_double(ctx):
+def dstat_int_double(ctx: "WSContext") -> float:
     '''(player INT - enemy INT) * 2, uncapped.'''
     return (ctx.player_int - ctx.enemy_int)*2
 
 
-def dstat_agi_double(ctx):
+def dstat_agi_double(ctx: "WSContext") -> float:
     '''(player AGI - enemy INT) * 2, uncapped.'''
     return (ctx.player_agi - ctx.enemy_int)*2
 
 
-def dstat_mnd_double(ctx):
+def dstat_mnd_double(ctx: "WSContext") -> float:
     '''(player MND - enemy MND) * 2, uncapped.'''
     return (ctx.player_mnd - ctx.enemy_mnd)*2
 
 
-def dstat_primal_rend(ctx):
+def dstat_primal_rend(ctx: "WSContext") -> float:
     '''Primal Rend: (player CHR - enemy INT) * 1.5, capped at 651.'''
     value = (ctx.player_chr - ctx.enemy_int)*1.5
     return 651 if value > 651 else value
 
 
-def dstat_wildfire(ctx):
+def dstat_wildfire(ctx: "WSContext") -> float:
     '''Wildfire: (player AGI - enemy INT) * 2, capped at 1276.'''
     value = (ctx.player_agi - ctx.enemy_int)*2
     return 1276 if value > 1276 else value
@@ -250,7 +263,7 @@ def dstat_wildfire(ctx):
 # WSC (the weapon-skill stat contribution) is always a linear combination of
 # player stats.  We store it as a callable taking the context.
 
-def wsc(*terms):
+def wsc(*terms: tuple[float, str]) -> WSCFunc:
     '''Build a WSC callable from (coefficient, stat_name) terms.
 
     Example: wsc((0.4, "STR"), (0.4, "DEX")) -> 0.4*STR + 0.4*DEX.
@@ -262,7 +275,7 @@ def wsc(*terms):
     }
     pairs = [(coeff, attr[stat]) for coeff, stat in terms]
 
-    def compute(ctx):
+    def compute(ctx: "WSContext") -> float:
         return sum(coeff * getattr(ctx, name) for coeff, name in pairs)
     return compute
 
@@ -288,7 +301,7 @@ def wsc(*terms):
 #   "crit_rate"  : fixed crit rate override (True Strike only).
 #   "hooks"      : list of callable(ctx) applied in order (attack/accuracy/def).
 # ---------------------------------------------------------------------------
-WS_TABLE = {
+WS_TABLE: dict[str, WSSpec] = {
     # Sword weapon skills
     "Fast Blade": {"base_ftp": [1.0, 1.5, 2.0], "wsc": wsc((0.4, "STR"), (0.4, "DEX")), "nhits": 2},
     "Burning Blade": {"base_ftp": [1.0, 2.09765625, 3.3984375], "wsc": wsc((0.4, "STR"), (0.4, "INT")), "nhits": 1, "magical": True, "element": "Fire", "dSTAT": dstat_int_capped},
