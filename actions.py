@@ -20,6 +20,96 @@ from nuking import *
 from get_dint_m_v import *
 from get_delay_timing import *
 
+
+# ---------------------------------------------------------------------------
+# Random number source.
+#
+# All Monte-Carlo sampling in this module routes through this single accessor
+# instead of calling np.random.* directly. The accessor returns numpy's global
+# legacy RandomState (the same object np.random.uniform/seed operate on), so
+# the simulation's random draws remain bit-for-bit identical to the previous
+# behavior, and seeding it for reproducible verification is done the usual way:
+#
+#     seed_rng(20240101)   # or, equivalently, np.random.seed(20240101)
+#
+# Routing every draw through rng() keeps the RNG factored in one place so the
+# source can be swapped later (e.g. to np.random.default_rng) without touching
+# the simulation code.
+# ---------------------------------------------------------------------------
+def rng():
+    #
+    # Return the shared random number generator used for all Monte-Carlo draws.
+    #
+    return np.random.mtrand._rand
+
+
+def seed_rng(seed):
+    #
+    # Seed the shared random number generator for reproducible simulations.
+    #
+    np.random.seed(seed)
+
+
+# ---------------------------------------------------------------------------
+# Static weapon / skill reference data shared across the simulation functions.
+# These were previously redefined as local literals inside each function; they
+# are pure data with no per-call dependencies, so they live at module scope.
+# ---------------------------------------------------------------------------
+ONE_HANDED_SKILLS = ["Axe", "Club", "Dagger", "Sword", "Katana",]
+TWO_HANDED_SKILLS = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff",] # I treat Hand-to-Hand separately where needed. Search for "Hand-to-Hand" to find these locations.
+
+# Empyrean Lv1/2/3 aftermath multiplier: 30%/40%/50% chance of dealing triple damage.
+EMPYREAN_AM = [0.3, 0.4, 0.5]
+EMPYREAN_WEAPONS = ["Verethragna","Twashtar","Almace","Caladbolg","Farsha","Ukonvasara","Redemption","Kannagi","Rhongomiant","Gambanteinn","Masamune","Hvergelmir"]
+
+# Hidden triple/double damage on relics. No Aftermath required.
+RELIC_WEAPONS_30 = ["Spharai","Mandau","Excalibur","Kikoku","Mjollnir"] # occasionally 3.0x damage
+RELIC_WEAPONS_25 = ["Ragnarok","Guttler","Gungnir","Amanomurakumo","Claustrum"] # occasionally 2.5x damage
+RELIC_WEAPONS_20 = ["Bravura","Apocalypse"] # occasionally 2.0x damage
+
+# Hidden double/triple damage +30% of the time on primes. No Aftermath required.
+PRIME_WEAPONS_3 = ["Varga Purnikawa V",   "Mpu Gandring V",  "Caliburnus V",  "Helheim V",  "Spalirisos V",  "Laphria V",  "Foenaria V",  "Gae Buide V",  "Dokoku V",  "Kusanagi no Tsurugi V",  "Lorg Mor V",  "Opashoro V"]
+PRIME_WEAPONS_2 = ["Varga Purnikawa IV", "Mpu Gandring IV", "Caliburnus IV", "Helheim IV", "Spalirisos IV", "Laphria IV", "Foenaria IV", "Gae Buide IV", "Dokoku IV", "Kusanagi no Tsurugi IV", "Lorg Mor IV", "Opashoro IV"]
+
+
+def get_weapon_damage_bonuses(player, aftermath):
+    #
+    # Compute the average hidden-damage multipliers for the main-hand weapon.
+    #
+    # These are deterministic expected-value multipliers (no random draws) used
+    # by the analytic damage paths: empyrean aftermath, relic hidden triple
+    # damage, prime hidden double/triple damage, and the Dragon Fangs H2H kick
+    # bonus. Returns a 4-tuple of multipliers, each starting at 1.0.
+    #
+    main_name = player.gearset["main"]["Name"]
+    main_name2 = player.gearset["main"]["Name2"]
+
+    empyrean_am_damage_bonus = 1.0
+    if main_name in EMPYREAN_WEAPONS and aftermath > 0:
+        empyrean_am_damage_bonus += 2*EMPYREAN_AM[aftermath-1]
+
+    relic_hidden_damage_bonus = 1.0
+    if main_name in RELIC_WEAPONS_30:
+        relic_hidden_damage_bonus += 2*0.13
+    elif main_name in RELIC_WEAPONS_25:
+        relic_hidden_damage_bonus += 1.5*0.16
+    elif main_name in RELIC_WEAPONS_20:
+        relic_hidden_damage_bonus += 1*0.2
+
+    prime_hidden_damage_bonus = 1.0
+    if main_name2 in PRIME_WEAPONS_3:
+        prime_hidden_damage_bonus += 2*0.3
+    elif main_name2 in PRIME_WEAPONS_2:
+        prime_hidden_damage_bonus += 1*0.3
+
+    dragon_fangs_kick_damage_bonus = 1.0
+    dragon_fangs_kick_damage_bonus_proc_rate = 0.2 # Appears to be around 20%? TODO: find the source again
+    if main_name2 == "Dragon Fangs": # Occasionally double damage of kick attacks. Assuming that this does NOT apply to Kick Attack WSs with MNK's Footwork active.
+        dragon_fangs_kick_damage_bonus += 1.0 * dragon_fangs_kick_damage_bonus_proc_rate
+
+    return empyrean_am_damage_bonus, relic_hidden_damage_bonus, prime_hidden_damage_bonus, dragon_fangs_kick_damage_bonus
+
+
 def color_text(color, text):
     #
     # Print colored text to windows powershell.
@@ -266,8 +356,8 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
     accuracy1 = player.stats["Accuracy1"]
     accuracy2 = player.stats["Accuracy2"]
 
-    one_handed_skills = ["Axe", "Club", "Dagger", "Sword", "Katana",]
-    two_handed_skills = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff",] # I treat Hand-to-Hand separately where needed. Search for "Hand-to-Hand" to find these locations.
+    one_handed_skills = ONE_HANDED_SKILLS
+    two_handed_skills = TWO_HANDED_SKILLS
 
     main_skill_type = player.gearset["main"]["Skill Type"]
     sub_skill_type = player.gearset["sub"].get("Skill Type",None) if not main_skill_type=="Hand-to-Hand" else "Hand-to-Hand"
@@ -327,8 +417,8 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
         # Assume the EnSpell element matches the element corresponding to the gear with the highest elemental damage bonus, ignoring light/dark. Orpheus sash is applies separately.
         elemental_magic_attack_bonus = (max([player.stats.get(f"{element.capitalize()} Elemental Bonus", 0) for element in ["Earth", "Water", "Wind", "Fire", "Ice", "Thunder"]])/100 + player.stats.get("Elemental Bonus",0)/100)
 
-        main_enspell_damage = get_enspell_damage(enhancing_magic_skill, enspell_damage_percent_main, enspell_damage_main) * (1 + dayweather) * (1 + elemental_magic_attack_bonus) * (1.0 + 0.25*(np.random.uniform() < magic_crit_rate2))
-        sub_enspell_damage = get_enspell_damage(enhancing_magic_skill, enspell_damage_percent_main, enspell_damage_sub) * (1 + dayweather) * (1 + elemental_magic_attack_bonus) * (1.0 + 0.25*(np.random.uniform() < magic_crit_rate2))
+        main_enspell_damage = get_enspell_damage(enhancing_magic_skill, enspell_damage_percent_main, enspell_damage_main) * (1 + dayweather) * (1 + elemental_magic_attack_bonus) * (1.0 + 0.25*(rng().uniform() < magic_crit_rate2))
+        sub_enspell_damage = get_enspell_damage(enhancing_magic_skill, enspell_damage_percent_main, enspell_damage_sub) * (1 + dayweather) * (1 + elemental_magic_attack_bonus) * (1.0 + 0.25*(rng().uniform() < magic_crit_rate2))
 
     elif player.abilities.get("Enlight II", False):
         enlight_potency = 0.8
@@ -347,40 +437,18 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
 
 
     aftermath = player.abilities.get("Aftermath",0)
-    # Empyrean Lv1/2/3 aftermath multiplier: 30%/40%/50% chance of dealing triple damage for all attacks by that weapon (main-hand)
-    empyrean_am_damage_bonus = 1.0
-    empyrean_weapons = ["Verethragna","Twashtar","Almace","Caladbolg","Farsha","Ukonvasara","Redemption","Kannagi","Rhongomiant","Gambanteinn","Masamune","Hvergelmir"]
-    empyrean_am = [0.3, 0.4, 0.5]
-    if player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0:
-        empyrean_am_damage_bonus += 2*empyrean_am[aftermath-1]
-
-
-    # Hidden triple damage +13% of the time on relics. No Aftermath required.
-    relic_hidden_damage_bonus = 1.0
-    relic_weapons30 = ["Spharai","Mandau","Excalibur","Kikoku","Mjollnir"] # occasionally 3.0x damage
-    relic_weapons25 = ["Ragnarok","Guttler","Gungnir","Amanomurakumo","Claustrum"] # occasionally 2.5x damage
-    relic_weapons20 = ["Bravura","Apocalypse"] # occasionally 2.0x damage
-    if player.gearset["main"]["Name"] in relic_weapons30:
-        relic_hidden_damage_bonus += 2*0.13
-    elif player.gearset["main"]["Name"] in relic_weapons25:
-        relic_hidden_damage_bonus += 1.5*0.16
-    elif player.gearset["main"]["Name"] in relic_weapons20:
-        relic_hidden_damage_bonus += 1*0.2
- 
-    # Hidden double/triple damage +30% of the time on primes. No Aftermath required.
-    prime_hidden_damage_bonus = 1.0
-    prime_weapons3 = ["Varga Purnikawa V",   "Mpu Gandring V",  "Caliburnus V",  "Helheim V",  "Spalirisos V",  "Laphria V",  "Foenaria V",  "Gae Buide V",  "Dokoku V",  "Kusanagi no Tsurugi V",  "Lorg Mor V",  "Opashoro V"]
-    prime_weapons2 = ["Varga Purnikawa IV", "Mpu Gandring IV", "Caliburnus IV", "Helheim IV", "Spalirisos IV", "Laphria IV", "Foenaria IV", "Gae Buide IV", "Dokoku IV", "Kusanagi no Tsurugi IV", "Lorg Mor IV", "Opashoro IV"]
-    if player.gearset["main"]["Name2"] in prime_weapons3:
-        prime_hidden_damage_bonus += 2*0.3
-    elif player.gearset["main"]["Name2"] in prime_weapons2:
-        prime_hidden_damage_bonus += 1*0.3
-
-    # Dragon Fangs H2H weapon occasionally double kick attack damage. I'm guessing the proc rate is 50% here.
-    dragon_fangs_kick_damage_bonus = 1.0
+    # Average hidden-damage multipliers (empyrean aftermath, relic/prime hidden
+    # damage, Dragon Fangs kick bonus). The per-hit Monte-Carlo draws below still
+    # reference the weapon-name lists, so alias the shared module constants here.
+    empyrean_am_damage_bonus, relic_hidden_damage_bonus, prime_hidden_damage_bonus, dragon_fangs_kick_damage_bonus = get_weapon_damage_bonuses(player, aftermath)
+    empyrean_weapons = EMPYREAN_WEAPONS
+    empyrean_am = EMPYREAN_AM
+    relic_weapons30 = RELIC_WEAPONS_30
+    relic_weapons25 = RELIC_WEAPONS_25
+    relic_weapons20 = RELIC_WEAPONS_20
+    prime_weapons3 = PRIME_WEAPONS_3
+    prime_weapons2 = PRIME_WEAPONS_2
     dragon_fangs_kick_damage_bonus_proc_rate = 0.2 # Appears to be around 20%? TODO: find the source again
-    if player.gearset["main"]["Name2"] == "Dragon Fangs": # Occasionally double damage of kick attacks. Assuming that this does NOT apply to Kick Attack WSs with MNK's Footwork active.
-        dragon_fangs_kick_damage_bonus += 1.0 * dragon_fangs_kick_damage_bonus_proc_rate
 
 
     physical_damage = 0 
@@ -411,14 +479,14 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
 
 
         # To properly account for "DA Damage+" and "TA Damage+" stats boosting the first main/sub hit, we need to determine if a double or triple attack is proced before the first hit is done.
-        qa_proc_main = np.random.uniform() < qa
-        ta_proc_main = (np.random.uniform() < ta) * (not qa_proc_main)
-        da_proc_main = (np.random.uniform() < da) * (not qa_proc_main) * (not ta_proc_main)
+        qa_proc_main = rng().uniform() < qa
+        ta_proc_main = (rng().uniform() < ta) * (not qa_proc_main)
+        da_proc_main = (rng().uniform() < da) * (not qa_proc_main) * (not ta_proc_main)
 
         # Repeat for off-hand
-        qa_proc_sub = np.random.uniform() < qa
-        ta_proc_sub = (np.random.uniform() < ta) * (not qa_proc_sub)
-        da_proc_sub = (np.random.uniform() < da) * (not qa_proc_sub) * (not ta_proc_sub)
+        qa_proc_sub = rng().uniform() < qa
+        ta_proc_sub = (rng().uniform() < ta) * (not qa_proc_sub)
+        da_proc_sub = (rng().uniform() < da) * (not qa_proc_sub) * (not ta_proc_sub)
 
 
 
@@ -426,15 +494,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
 
         # Main-hand hit
         attempted_hits += 1
-        if np.random.uniform() < hit_rate11:
+        if rng().uniform() < hit_rate11:
             main_hit_connects = True
             pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-            phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1.0 + 2.0*(np.random.uniform()<0.13 and player.gearset["main"]["Name"] in relic_weapons30)) \
-                                                                                            * (1.0 + 1.5*(np.random.uniform()<0.16 and player.gearset["main"]["Name"] in relic_weapons25)) \
-                                                                                            * (1.0 + 1.0*(np.random.uniform()<0.2 and player.gearset["main"]["Name"] in relic_weapons20)) \
-                                                                                            * (1.0 + 2.0*(np.random.uniform()<0.3 and player.gearset["main"]["Name2"] in prime_weapons3)) \
-                                                                                            * (1.0 + 1.0*(np.random.uniform()<0.3 and player.gearset["main"]["Name2"] in prime_weapons2)) \
-                                                                                            * (1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) \
+            phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1.0 + 2.0*(rng().uniform()<0.13 and player.gearset["main"]["Name"] in relic_weapons30)) \
+                                                                                            * (1.0 + 1.5*(rng().uniform()<0.16 and player.gearset["main"]["Name"] in relic_weapons25)) \
+                                                                                            * (1.0 + 1.0*(rng().uniform()<0.2 and player.gearset["main"]["Name"] in relic_weapons20)) \
+                                                                                            * (1.0 + 2.0*(rng().uniform()<0.3 and player.gearset["main"]["Name2"] in prime_weapons3)) \
+                                                                                            * (1.0 + 1.0*(rng().uniform()<0.3 and player.gearset["main"]["Name2"] in prime_weapons2)) \
+                                                                                            * (1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) \
                                                                                             * (1 + da_dmg*da_proc_main) * (1 + ta_dmg*ta_proc_main) # Boosts first hit damage if DA or TA procs and you have DA/TA Damage+ stat
             main_hit_damage += phys_dmg_ph
             tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp) # Add TP return from the main-hand hit
@@ -451,7 +519,7 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
         # Off-hand hit
         if dual_wield:
             attempted_hits += 1
-            if np.random.uniform() < hit_rate21:
+            if rng().uniform() < hit_rate21:
                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1 + da_dmg*da_proc_sub) * (1 + ta_dmg*ta_proc_sub) # Boosts first off-hand hit damage if DA or TA procs and you have DA/TA Damage+ stat
                 sub_hit_damage += phys_dmg_ph
@@ -472,9 +540,9 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
             for i in range(3): # 3 bonus hits on a Quad. Attack
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -495,9 +563,9 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
             for i in range(2):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) * (1 + ta_dmg)
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) * (1 + ta_dmg)
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -516,9 +584,9 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
             for i in range(1):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) * (1 + da_dmg)
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) * (1 + da_dmg)
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -530,16 +598,16 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa8_main:
+        elif rng().uniform() < oa8_main:
             print("    Main-hand OA8:") if (verbose_dps or very_verbose_dps) else None
             main_oa8_proc = True
             main_ma_proc = True
             for i in range(7):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -551,15 +619,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa7_main:
+        elif rng().uniform() < oa7_main:
             print("    Main-hand OA7:") if (verbose_dps or very_verbose_dps) else None
             main_ma_proc = True
             for i in range(6):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -571,15 +639,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa6_main:
+        elif rng().uniform() < oa6_main:
             print("    Main-hand OA6:") if (verbose_dps or very_verbose_dps) else None
             main_ma_proc = True
             for i in range(5):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -591,15 +659,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa5_main:
+        elif rng().uniform() < oa5_main:
             print("    Main-hand OA5:") if (verbose_dps or very_verbose_dps) else None
             main_ma_proc = True
             for i in range(4):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -611,15 +679,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa4_main:
+        elif rng().uniform() < oa4_main:
             print("    Main-hand OA4:") if (verbose_dps or very_verbose_dps) else None
             main_ma_proc = True
             for i in range(3):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -631,15 +699,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa3_main:
+        elif rng().uniform() < oa3_main:
             print("    Main-hand OA3:") if (verbose_dps or very_verbose_dps) else None
             main_ma_proc = True
             for i in range(2):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -651,15 +719,15 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                         verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                     else:
                         print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-        elif np.random.uniform() < oa2_main:
+        elif rng().uniform() < oa2_main:
             print("    Main-hand OA2:") if (verbose_dps or very_verbose_dps) else None
             main_ma_proc = True
             for i in range(1):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                        phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                         main_hit_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                         tp_return += tp_ph
@@ -681,7 +749,7 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                     for i in range(3): # 3 bonus hits on a Quad. Attack
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -701,7 +769,7 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                     for i in range(2):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1 + ta_dmg)
                                 sub_hit_damage += phys_dmg_ph
@@ -721,7 +789,7 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                     for i in range(1):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1 + da_dmg)
                                 sub_hit_damage += phys_dmg_ph
@@ -735,12 +803,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa8_sub:
+                elif rng().uniform() < oa8_sub:
                     print("    Off-hand OA8:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(7):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -754,12 +822,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa7_sub:
+                elif rng().uniform() < oa7_sub:
                     print("    Off-hand OA7:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(6):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -773,12 +841,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa6_sub:
+                elif rng().uniform() < oa6_sub:
                     print("    Off-hand OA6:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(5):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -792,12 +860,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa5_sub:
+                elif rng().uniform() < oa5_sub:
                     print("    Off-hand OA5:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(4):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -811,12 +879,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa4_sub:
+                elif rng().uniform() < oa4_sub:
                     print("    Off-hand OA4:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(3):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -830,12 +898,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa3_sub:
+                elif rng().uniform() < oa3_sub:
                     print("    Off-hand OA3:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(2):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -849,12 +917,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 verbose_output(phys_dmg_ph, magic_dmg_ph, tp_ph, crit, "other") if very_verbose_dps else None
                             else:
                                 print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                elif np.random.uniform() < oa2_sub:
+                elif rng().uniform() < oa2_sub:
                     print("    Off-hand OA2:") if (verbose_dps or very_verbose_dps) else None
                     for i in range(1):
                         if attempted_hits < 8:
                             attempted_hits += 1
-                            if np.random.uniform() < hit_rate22:
+                            if rng().uniform() < hit_rate22:
                                 pdif, crit = get_pdif_melee(attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                 phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                                 sub_hit_damage += phys_dmg_ph
@@ -873,16 +941,16 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
 
         # Zanshin only procs if main_hit_connects=False or if ZanHasso procs.
         if attempted_hits < 8:
-            if ((not main_hit_connects) or (np.random.uniform() < zanhasso)) and (not dual_wield) and (main_skill_type in two_handed_skills):
+            if ((not main_hit_connects) or (rng().uniform() < zanhasso)) and (not dual_wield) and (main_skill_type in two_handed_skills):
                 if not main_ma_proc: # Even with ZanHasso, Zanshin will not proc if you get a multi-attack proc
-                    if np.random.uniform() < zanshin_oa2:
+                    if rng().uniform() < zanshin_oa2:
                         print("    Zanshin OA2:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(2):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < zanshin_hit_rate:
+                                if rng().uniform() < zanshin_hit_rate:
                                     pdif, crit = get_pdif_melee(attack1 + player.stats.get("Zanshin Attack",0), main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                                    phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                                    phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                                     zanshin_damage += phys_dmg_ph
                                     tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp, player.main_job=="sam") # Zanshin proc increases TP if SAM main with Ikishoten merits.
                                     tp_return += tp_ph
@@ -895,13 +963,13 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
 
-                    elif np.random.uniform() < zanshin:
+                    elif rng().uniform() < zanshin:
                         for i in range(1):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < zanshin_hit_rate:
+                                if rng().uniform() < zanshin_hit_rate:
                                     pdif, crit = get_pdif_melee(attack1 + player.stats.get("Zanshin Attack",0), main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-                                    phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(np.random.uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                                    phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)*(1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
                                     zanshin_damage += phys_dmg_ph
                                     tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp, player.main_job=="sam") # Zanshin proc increases TP if SAM main with Ikishoten merits.
                                     tp_return += tp_ph
@@ -918,12 +986,12 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
 
         # Kick Attack proc
         if attempted_hits < 8:
-            if np.random.uniform() < kickattacks and (main_skill_type=="Hand-to-Hand"):
+            if rng().uniform() < kickattacks and (main_skill_type=="Hand-to-Hand"):
                 attempted_hits += 1
-                if np.random.uniform() < hit_rate11:
+                if rng().uniform() < hit_rate11:
                     kickattacks_pdif, crit = get_pdif_melee(attack1 + player.stats.get("Kick Attacks Attack",0), main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                     phys_dmg_ph = get_phys_damage(kick_dmg, fstr_kick, 0, kickattacks_pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
-                    kickattacks_damage = phys_dmg_ph * (1 + (np.random.uniform() < dragon_fangs_kick_damage_bonus_proc_rate))
+                    kickattacks_damage = phys_dmg_ph * (1 + (rng().uniform() < dragon_fangs_kick_damage_bonus_proc_rate))
                     tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp)
                     tp_return += tp_ph
 
@@ -941,9 +1009,9 @@ def average_attack_round(player, enemy, starting_tp, ws_threshold, input_metric,
 
         # Daken proc
         if attempted_hits < 8:
-            if np.random.uniform() < daken and (ammo_skill_type=="Throwing"):
+            if rng().uniform() < daken and (ammo_skill_type=="Throwing"):
                 attempted_hits += 1
-                if np.random.uniform() < hit_rate_ranged:
+                if rng().uniform() < hit_rate_ranged:
                     daken_pdif, crit = get_pdif_ranged(ranged_attack, ammo_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                     phys_dmg_ph = get_phys_damage(ammo_dmg, fstr_ammo, 0, daken_pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                     daken_damage = phys_dmg_ph
@@ -1471,8 +1539,7 @@ def cast_spell(player, enemy, spell_name, spell_type, input_metric):
         # Empyrean Aftermath: 30%/40%/50% chance of dealing triple damage.
         empyrean_am_damage_bonus = 1.0
         if player.gearset["ranged"]["Name"] in ["Gandiva","Armageddon"] and aftermath>0:
-            empyrean_am = [0.3, 0.4, 0.5]
-            empyrean_am_damage_bonus += 2*empyrean_am[aftermath-1]
+            empyrean_am_damage_bonus += 2*EMPYREAN_AM[aftermath-1]
 
         # Hidden triple damage +13% of the time on relics. No Aftermath required.
         relic_hidden_damage_bonus = 1.0
@@ -1752,8 +1819,8 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
         player_accuracy2 = ws_info["player_accuracy2"]
 
 
-        two_handed_skills = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff",] # I treat Hand-to-Hand separately where needed. Search for "Hand-to-Hand" to find these locations.
-        one_handed_skills = ["Axe", "Club", "Dagger", "Sword", "Katana",]
+        two_handed_skills = TWO_HANDED_SKILLS
+        one_handed_skills = ONE_HANDED_SKILLS
 
         # Calculate hit rates.
         accuracy1 = player_accuracy1 + player.stats.get("Weapon Skill Accuracy",0)
@@ -1882,7 +1949,7 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
 
             # First main-hand hit
             attempted_hits += 1
-            if np.random.uniform() < hit_rate11:
+            if rng().uniform() < hit_rate11:
                 pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, first_main_hit_crit_rate) # Returns both the PDIF and whether or not the hit was a crit.
                 phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp, crit, adjusted_crit_dmg, wsd, ws_bonus, ws_trait, 0, sneak_attack_bonus, trick_attack_bonus, climactic_flourish_bonus, striking_flourish_bonus, ternary_flourish_bonus)
                 physical_damage += phys_dmg_ph
@@ -1895,7 +1962,7 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
             # First off-hand hit
             if dual_wield:
                 attempted_hits += 1
-                if np.random.uniform() < hit_rate21:
+                if rng().uniform() < hit_rate21:
                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                     physical_damage += phys_dmg_ph
@@ -1909,7 +1976,7 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
             for i in range(nhits-1):
                 if attempted_hits < 8:
                     attempted_hits += 1
-                    if np.random.uniform() < hit_rate12:
+                    if rng().uniform() < hit_rate12:
                         pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                         phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                         physical_damage += phys_dmg_ph
@@ -1924,12 +1991,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
             main_hand_multi_attacks = 2 if (not dual_wield) and (nhits > 1) else 1
             for k in range(main_hand_multi_attacks):
                 if attempted_hits < 8:
-                    if np.random.uniform() < qa:
+                    if rng().uniform() < qa:
                         print(f"    Main-hand Quad. Attack:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(3): # 3 bonus hits on a Quad. Attack
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -1938,12 +2005,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < ta:
+                    elif rng().uniform() < ta:
                         print(f"    Main-hand Triple Attack:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(2):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -1952,12 +2019,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < da:
+                    elif rng().uniform() < da:
                         print(f"    Main-hand Double Attack:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(1):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -1966,12 +2033,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa8_main:
+                    elif rng().uniform() < oa8_main:
                         print(f"    Main-hand OA8:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(7):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -1980,12 +2047,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa7_main:
+                    elif rng().uniform() < oa7_main:
                         print(f"    Main-hand OA7:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(6):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -1994,12 +2061,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa6_main:
+                    elif rng().uniform() < oa6_main:
                         print(f"    Main-hand OA6:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(5):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2008,12 +2075,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa5_main:
+                    elif rng().uniform() < oa5_main:
                         print(f"    Main-hand OA5:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(4):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2022,12 +2089,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa4_main:
+                    elif rng().uniform() < oa4_main:
                         print(f"    Main-hand OA4:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(3):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2036,12 +2103,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa3_main:
+                    elif rng().uniform() < oa3_main:
                         print(f"    Main-hand OA3:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(2):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2050,12 +2117,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa2_main:
+                    elif rng().uniform() < oa2_main:
                         print(f"    Main-hand OA2:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(1):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate12:
+                                if rng().uniform() < hit_rate12:
                                     pdif, crit = get_pdif_melee(player_attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2068,12 +2135,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
             # Off-hand hit MA check.
             if dual_wield:
                 if attempted_hits < 8:
-                    if np.random.uniform() < qa:
+                    if rng().uniform() < qa:
                         print(f"    Off-hand Quad. Attack:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(3):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2082,12 +2149,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < ta:
+                    elif rng().uniform() < ta:
                         print(f"    Off-hand Triple Attack:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(2):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2096,12 +2163,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < da:
+                    elif rng().uniform() < da:
                         print(f"    Off-hand Double Attack:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(1):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2110,12 +2177,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa8_sub:
+                    elif rng().uniform() < oa8_sub:
                         print(f"    Off-hand OA8:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(7):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2124,12 +2191,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa7_sub:
+                    elif rng().uniform() < oa7_sub:
                         print(f"    Off-hand OA7:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(6):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2138,12 +2205,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa6_sub:
+                    elif rng().uniform() < oa6_sub:
                         print(f"    Off-hand OA6:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(5):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2152,12 +2219,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa5_sub:
+                    elif rng().uniform() < oa5_sub:
                         print(f"    Off-hand OA5:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(4):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2166,12 +2233,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa4_sub:
+                    elif rng().uniform() < oa4_sub:
                         print(f"    Off-hand OA4:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(3):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2180,12 +2247,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa3_sub:
+                    elif rng().uniform() < oa3_sub:
                         print(f"    Off-hand OA3:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(2):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2194,12 +2261,12 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     verbose_output(phys_dmg_ph, 0, tp_ph, crit, "other") if very_verbose_dps else None
                                 else:
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
-                    elif np.random.uniform() < oa2_sub:
+                    elif rng().uniform() < oa2_sub:
                         print(f"    Off-hand OA2:") if (verbose_dps or very_verbose_dps) else None
                         for i in range(1):
                             if attempted_hits < 8:
                                 attempted_hits += 1
-                                if np.random.uniform() < hit_rate22:
+                                if rng().uniform() < hit_rate22:
                                     pdif, crit = get_pdif_melee(player_attack2, sub_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                                     phys_dmg_ph = get_phys_damage(sub_dmg, fstr_sub, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait, 0)
                                     physical_damage += phys_dmg_ph
@@ -2210,14 +2277,14 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
                                     print("                      "+color_text("red","Missed.")) if very_verbose_dps else None
 
             fotia_chance =  (0.01*(player.gearset["neck"]["Name"]=="Fotia Gorget")) + (0.01*(player.gearset["waist"]["Name"]=="Fotia Belt"))
-            if np.random.uniform() < fotia_chance:
+            if rng().uniform() < fotia_chance:
                 tp_return += (base_tp) # Fotia gorget/belt each include +1% chance to retain TP on WS (before TP bonus)
                 fotia_tp = f"+{base_tp:.1f}"
                 print(f"    " + color_text("cyan", "Fotia:") + f"                                  {fotia_tp:>7s} TP") if (verbose_dps or very_verbose_dps) else None
 
             conserve_tp_chance = player.stats.get("Conserve TP",0)/100
-            if np.random.uniform() < conserve_tp_chance:
-                conserve_tp_return = int(np.random.uniform(10,200))
+            if rng().uniform() < conserve_tp_chance:
+                conserve_tp_return = int(rng().uniform(10,200))
                 tp_return += conserve_tp_return
                 conservetp_tp = f"+{conserve_tp_return:.1f}"
                 print(f"    " + color_text("cyan", "Conserve TP:") + f"                            {conservetp_tp:>7s} TP") if (verbose_dps or very_verbose_dps) else None
@@ -2269,7 +2336,7 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
 
             # First ranged hit
             attempted_hits += 1
-            if np.random.uniform() < hit_rate_ranged1:
+            if rng().uniform() < hit_rate_ranged1:
                 pdif, crit = get_pdif_ranged(player_rangedattack, ranged_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                 phys_dmg_ph = get_phys_damage(ranged_dmg+ammo_dmg, fstr_rng, wsc, pdif, ftp, crit, crit_dmg, wsd, ws_bonus, ws_trait,0) * (1 + hover_shot) * (1 + true_shot)
                 physical_damage += phys_dmg_ph
@@ -2282,7 +2349,7 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
             # Additional nhits-1 ranged hits
             for i in range(nhits-1):
                 if attempted_hits < 8:
-                    if np.random.uniform() < hit_rate_ranged2:
+                    if rng().uniform() < hit_rate_ranged2:
                         pdif, crit = get_pdif_ranged(player_rangedattack, ranged_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                         phys_dmg_ph = get_phys_damage(ranged_dmg+ammo_dmg, fstr_rng, wsc, pdif, ftp2, crit, crit_dmg, 0, ws_bonus, ws_trait,1) * (1 + hover_shot) * (1 + true_shot)
                         physical_damage += phys_dmg_ph
@@ -2314,7 +2381,7 @@ def average_ws(player, enemy, ws_name, input_tp, ws_type, input_metric, simulati
         magic_hit_rate = get_magic_hit_rate(magic_accuracy, enemy_magic_evasion) if enemy_magic_evasion > 0 else 1.0
         
         magic_crit_rate2 = player.stats.get("Magic Crit Rate II",0)/100
-        magic_crit2 = np.random.uniform() < magic_crit_rate2
+        magic_crit2 = rng().uniform() < magic_crit_rate2
 
         # Calculate base magical damage
         if hybrid: # Hybrid WSs use the previous Physical damage as their base damage.
