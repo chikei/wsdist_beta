@@ -31,29 +31,12 @@ import fancy_plot as fancy_plot_pyfile
 from gpt_manage_defaults import *
 
 from virtual_frames import VirtualCheckboxFrame, VirtualRadioFrame
-
-
-class WheelIntLineEdit(QtWidgets.QLineEdit):
-    '''Integer entry that increments/decrements on mouse wheel, clamped to [lo, hi].'''
-
-    def __init__(self, value=0, lo=-50, hi=100, step=1, parent=None):
-        super().__init__(str(value), parent)
-        self._lo = lo
-        self._hi = hi
-        self._step = step
-        self.setValidator(QtGui.QIntValidator(lo, hi, self))
-        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
-
-    def value(self):
-        try:
-            return int(self.text())
-        except ValueError:
-            return 0
-
-    def wheelEvent(self, event):
-        step = self._step if event.angleDelta().y() > 0 else -self._step
-        self.setText(str(max(self._lo, min(self._hi, self.value() + step))))
-        event.accept()
+from widgets import WheelIntLineEdit, make_combo
+from app_state import AppState
+from tabs.stats_tab import StatsTab
+from tabs.automaton_tab import AutomatonTab
+from tabs.optimize_tab import OptimizeTab
+from tabs.simulate_tab import SimulateTab
 
 
 class application(QtWidgets.QMainWindow):
@@ -392,127 +375,6 @@ class application(QtWidgets.QMainWindow):
                 self.all_special_toggles_dict[ability_name]["checkbox"].setVisible(True)
             else:
                 self.all_special_toggles_dict[ability_name]["checkbox"].setChecked(False)
-
-    def select_gear_opt(self, event):
-        '''
-        When clicking one of the "Select X" buttons in the optimize tab.
-        Selects or unselects all equipment based on input.
-        '''
-        tvr_ring_names = [k.lower()+" ring" for k in self.tvr_rings]
-        soa_ring_names = [k.lower()+" ring +1" for k in self.soa_rings]
-
-        empyrean_names = ["Hattori", "Heathen's", "Wicce", "Lethargy", "Peltast's", "Ebers", "Kasuga", "Arbatel", "Boii", "Chasseur's", "Fili", "Skulker's", "Bhikku", "Maculele", "Nukumi", "Azimuth", "Chevalier's", "Amini", "Hashishin", "Erilaz", "Karagoz", "Beckoner's"]
-        relic_names = ["Pedagogy", "Hesychast", "Vitiation", "Mochizuki", "Fallen", "Horos", "Pitre", "Luhlaza", "Plunderer", "Bagua", "Archmage", "Piety", "Agoge", "Caballarius", "Wakido", "Ankusa", "Bihu", "Glyphic", "Lanun", "Arcadian", "Pteroslaver", "Futhark"]
-        af_names = ["Academic", "Anchorite", "Atrophy", "Hachiya", "Ignominy", "Maxixi", "Foire", "Assimilator", "Pillager", "Geomancy", "Spaekona", "Theophany", "Pummeler", "Reverence", "Sakonji", "Totemic", "Brioso", "Convoker", "Laksamana", "Orion", "Vishap", "Runeist"]
-
-
-        input_items_full = [] # Full item names
-        if event == "select all file":
-            # Select items from a "//gs export all" file. Items must be in the item_list.csv file.
-            # TODO: Redo the item_list.csv file to include NQ items. item_list.csv currently only includes items in the gear.py file.
-            # TODO: Re-add NQ item icons.
-            filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Select file', './')
-
-            if len(filename) > 0:
-                with open(filename, "r") as ifile:
-                    for line in ifile:
-                        try:
-                            item_name_abbreviated = line.split('"')[1]
-                            item_index = np.flatnonzero(np.char.lower(self.item_id_dict["name2"]) == item_name_abbreviated.lower())
-                            if len(item_index) > 0:
-                                input_items_full.append(str(self.item_id_dict["name"][item_index[0]]))
-                            else:
-                                continue
-                        except Exception as err:
-                            # print(f"Failed to include item   {line}\n{err}")
-                            continue
-
-        for slot in self.quicklook_equipped_dict:
-
-            # Only consider the selected slot when using slot-specific buttons.
-            if event in ["select all slot", "unselect all slot"] and self.visible_optimize_frame_slot != slot:
-                continue
-
-            # Start by removing all selections.
-            self.optimize_scrollframes[slot].deselect("all")
-
-            # Enable all selections if using "select all" buttons.
-            if event in ["select all slot", "select all"]:
-                self.optimize_scrollframes[slot].select("visible")
-
-            # Adjust specific item selections based on filters.
-            for item_name in self.optimize_scrollframes[slot].visible_data:
-
-                # Create the full-stats item dictionary for reference
-                item = gear_pyfile.all_gear[item_name]
-
-                if event == "select all file":                        
-                    if (item["Name"].lower() in input_items_full): # Select direct matches first
-                        self.optimize_scrollframes[slot].select(item_name)
-                    elif (item["Name"].lower().split(" +")[0] in input_items_full): # Only select close match if direct match not found.
-                        self.optimize_scrollframes[slot].select(item_name)
-
-
-                # Deselect if the item's Odyssey rank does not match your selected Odyssey Rank.
-                if str(item.get("Rank", self.ody_rank_combobox.currentText())) != self.ody_rank_combobox.currentText():
-                    self.optimize_scrollframes[slot].deselect(item_name)
-
-                # Swap Nyame R30B for R25B if specific checkbox is enabled. Deselect Nyame Paths "not B"
-                if "nyame" in item_name.lower():
-                    if "B" != item_name[-1]:
-                        self.optimize_scrollframes[slot].deselect(item_name)
-                    elif self.ody_rank_combobox.currentText()=="30" and self.nyame25_checkbox.isChecked():
-                        if "30B" in item_name:
-                            self.optimize_scrollframes[slot].deselect(item_name)
-                        elif "25B" in item_name and event in ["select all", "select all slot"]:
-                            self.optimize_scrollframes[slot].select(item_name)
-
-                if slot in ["main", "sub", "ranged"]:
-                    if item_name.split()[0] in self.rema_weapons and "R15" not in item_name:
-                        self.optimize_scrollframes[slot].deselect(item_name)
-                    if item_name.split()[-1] == "V":
-                        self.optimize_scrollframes[slot].deselect(item_name)
-                    if "kraken" in item_name.lower():
-                        self.optimize_scrollframes[slot].deselect(item_name)
-
-                if slot in ["ammo"]:
-                    if "Hoxne" in item_name or "Antitail" in item_name:
-                        self.optimize_scrollframes[slot].deselect(item_name)
-
-                if slot in ["head", "body", "hands", "legs", "feet"]:
-                    if event != "select all file":
-                        if item_name.split()[0] in relic_names+af_names and "+4" not in item_name:
-                            self.optimize_scrollframes[slot].deselect(item_name)
-                        if item_name.split()[0] in empyrean_names and "+3" not in item_name:
-                            self.optimize_scrollframes[slot].deselect(item_name)
-                    for limbus_set_name in ["hope", "perfection", "revelation", "trust", "prestige", "sworn", "bravery", "intrepid", "indomitable", "justice", "magnificent", "duty", "mercy", "grace", "clemency"]:
-                        if limbus_set_name in item_name.lower() and "R30" in item_name: # Only select R0 versions of the limbus equipment (at least for now)
-                            self.optimize_scrollframes[slot].deselect(item_name)
-
-                if slot in ["neck"]:
-                    if event != "select all file":
-                        if "R20" in item_name and "+1" in item_name:
-                            self.optimize_scrollframes[slot].deselect(item_name)
-
-                if slot in ["ear1", "ear2"]:
-                    if item_name.split()[0] in empyrean_names and "+2" in item_name:
-                        self.optimize_scrollframes[slot].deselect(item_name)
-                    if "Hoxne" in item_name and self.mastery_rank_combobox.currentText().lower() not in item_name.lower():
-                        self.optimize_scrollframes[slot].deselect(item_name)
-                    if "Balder" in item_name:
-                        self.optimize_scrollframes[slot].deselect(item_name)
-                    if "(night)" in item_name.lower():
-                        self.optimize_scrollframes[slot].deselect(item_name)
-
-                if slot in ["ring1", "ring2"]:
-                    if item_name.lower() in tvr_ring_names and item_name.lower() != self.tvr_ring_combobox.currentText().lower() + " ring":
-                        self.optimize_scrollframes[slot].deselect(item_name)
-
-                    if item_name.lower() in soa_ring_names and item_name.lower() != self.soa_ring_combobox.currentText().lower() + " ring +1":
-                        self.optimize_scrollframes[slot].deselect(item_name)
-
-                # if "Murky" in item_name or "Alabaster" in item_name:
-                #     self.optimize_scrollframes[slot].deselect(item_name)
 
     def equip_best_set(self):
         '''
@@ -1267,34 +1129,6 @@ class application(QtWidgets.QMainWindow):
         self.set_visible_frame(self.quicklook_scrollframes[slot])
         self.visible_quicklook_frame_slot = slot
 
-    def update_visible_quicklook_frame_tp(self, slot):
-        '''
-        When clicking the quicklook equipment icons.
-        Raise the selected slot's frame to the top and make it visible.
-        Update the self.visible_quicklook_frame_slot variable
-        '''
-        self.set_visible_frame(self.tp_quicklook_scrollframes[slot])
-        self.tp_visible_quicklook_frame_slot = slot
-
-    def update_visible_quicklook_frame_ws(self, slot):
-        '''
-        When clicking the quicklook equipment icons.
-        Raise the selected slot's frame to the top and make it visible.
-        Update the self.visible_quicklook_frame_slot variable
-        '''
-        self.set_visible_frame(self.ws_quicklook_scrollframes[slot])
-        self.ws_visible_quicklook_frame_slot = slot
-
-    def update_visible_optimize_frame(self, slot):
-        '''
-        When clicking the slot buttons in the optimize tab.
-        Raise the selected slot's frame to the top and make it visible.
-        Update the self.visible_optimize_frame_slot variable
-        '''
-        self.set_visible_frame(self.optimize_scrollframes[slot])
-        self.visible_optimize_frame_slot = slot
-
-
     def test_gui(self,):
         '''
         Run a series of generic tests to ensure there are no errors
@@ -1459,15 +1293,6 @@ class application(QtWidgets.QMainWindow):
         inputs_tab_layout.setColumnStretch(0, 1)
         QtGui.QShortcut(QtGui.QKeySequence("Ctrl+1"), self).activated.connect(lambda: self.notebook.setCurrentWidget(inputs_tab))
 
-        optimize_tab = QtWidgets.QWidget()
-        self.notebook.addTab(optimize_tab, "Optimize")
-        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+2"), self).activated.connect(lambda: self.notebook.setCurrentWidget(optimize_tab))
-        optimize_tab_layout = QtWidgets.QGridLayout(optimize_tab)
-        optimize_tab_layout.setContentsMargins(0, 0, 0, 0)
-        optimize_tab_layout.setSpacing(2)
-        optimize_tab_layout.setRowStretch(0, 1)
-        optimize_tab_layout.setColumnStretch(0, 1)
-
         # Top-level application menus.
         self.menu_bar = self.menuBar()
         self.file_menu = self.menu_bar.addMenu("File")
@@ -1492,123 +1317,18 @@ class application(QtWidgets.QMainWindow):
         ===============================================
         '''
 
-        item_tmp = np.loadtxt("item_list.csv", delimiter=";", skiprows=1, dtype=str, unpack=True)
-        self.item_id_dict = {"id":item_tmp[0], "name":item_tmp[1], "name2":item_tmp[2]}
-
-        self.all_equipment_dict = {
-            "main":gear_pyfile.mains,
-            "sub":gear_pyfile.subs + gear_pyfile.grips,
-            "ranged":gear_pyfile.ranged,
-            "ammo":gear_pyfile.ammos,
-            "head":gear_pyfile.heads,
-            "neck":gear_pyfile.necks,
-            "ear1":gear_pyfile.ears,
-            "ear2":gear_pyfile.ears2,
-            "body":gear_pyfile.bodies,
-            "hands":gear_pyfile.hands,
-            "ring1":gear_pyfile.rings,
-            "ring2":gear_pyfile.rings2,
-            "back":gear_pyfile.capes,
-            "waist":gear_pyfile.waists,
-            "legs":gear_pyfile.legs,
-            "feet":gear_pyfile.feet,
-            }
-
-        self.ws_dict = {
-            "Katana": ["Blade: Retsu", "Blade: Teki", "Blade: To", "Blade: Chi", "Blade: Ei", "Blade: Jin", "Blade: Ten", "Blade: Ku", "Blade: Yu", "Blade: Metsu", "Blade: Kamu", "Blade: Hi", "Blade: Shun", "Zesho Meppo",],
-            "Great Katana": ["Tachi: Enpi", "Tachi: Goten", "Tachi: Kagero", "Tachi: Jinpu", "Tachi: Koki", "Tachi: Yukikaze", "Tachi: Gekko", "Tachi: Kasha", "Tachi: Ageha", "Tachi: Kaiten", "Tachi: Rana", "Tachi: Fudo", "Tachi: Shoha", "Tachi: Mumei",],
-            "Dagger": [ "Viper Bite", "Dancing Edge", "Shark Bite", "Evisceration", "Aeolian Edge", "Mercy Stroke", "Mandalic Stab", "Mordant Rime", "Pyrrhic Kleos", "Rudra's Storm", "Exenterator", "Ruthless Stroke",],
-            "Sword": ["Fast Blade", "Fast Blade II", "Burning Blade", "Red Lotus Blade", "Seraph Blade", "Circle Blade", "Swift Blade", "Savage Blade", "Sanguine Blade", "Knights of Round", "Death Blossom", "Expiacion", "Chant du Cygne", "Requiescat", "Imperator",],
-            "Scythe": ["Slice", "Dark Harvest", "Shadow of Death", "Nightmare Scythe", "Spinning Scythe", "Guillotine", "Cross Reaper", "Spiral Hell", "Infernal Scythe", "Catastrophe", "Quietus", "Insurgency", "Entropy", "Origin",], 
-            "Great Sword": ["Hard Slash", "Freezebite", "Shockwave", "Sickle Moon", "Spinning Slash", "Ground Strike", "Herculean Slash", "Resolution", "Scourge", "Dimidiation", "Torcleaver", "Fimbulvetr",], 
-            "Club": ["Shining Strike", "Seraph Strike", "Skullbreaker", "True Strike", "Judgment", "Hexa Strike", "Black Halo", "Randgrith", "Exudation", "Mystic Boon", "Realmrazer", "Dagda",], 
-            "Polearm": ["Double Thrust", "Thunder Thrust", "Raiden Thrust", "Penta Thrust", "Wheeling Thrust", "Impulse Drive", "Sonic Thrust", "Geirskogul", "Drakesbane", "Camlann's Torment", "Stardiver", "Diarmuid",], 
-            "Staff": ["Heavy Swing", "Rock Crusher", "Earth Crusher", "Starburst", "Sunburst", "Shell Crusher", "Full Swing", "Cataclysm", "Retribution", "Gate of Tartarus", "Omniscience", "Vidohunir", "Garland of Bliss", "Shattersoul", "Oshala",], 
-            "Great Axe": ["Iron Tempest", "Shield Break", "Armor Break", "Weapon Break", "Raging Rush", "Full Break", "Steel Cyclone", "Fell Cleave", "Metatron Torment", "King's Justice", "Ukko's Fury", "Upheaval", "Disaster",], 
-            "Axe": ["Raging Axe", "Spinning Axe", "Rampage", "Calamity", "Mistral Axe", "Decimation", "Bora Axe", "Onslaught", "Primal Rend", "Cloudsplitter", "Ruinator", "Blitz",], 
-            "Archery": ["Flaming Arrow", "Piercing Arrow", "Dulling Arrow", "Sidewinder", "Blast Arrow", "Empyreal Arrow", "Refulgent Arrow", "Namas Arrow", "Jishnu's Radiance", "Apex Arrow", "Sarv",], 
-            "Marksmanship": ["Hot Shot", "Split Shot", "Sniper Shot", "Slug Shot", "Blast Shot", "Detonator", "Coronach", "Leaden Salute", "Trueflight", "Wildfire", "Last Stand", "Terminus",], 
-            "Hand-to-Hand": ["Combo", "One Inch Punch", "Raging Fists", "Spinning Attack", "Howling Fist", "Dragon Kick", "Asuran Fists", "Tornado Kick", "Ascetic's Fury", "Stringing Pummel", "Final Heaven", "Victory Smite", "Shijin Spiral", "Maru Kala", "Dragon Blow",],
-            "None": ["None"],
-            }
-
-        self.jobs_dict = {"Ninja":"nin", "Dark Knight":"drk", "Scholar":"sch", "Red Mage":"rdm", "Black Mage":"blm", "Samurai":"sam", "Dragoon":"drg", "White Mage":"whm", "Warrior":"war", "Corsair":"cor", "Bard":"brd", "Thief":"thf", "Monk":"mnk", "Dancer":"dnc", "Beastmaster":"bst", "Rune Fencer":"run", "Ranger":"rng", "Puppetmaster":"pup", "Blue Mage":"blu", "Geomancer":"geo", "Paladin":"pld", "Summoner":"smn"}
-
-        self.rema_weapons = [
-                        "Amanomurakumo", "Annihilator", "Apocalypse", "Bravura", "Excalibur", "Gungnir", "Guttler", "Kikoku", "Mandau", "Mjollnir", "Ragnarok", "Spharai", "Yoichinoyumi",
-                        "Almace", "Armageddon", "Caladbolg", "Farsha", "Gandiva", "Kannagi", "Masamune", "Redemption", "Rhongomiant", "Twashtar", "Ukonvasara", "Verethragna", "Hvergelmir",
-                        "Aymur", "Burtgang", "Carnwenhan", "Conqueror", "Death Penalty", "Gastraphetes", "Glanzfaust", "Kenkonken", "Kogarasumaru", "Laevateinn", "Liberator", "Murgleis", "Nagi", "Ryunohige", "Terpsichore", "Tizona", "Tupsimati", "Nirvana", "Vajra", "Yagrush", 
-                        "Epeolatry", "Idris",
-                        "Aeneas", "Anguta", "Chango", "Dojikiri Yasutsuna", "Fail-not", "Fomalhaut", "Godhands", "Heishi Shorinken", "Khatvanga", "Lionheart", "Sequence", "Tishtrya", "Tri-edge", "Trishula",
-                        ]
-
-
-
-        self.spells_dict = {
-                    "nin":["Doton: Ichi", "Doton: Ni", "Doton: San",
-                          "Suiton: Ichi", "Suiton: Ni", "Suiton: San",
-                          "Huton: Ichi", "Huton: Ni", "Huton: San",
-                          "Katon: Ichi", "Katon: Ni", "Katon: San",
-                          "Hyoton: Ichi", "Hyoton: Ni", "Hyoton: San",
-                          "Raiton: Ichi", "Raiton: Ni", "Raiton: San",
-                          "Ranged Attack"],
-                    "blm":["Stone", "Stone II", "Stone III", "Stone IV", "Stone V", "Stone VI", "Stoneja",
-                           "Water", "Water II", "Water III", "Water IV", "Water V", "Water VI", "Waterja",
-                           "Aero", "Aero II", "Aero III", "Aero IV", "Aero V", "Aero VI", "Aeroja",
-                           "Fire", "Fire II", "Fire III", "Fire IV", "Fire V", "Fire VI", "Firaja",
-                           "Blizzard", "Blizzard II", "Blizzard III", "Blizzard IV", "Blizzard V", "Blizzard VI", "Blizzaja",
-                           "Thunder", "Thunder II", "Thunder III", "Thunder IV", "Thunder V", "Thunder VI", "Thundaja", "Impact",
-                           "Ranged Attack"],
-                    "rdm":["EnSpell", 
-                           "Stone", "Stone II", "Stone III", "Stone IV", "Stone V",
-                           "Water", "Water II", "Water III", "Water IV", "Water V",
-                           "Aero", "Aero II", "Aero III", "Aero IV", "Aero V",
-                           "Fire", "Fire II", "Fire III", "Fire IV", "Fire V",
-                           "Blizzard", "Blizzard II", "Blizzard III", "Blizzard IV", "Blizzard V",
-                           "Thunder", "Thunder II", "Thunder III", "Thunder IV", "Thunder V", "Impact", "Ranged Attack"],
-                    "geo":["Stone", "Stone II", "Stone III", "Stone IV", "Stone V",
-                           "Water", "Water II", "Water III", "Water IV", "Water V",
-                           "Aero", "Aero II", "Aero III", "Aero IV", "Aero V",
-                           "Fire", "Fire II", "Fire III", "Fire IV", "Fire V",
-                           "Blizzard", "Blizzard II", "Blizzard III", "Blizzard IV", "Blizzard V",
-                           "Thunder", "Thunder II", "Thunder III", "Thunder IV", "Thunder V", "Impact"],
-                    "sch":["Stone", "Stone II", "Stone III", "Stone IV", "Stone V", "Geohelix II",
-                           "Water", "Water II", "Water III", "Water IV", "Water V", "Hydrohelix II",
-                           "Aero", "Aero II", "Aero III", "Aero IV", "Aero V", "Anemohelix II",
-                           "Fire", "Fire II", "Fire III", "Fire IV", "Fire V", "Pyrohelix II",
-                           "Blizzard", "Blizzard II", "Blizzard III", "Blizzard IV", "Blizzard V", "Cryohelix II",
-                           "Thunder", "Thunder II", "Thunder III", "Thunder IV", "Thunder V", "Ionohelix II",
-                           "Luminohelix II", "Noctohelix II", "Kaustra", "Impact",],
-                    "drk":["Stone", "Stone II", "Stone III",
-                           "Water", "Water II", "Water III",
-                           "Aero", "Aero II", "Aero III",
-                           "Fire", "Fire II", "Fire III",
-                           "Blizzard", "Blizzard II", "Blizzard III",
-                           "Thunder", "Thunder II", "Thunder III", "Impact"],
-                    "cor":["Ranged Attack", "Earth Shot", "Water Shot", "Wind Shot", "Fire Shot", "Ice Shot", "Thunder Shot"],
-                    "rng":["Ranged Attack"],
-                    "sam":["Ranged Attack"],
-                    "thf":["Ranged Attack"],
-                    }
-
-        self.equipment_button_positions = {
-            "main":  [0,0],
-            "sub":   [0,1],
-            "ranged":[0,2],
-            "ammo":  [0,3],
-            "head":  [1,0],
-            "neck":  [1,1],
-            "ear1":  [1,2],
-            "ear2":  [1,3],
-            "body":  [2,0],
-            "hands": [2,1],
-            "ring1": [2,2],
-            "ring2": [2,3],
-            "back":  [3,0],
-            "waist": [3,1],
-            "legs":  [3,2],
-            "feet":  [3,3]
-        }
+        # Shared read-only reference data lives in AppState. Alias the hot lookups onto
+        # the controller so existing handlers keep using self.<name> unchanged.
+        self.state = AppState()
+        self.item_id_dict = self.state.item_id_dict
+        self.all_equipment_dict = self.state.all_equipment_dict
+        self.ws_dict = self.state.ws_dict
+        self.jobs_dict = self.state.jobs_dict
+        self.rema_weapons = self.state.rema_weapons
+        self.spells_dict = self.state.spells_dict
+        self.equipment_button_positions = self.state.equipment_button_positions
+        self.tvr_rings = self.state.tvr_rings
+        self.soa_rings = self.state.soa_rings
 
         '''
         ==============================================================================================
@@ -1616,19 +1336,6 @@ class application(QtWidgets.QMainWindow):
         ==============================================================================================
         '''
         self.numeric_validator = QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"^-?\d{0,4}$"))
-
-        def make_combo(values, default, object_name, width_chars=18, on_selected=None):
-            combo = QtWidgets.QComboBox()
-            items = [str(v) for v in values]
-            combo.addItems(items)
-            if str(default) and str(default) not in items:
-                combo.addItem(str(default))
-            combo.setCurrentText(str(default))
-            combo.setObjectName(object_name)
-            combo.setMinimumWidth(width_chars * 8)
-            if on_selected is not None:
-                combo.textActivated.connect(on_selected)
-            return combo
 
         inputs_frame = QtWidgets.QWidget()
         inputs_frame_layout = QtWidgets.QGridLayout(inputs_frame)
@@ -2168,397 +1875,34 @@ class application(QtWidgets.QMainWindow):
             quicklook_subframe_stack.addWidget(self.quicklook_scrollframes[slot])
 
 
-        '''
-        ==============================================================================================
-            Build the frame containing gear selection checkboxes.
-        ==============================================================================================
-        '''
-        def build_combo(values, default, object_name=None, width_chars=18):
-            combo = QtWidgets.QComboBox()
-            items = [str(v) for v in values]
-            combo.addItems(items)
-            if str(default) not in items:
-                combo.addItem(str(default))
-            combo.setCurrentText(str(default))
-            if object_name:
-                combo.setObjectName(object_name)
-            combo.setMinimumWidth(width_chars * 8)
-            return combo
-
-        align_left = QtCore.Qt.AlignmentFlag.AlignLeft
-        align_right = QtCore.Qt.AlignmentFlag.AlignRight
-        align_top = QtCore.Qt.AlignmentFlag.AlignTop
-        align_hcenter = QtCore.Qt.AlignmentFlag.AlignHCenter
-
-        optimize_frame_top = QtWidgets.QWidget()
-        optimize_frame_top.setFixedSize(630, 480)
-        optimize_frame_top_layout = QtWidgets.QGridLayout(optimize_frame_top)
-        optimize_frame_top_layout.setContentsMargins(0, 0, 0, 0)
-        optimize_frame_top_layout.setSpacing(2)
-        optimize_frame_top_layout.setColumnStretch(0, 1)
-        optimize_tab_layout.addWidget(optimize_frame_top, 0, 0, align_top)
-
-        '''
-        ===============================================
-        Build the frame holding the 4x4 grid of buttons
-            and the "select all" buttons
-            and the conditional select buttons.
-        ===============================================
-        '''
-        optimize_frame_topleft = QtWidgets.QWidget()
-        optimize_frame_topleft.setFixedSize(300, 400)
-        optimize_frame_topleft_layout = QtWidgets.QGridLayout(optimize_frame_topleft)
-        optimize_frame_topleft_layout.setContentsMargins(2, 2, 2, 2)
-        optimize_frame_topleft_layout.setSpacing(2)
-        optimize_frame_top_layout.addWidget(optimize_frame_topleft, 0, 0, align_top)
-
-        '''
-        ===============================================
-                Build the 4x4 grid of buttons
-        ===============================================
-        '''
-        buttons_grid_frame1 = QtWidgets.QWidget()
-        buttons_grid_layout = QtWidgets.QGridLayout(buttons_grid_frame1)
-        buttons_grid_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_grid_layout.setSpacing(1)
-        optimize_frame_topleft_layout.addWidget(buttons_grid_frame1, 0, 0, align_hcenter)
-
-        button_size = 48
-        select_buttons_dict = {slot: {} for slot in self.equipment_button_positions}
-        for slot in self.equipment_button_positions:
-            button = QtWidgets.QPushButton(slot)
-            button.setFixedSize(button_size, button_size)
-            button.clicked.connect(lambda checked=False, event=slot: self.update_visible_optimize_frame(event))
-            select_buttons_dict[slot]["button"] = button
-            row, col = self.equipment_button_positions[slot]
-            buttons_grid_layout.addWidget(button, row, col)
-
-        '''
-        ===============================================
-                Add in the Select all buttons.
-        ===============================================
-        '''
-        buttons_grid_frame2 = QtWidgets.QWidget()
-        buttons_grid2_layout = QtWidgets.QGridLayout(buttons_grid_frame2)
-        buttons_grid2_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_grid2_layout.setSpacing(1)
-        optimize_frame_topleft_layout.addWidget(buttons_grid_frame2, 1, 0, align_hcenter)
-
-        for label, event, tip, pos in [
-            ("Select all", "select all slot", "Select all items in the currently displayed list.", (0, 0)),
-            ("Select ALL", "select all", "Select all items in all equipment lists.", (1, 0)),
-            ("Unselect all", "unselect all slot", "Unselect all items in the currently displayed list.", (0, 1)),
-            ("Select all File", "select all file", "Select all items in all equipment lists if the item appears in an input file.\nInput file must use format from Windower command \"//gs export all\"", (1, 1)),
-        ]:
-            button = QtWidgets.QPushButton(label)
-            button.setFixedSize(100, 30)
-            button.setToolTip(tip)
-            button.clicked.connect(lambda checked=False, e=event: self.select_gear_opt(e))
-            buttons_grid2_layout.addWidget(button, pos[0], pos[1])
-
-        '''
-        ===============================================
-                Add in the conditional entries.
-        ===============================================
-        '''
-        select_conditionals_frame = QtWidgets.QWidget()
-        select_conditionals_layout = QtWidgets.QGridLayout(select_conditionals_frame)
-        select_conditionals_layout.setContentsMargins(0, 0, 0, 0)
-        select_conditionals_layout.setSpacing(2)
-        select_conditionals_layout.setColumnStretch(1, 1)
-        optimize_frame_topleft_layout.addWidget(select_conditionals_frame, 2, 0, align_top)
-
-        self.tvr_rings = ["Cornelia's", "Ephramad's", "Fickblix's", "Gurebu-Ogurebu's", "Lehko Habhoka's", "Medada's", "Ragelise's", "None"]
-        self.soa_rings = ["Weatherspoon", "Karieyh", "Vocane", "None"]
-        ody_selections = ["30", "25", "20", "15", "0", "None"]
-        mastery_rank_selections = ["MR10", "MR09", "MR08", "MR07", "MR06", "MR05"]
-
-        for row, (text, values, default, object_name, attr) in enumerate([
-            ("Odyssey Rank:", ody_selections, "30", "defaults_ody_rank_combobox", "ody_rank_combobox"),
-            ("SoA Ring:", self.soa_rings, "Weatherspoon", "defaults_soa_ring_combobox", "soa_ring_combobox"),
-            ("TVR Ring:", self.tvr_rings, "Lehko Habhoka's", "defaults_tvr_ring_combobox", "tvr_ring_combobox"),
-            ("Mastery Rank:", mastery_rank_selections, "MR07", "defaults_mastery_rank_combobox", "mastery_rank_combobox"),
-        ]):
-            label = QtWidgets.QLabel(text)
-            label.setMinimumWidth(160)
-            select_conditionals_layout.addWidget(label, row, 0, align_left)
-            combo = build_combo(values, default, object_name=object_name)
-            tooltips = {
-                "ody_rank_combobox": "Only select Odyssey equipment with this rank when using the Select buttons.",
-                "soa_ring_combobox": "Only select this SoA ring when using the Select buttons.",
-                "tvr_ring_combobox": "Only select this TVR ring when using the Select buttons.",
-                "mastery_rank_combobox": "Only select the Hoxne Earring with this mastery rank when using the Select buttons.",
-            }
-            combo.setToolTip(tooltips[attr])
-            select_conditionals_layout.addWidget(combo, row, 1, align_right)
-            setattr(self, attr, combo)
-
-        self.nyame25_checkbox = QtWidgets.QCheckBox("Max R25 Nyame?")
-        self.nyame25_checkbox.setObjectName("defaults_nyame25_checkbox")
-        self.nyame25_checkbox.setChecked(True)
-        self.nyame25_checkbox.setToolTip("Select R25B Nyame when Odyssey Rank selection is 30.")
-        select_conditionals_layout.addWidget(self.nyame25_checkbox, 4, 1, align_right)
-
-        '''
-        ===============================================
-          Build the 16 scrollframes of gear checkboxes
-        ===============================================
-        '''
-        opt_scrollframe_relative_frame = QtWidgets.QWidget()
-        opt_scrollframe_relative_frame.setFixedSize(370, 300)
-        optimize_frame_top_layout.addWidget(opt_scrollframe_relative_frame, 0, 1)
-
-        opt_scrollframe_stack = QtWidgets.QStackedLayout(opt_scrollframe_relative_frame)
-        self.optimize_scrollframes = {}
-        for slot in self.all_equipment_dict:
-            equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.all_equipment_dict[slot]])
-            self.optimize_scrollframes[slot] = VirtualCheckboxFrame(opt_scrollframe_relative_frame,
-                                                                    text=f"  Select {slot.capitalize()}  ",
-                                                                    master_data=equipment_list,
-                                                                    N=22,
-                                                                    )
-            opt_scrollframe_stack.addWidget(self.optimize_scrollframes[slot])
-
-        '''
-        ==============================================================================================
-          Build the bottom part of the optimize tab.
-          Contains PDT/MDT requirements, metrics, and the buttons to run optimizations
-        ==============================================================================================
-        '''
-        optimize_frame_bottom = QtWidgets.QWidget()
-        optimize_frame_bottom.setFixedSize(630, 320)
-        optimize_frame_bottom_layout = QtWidgets.QGridLayout(optimize_frame_bottom)
-        optimize_frame_bottom_layout.setContentsMargins(0, 0, 0, 0)
-        optimize_frame_bottom_layout.setSpacing(2)
-        optimize_frame_bottom_layout.setColumnStretch(0, 1)
-        optimize_frame_bottom_layout.setColumnStretch(1, 1)
-        optimize_tab_layout.addWidget(optimize_frame_bottom, 1, 0, align_top)
-
-        '''
-        ===============================================
-        Build the frame containing PDT, MDT, and metrics
-        ===============================================
-        '''
-        optimize_frame_bottomleft = QtWidgets.QWidget()
-        optimize_frame_bottomleft.setFixedSize(250, 230)
-        optimize_frame_bottomleft_layout = QtWidgets.QGridLayout(optimize_frame_bottomleft)
-        optimize_frame_bottomleft_layout.setContentsMargins(0, 0, 0, 0)
-        optimize_frame_bottomleft_layout.setSpacing(2)
-        optimize_frame_bottomleft_layout.setColumnStretch(0, 1)
-        optimize_frame_bottom_layout.addWidget(optimize_frame_bottomleft, 0, 0, align_top)
-
-        tp_metrics = ["Time to WS", "Damage dealt", "TP return", "DPS"]
-        spell_metrics = ["Damage dealt", "TP return"]
-        ws_metrics = ["Damage dealt", "TP return", "Magic Accuracy"]
-
-        pdt_requirements_text = QtWidgets.QLabel("Required PDT %")
-        pdt_requirements_text.setMinimumWidth(160)
-        optimize_frame_bottomleft_layout.addWidget(pdt_requirements_text, 0, 0, align_left)
-        self.pdt_requirements_entry = WheelIntLineEdit(value=0, lo=-50, hi=100)
-        self.pdt_requirements_entry.setFixedWidth(80)
-        optimize_frame_bottomleft_layout.addWidget(self.pdt_requirements_entry, 0, 1)
-
-        mdt_requirements_text = QtWidgets.QLabel("Required MDT %")
-        mdt_requirements_text.setMinimumWidth(160)
-        optimize_frame_bottomleft_layout.addWidget(mdt_requirements_text, 1, 0, align_left)
-        self.mdt_requirements_entry = WheelIntLineEdit(value=0, lo=-50, hi=100)
-        self.mdt_requirements_entry.setFixedWidth(80)
-        optimize_frame_bottomleft_layout.addWidget(self.mdt_requirements_entry, 1, 1)
-
-        for row, (text, values, default, attr) in enumerate([
-            ("TP set metric", tp_metrics, "Time to WS", "tp_metric_combobox"),
-            ("WS set metric", ws_metrics, "Damage Dealt", "ws_metric_combobox"),
-            ("Spell set metric", spell_metrics, "Damage Dealt", "spell_metric_combobox"),
-        ], start=2):
-            label = QtWidgets.QLabel(text)
-            label.setMinimumWidth(160)
-            optimize_frame_bottomleft_layout.addWidget(label, row, 0, align_left)
-            combo = build_combo(values, default, width_chars=15)
-            optimize_frame_bottomleft_layout.addWidget(combo, row, 1)
-            setattr(self, attr, combo)
-
-        '''
-        ===============================================
-          Build the frame containing optimize buttons
-        ===============================================
-        '''
-        optimize_frame_bottomright = QtWidgets.QWidget()
-        optimize_frame_bottomright.setFixedSize(300, 230)
-        optimize_frame_bottomright_layout = QtWidgets.QGridLayout(optimize_frame_bottomright)
-        optimize_frame_bottomright_layout.setContentsMargins(0, 0, 0, 0)
-        optimize_frame_bottomright_layout.setSpacing(2)
-        optimize_frame_bottomright_layout.setColumnStretch(0, 1)
-        optimize_frame_bottom_layout.addWidget(optimize_frame_bottomright, 0, 1, align_top)
-
-        show_similar_results_frame = QtWidgets.QWidget()
-        show_similar_results_layout = QtWidgets.QGridLayout(show_similar_results_frame)
-        show_similar_results_layout.setContentsMargins(0, 0, 0, 0)
-        show_similar_results_layout.setSpacing(2)
-        optimize_frame_bottomright_layout.addWidget(show_similar_results_frame, 0, 0, align_hcenter)
-
-        self.show_similar_results_checkbox = QtWidgets.QCheckBox("Print equipment with similar results?")
-        self.show_similar_results_checkbox.setToolTip("Print equipment that is within x% of the best set, using the Entry box to enter x.")
-        show_similar_results_layout.addWidget(self.show_similar_results_checkbox, 0, 0)
-
-        self.show_similar_results_entry = QtWidgets.QLineEdit("2")
-        self.show_similar_results_entry.setValidator(QtGui.QIntValidator(0, 100, self.show_similar_results_entry))
-        self.show_similar_results_entry.setAlignment(align_hcenter)
-        self.show_similar_results_entry.setFixedWidth(30)
-        self.show_similar_results_entry.setToolTip("Print equipment that is within x% of the best set. Enter x here.")
-        show_similar_results_layout.addWidget(self.show_similar_results_entry, 0, 1)
-
-        optimize_buttons_frame = QtWidgets.QWidget()
-        optimize_buttons_layout = QtWidgets.QGridLayout(optimize_buttons_frame)
-        optimize_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        optimize_buttons_layout.setSpacing(1)
-        optimize_frame_bottomright_layout.addWidget(optimize_buttons_frame, 1, 0, align_hcenter)
-
-        for label, event, pos in [
-            ("Optimize WS", "optimize ws", (0, 0)),
-            ("Optimize TP", "optimize tp", (1, 0)),
-            ("Optimize Spell", "optimize spell", (0, 1)),
-        ]:
-            button = QtWidgets.QPushButton(label)
-            button.setFixedSize(100, 30)
-            button.clicked.connect(lambda checked=False, e=event: self.quicklook(e))
-            optimize_buttons_layout.addWidget(button, pos[0], pos[1])
-
-        self.equip_best_set_button = QtWidgets.QPushButton("Equip best set")
-        self.equip_best_set_button.setFixedSize(100, 30)
-        self.equip_best_set_button.setEnabled(False)
-        self.equip_best_set_button.clicked.connect(lambda checked=False: self.equip_best_set())
-        optimize_buttons_layout.addWidget(self.equip_best_set_button, 1, 1)
+        self.optimize_tab = OptimizeTab(self)
+        self.notebook.addTab(self.optimize_tab, "Optimize")
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+2"), self).activated.connect(lambda: self.notebook.setCurrentWidget(self.optimize_tab))
+        # Alias optimize widgets read by quicklook()/update_job() so those handlers stay unchanged.
+        self.optimize_scrollframes = self.optimize_tab.optimize_scrollframes
+        self.pdt_requirements_entry = self.optimize_tab.pdt_requirements_entry
+        self.mdt_requirements_entry = self.optimize_tab.mdt_requirements_entry
+        self.tp_metric_combobox = self.optimize_tab.tp_metric_combobox
+        self.ws_metric_combobox = self.optimize_tab.ws_metric_combobox
+        self.spell_metric_combobox = self.optimize_tab.spell_metric_combobox
+        self.show_similar_results_checkbox = self.optimize_tab.show_similar_results_checkbox
+        self.show_similar_results_entry = self.optimize_tab.show_similar_results_entry
+        self.equip_best_set_button = self.optimize_tab.equip_best_set_button
 
 
 
 
 
-        '''
-        ==============================================================================================
-            Build the simulations tab.
-        ==============================================================================================
-        '''
-        simulate_tab = QtWidgets.QWidget()
-        self.notebook.addTab(simulate_tab, "Simulate")
-        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+3"), self).activated.connect(lambda: self.notebook.setCurrentWidget(simulate_tab))
-        simulate_tab_layout = QtWidgets.QGridLayout(simulate_tab)
-        simulate_tab_layout.setContentsMargins(0, 0, 0, 0)
-        simulate_tab_layout.setSpacing(5)
-        simulate_tab_layout.setColumnStretch(0, 1)
-
-        def build_simulation_set(set_type, group_title, equipped_dict, scrollframes, visible_cb,
-                                 copy_inputs_event, copy_clip_event):
-            '''Build one Equipped-set frame (TP or WS): copy buttons, gear grid, slot pickers.'''
-            outer = QtWidgets.QWidget()
-            outer.setFixedSize(650, 300)
-            outer_layout = QtWidgets.QGridLayout(outer)
-            outer_layout.setContentsMargins(0, 0, 0, 0)
-            outer_layout.setSpacing(2)
-            outer_layout.setColumnStretch(0, 1)
-
-            group = QtWidgets.QGroupBox(group_title)
-            group.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-            group_layout = QtWidgets.QVBoxLayout(group)
-            group_layout.setContentsMargins(0, 0, 0, 0)
-            group_layout.addStretch(1)
-
-            center = QtWidgets.QWidget()
-            center_layout = QtWidgets.QGridLayout(center)
-            center_layout.setContentsMargins(0, 0, 0, 0)
-            center_layout.setSpacing(5)
-            group_layout.addWidget(center, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-            group_layout.addStretch(1)
-            outer_layout.addWidget(group, 0, 0)
-
-            copy_frame = QtWidgets.QWidget()
-            copy_layout = QtWidgets.QVBoxLayout(copy_frame)
-            copy_layout.setContentsMargins(0, 0, 0, 0)
-            copy_layout.setSpacing(2)
-            for label, handler in [
-                ("Copy to Quicklook", lambda e=copy_inputs_event: self.copy_gearset_dict(e)),
-                ("Copy to Clipboard", lambda e=copy_clip_event: self.copy_to_clipboard(e)),
-            ]:
-                button = QtWidgets.QPushButton(label)
-                button.setMinimumWidth(200)
-                button.clicked.connect(lambda checked=False, h=handler: h())
-                copy_layout.addWidget(button)
-            center_layout.addWidget(copy_frame, 0, 0)
-
-            gear_frame = QtWidgets.QWidget()
-            gear_layout = QtWidgets.QGridLayout(gear_frame)
-            gear_layout.setContentsMargins(0, 0, 0, 0)
-            gear_layout.setSpacing(2)
-            center_layout.addWidget(gear_frame, 1, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-
-            for slot in equipped_dict:
-                button = QtWidgets.QPushButton()
-                button.clicked.connect(lambda checked=False, e=slot: visible_cb(e))
-                self.set_button_icon(button, equipped_dict[slot]["icon"])
-                equipped_dict[slot]["button"] = button
-                button.setToolTip(self.format_tooltip_stats(equipped_dict[slot]["item"]))
-                row, col = self.equipment_button_positions[slot]
-                gear_layout.addWidget(button, row, col)
-
-            radio_frame = QtWidgets.QWidget()
-            radio_frame.setFixedSize(400, 350)
-            outer_layout.addWidget(radio_frame, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
-            radio_stack = QtWidgets.QStackedLayout(radio_frame)
-            for slot in self.all_equipment_dict:
-                equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.all_equipment_dict[slot]])
-                scrollframes[slot] = VirtualRadioFrame(radio_frame, text=f"  Select {slot.capitalize()}  ", equipment_slot=slot, selection_type=set_type, command=self.update_quicklook_equipment, master_data=equipment_list, N=13)
-                radio_stack.addWidget(scrollframes[slot])
-            return outer
-
-        '''
-        ===============================================
-          Build the top frame (holding TP set stuff)
-        ===============================================
-        '''
-        self.tp_quicklook_equipped_dict = {slot: {"icon":self.get_equipment_icon(), "item":gear_pyfile.Empty} for slot in self.all_equipment_dict}
-        self.tp_quicklook_scrollframes = {}
-        simulations_tp_frame = build_simulation_set("tp", "Equipped TP set", self.tp_quicklook_equipped_dict, self.tp_quicklook_scrollframes, self.update_visible_quicklook_frame_tp, "tp to quicklook", "tp")
-        simulate_tab_layout.addWidget(simulations_tp_frame, 0, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-
-        '''
-        ===============================================
-         Build the bottom frame (holding WS set stuff)
-        ===============================================
-        '''
-        self.ws_quicklook_equipped_dict = {slot: {"icon":self.get_equipment_icon(), "item":gear_pyfile.Empty} for slot in self.all_equipment_dict}
-        self.ws_quicklook_scrollframes = {}
-        simulations_ws_frame = build_simulation_set("ws", "Equipped WS set", self.ws_quicklook_equipped_dict, self.ws_quicklook_scrollframes, self.update_visible_quicklook_frame_ws, "ws to quicklook", "ws")
-        simulate_tab_layout.addWidget(simulations_ws_frame, 1, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-
-        '''
-        ===============================================
-                 Build the simulation buttons
-        ===============================================
-        '''
-        simulation_button_frame = QtWidgets.QWidget()
-        simulation_button_layout = QtWidgets.QGridLayout(simulation_button_frame)
-        simulation_button_layout.setContentsMargins(0, 0, 0, 0)
-        simulation_button_layout.setSpacing(5)
-        for col in (0, 1, 2):
-            simulation_button_layout.setColumnStretch(col, 1)
-        simulate_tab_layout.addWidget(simulation_button_frame, 2, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-
-        dps_simulation_button = QtWidgets.QPushButton("Run DPS simulations")
-        dps_simulation_button.setFixedSize(150, 30)
-        dps_simulation_button.clicked.connect(lambda checked=False: self.quicklook("run dps simulations"))
-        simulation_button_layout.addWidget(dps_simulation_button, 0, 0)
-
-        self.plot_dps_checkbox = QtWidgets.QCheckBox("Plot DPS")
-        simulation_button_layout.addWidget(self.plot_dps_checkbox, 1, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
-
-        ws_distribution_button = QtWidgets.QPushButton("Create WS damage\ndistribution plot")
-        ws_distribution_button.setFixedSize(150, 30)
-        ws_distribution_button.clicked.connect(lambda checked=False: self.quicklook("build distribution"))
-        simulation_button_layout.addWidget(ws_distribution_button, 0, 1)
-
-        compare_sets = QtWidgets.QPushButton("Compare TP & WS stats")
-        compare_sets.setFixedSize(150, 30)
-        compare_sets.clicked.connect(lambda checked=False: self.quicklook("compare tp ws stats"))
-        simulation_button_layout.addWidget(compare_sets, 0, 2)
+        self.simulate_tab = SimulateTab(self)
+        self.notebook.addTab(self.simulate_tab, "Simulate")
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+3"), self).activated.connect(lambda: self.notebook.setCurrentWidget(self.simulate_tab))
+        # Alias TP/WS gear dicts, scrollframes, and the plot toggle so quicklook()/copy_gearset_dict()/
+        # update_job()/load_defaults() keep using the controller attributes unchanged.
+        self.tp_quicklook_equipped_dict = self.simulate_tab.tp_quicklook_equipped_dict
+        self.ws_quicklook_equipped_dict = self.simulate_tab.ws_quicklook_equipped_dict
+        self.tp_quicklook_scrollframes = self.simulate_tab.tp_quicklook_scrollframes
+        self.ws_quicklook_scrollframes = self.simulate_tab.ws_quicklook_scrollframes
+        self.plot_dps_checkbox = self.simulate_tab.plot_dps_checkbox
 
 
 
@@ -2568,96 +1912,11 @@ class application(QtWidgets.QMainWindow):
         ==============================================================================================
         '''
 
-        stats_tab = QtWidgets.QWidget()
-        self.notebook.addTab(stats_tab, "Player Stats")
-        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+4"), self).activated.connect(lambda: self.notebook.setCurrentWidget(stats_tab))
-        stats_tab_layout = QtWidgets.QGridLayout(stats_tab)
-        stats_tab_layout.setContentsMargins(0, 0, 0, 0)
-        stats_tab_layout.setSpacing(2)
-        stats_tab_layout.setColumnStretch(0, 1)
-
-        align_top = QtCore.Qt.AlignmentFlag.AlignTop
-        align_hcenter = QtCore.Qt.AlignmentFlag.AlignHCenter
-
-        stats_buttons_frame = QtWidgets.QWidget()
-        stats_buttons_frame.setFixedSize(600, 50)
-        stats_buttons_layout = QtWidgets.QGridLayout(stats_buttons_frame)
-        stats_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        stats_buttons_layout.setSpacing(2)
-        for col in (0, 1, 2):
-            stats_buttons_layout.setColumnStretch(col, 1)
-        stats_tab_layout.addWidget(stats_buttons_frame, 0, 0, align_hcenter | align_top)
-
-        for col, (label, event) in enumerate([
-            ("Quicklook Gear Stats", "show stats quicklook"),
-            ("TP Gear Stats", "show stats tp"),
-            ("WS Gear Stats", "show stats ws"),
-        ]):
-            button = QtWidgets.QPushButton(label)
-            button.setFixedSize(150, 30)
-            button.clicked.connect(lambda checked=False, e=event: self.quicklook(e))
-            stats_buttons_layout.addWidget(button, 0, col)
-
-        stats_frame = QtWidgets.QFrame()
-        stats_frame.setFrameShape(QtWidgets.QFrame.Shape.Box)
-        stats_frame.setLineWidth(2)
-        stats_frame.setFixedSize(675, 750)
-        stats_frame_layout = QtWidgets.QGridLayout(stats_frame)
-        stats_frame_layout.setContentsMargins(0, 0, 0, 0)
-        stats_frame_layout.setSpacing(2)
-        stats_tab_layout.addWidget(stats_frame, 1, 0)
-
-        stats_subframes = []
-        for sub_row in range(3):
-            sub = QtWidgets.QWidget()
-            sub_layout = QtWidgets.QGridLayout(sub)
-            sub_layout.setContentsMargins(0, 0, 0, 0)
-            sub_layout.setSpacing(2)
-            stats_frame_layout.addWidget(sub, sub_row, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
-            stats_subframes.append(sub_layout)
-        stats_frame1_layout, stats_frame2_layout, stats_frame3_layout = stats_subframes
-
-        useful_stats =  [
-                        ["STR", "DEX", "VIT", "AGI", "INT", "MND", "CHR"],
-                        ["Accuracy1", "Accuracy2", "Attack1", "Attack2", "Ranged Accuracy", "Ranged Attack",],
-                        ["Magic Accuracy", "Magic Attack", "Magic Damage", "Magic Burst Damage", "Magic Burst Damage II", "Magic Burst Damage Trait",],
-                        ["Daken", "Zanshin", "Kick Attacks", "DA", "TA", "QA", "Double Shot", "Triple Shot", "Quad Shot",],
-                        ["Dual Wield", "Martial Arts", "Gear Haste", "JA Haste", "Magic Haste", "Delay Reduction",],
-                        ["PDT", "MDT", "DT", "Evasion", "Magic Evasion", "Magic Defense", "Subtle Blow", "Subtle Blow II", ],
-                        ["Regain", "Store TP", "Crit Rate", "Crit Damage", "Ranged Crit Damage", "Weapon Skill Damage", "Weapon Skill Damage Trait", "Skillchain Bonus", "PDL", "PDL Trait", "TP Bonus", ]
-                        ]
-        self.stats_dict = {stat:{} for k in useful_stats for stat in k }
-
-        stat_font = QtGui.QFont("Courier", 10)
-
-        def build_stat_group(parent_layout, title, stats_list, size, title_align, grid_pos, sticky=None):
-            group = QtWidgets.QGroupBox(title)
-            group.setAlignment(title_align)
-            group.setFixedSize(*size)
-            group_layout = QtWidgets.QGridLayout(group)
-            group_layout.setContentsMargins(0, 0, 0, 0)
-            group_layout.setSpacing(2)
-            group_layout.setColumnStretch(1, 1)
-            for i, stat in enumerate(stats_list):
-                label1 = QtWidgets.QLabel(stat)
-                label1.setFont(stat_font)
-                group_layout.addWidget(label1, i, 0, QtCore.Qt.AlignmentFlag.AlignRight)
-                label2 = QtWidgets.QLabel("")
-                label2.setFont(stat_font)
-                group_layout.addWidget(label2, i, 2, QtCore.Qt.AlignmentFlag.AlignRight)
-                self.stats_dict[stat]["label1"] = label1
-                self.stats_dict[stat]["label2"] = label2
-            cell_align = align_top if sticky == "n" else QtCore.Qt.AlignmentFlag(0)
-            parent_layout.addWidget(group, *grid_pos, cell_align)
-            return group
-
-        build_stat_group(stats_frame1_layout, "Base Parameters", useful_stats[0], (120, 170), align_hcenter, (0, 0))
-        build_stat_group(stats_frame1_layout, "Physical", useful_stats[1], (260, 170), align_hcenter, (0, 1), sticky="n")
-        build_stat_group(stats_frame1_layout, "Magical", useful_stats[2], (260, 170), align_hcenter, (0, 2), sticky="n")
-        build_stat_group(stats_frame2_layout, "Multi-Attack", useful_stats[3], (200, 240), align_hcenter, (1, 0))
-        build_stat_group(stats_frame2_layout, "Attack Speed", useful_stats[4], (250, 240), align_hcenter, (1, 1), sticky="n")
-        build_stat_group(stats_frame3_layout, "Defensive", useful_stats[5], (210, 290), QtCore.Qt.AlignmentFlag.AlignLeft, (2, 0), sticky="n")
-        build_stat_group(stats_frame3_layout, "Other Stats", useful_stats[6], (270, 290), QtCore.Qt.AlignmentFlag.AlignLeft, (2, 1), sticky="n")
+        self.stats_tab = StatsTab(self)
+        self.notebook.addTab(self.stats_tab, "Player Stats")
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+4"), self).activated.connect(lambda: self.notebook.setCurrentWidget(self.stats_tab))
+        # Alias the label registry so quicklook() keeps writing self.stats_dict[...].
+        self.stats_dict = self.stats_tab.stats_dict
 
 
         '''
@@ -2667,77 +1926,11 @@ class application(QtWidgets.QMainWindow):
         ==============================================================================================
         '''
         if False:
-            automaton_tab = QtWidgets.QWidget()
-            self.notebook.addTab(automaton_tab, "Automaton")
-            QtGui.QShortcut(QtGui.QKeySequence("Ctrl+5"), self).activated.connect(lambda: self.notebook.setCurrentWidget(automaton_tab))
-            automaton_tab_layout = QtWidgets.QGridLayout(automaton_tab)
-
-            self.automaton_equipped_dict = {f"slot{i}":{} for i in range(21)} # 16 attachments, 3 maneuvers, head, frame
-
-            container = QtWidgets.QFrame()
-            container.setFrameShape(QtWidgets.QFrame.Shape.Box)
-            container.setFixedSize(350, 350)
-            container_layout = QtWidgets.QGridLayout(container)
-            automaton_tab_layout.addWidget(container, 0, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
-
-            head_frame_frame = QtWidgets.QFrame()
-            head_frame_frame.setFrameShape(QtWidgets.QFrame.Shape.Box)
-            head_frame_frame.setFixedSize(120, 50)
-            head_frame_layout = QtWidgets.QGridLayout(head_frame_frame)
-            container_layout.addWidget(head_frame_frame, 0, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
-            for i in range(2):
-                random_pet = [
-                            np.random.choice(["Harlequin Head", "Valoredge Head", "Stormwaker Head", "Soulsoother Head", "Spiritreaver Head"]),
-                            np.random.choice(["Harlequin Frame", "Valoredge Frame", "Stormwaker Frame"]),
-                            ]
-                self.automaton_equipped_dict[f"slot{i}"]["icon"] = self.get_equipment_icon(random_pet[i])
-                button = QtWidgets.QPushButton()
-                self.set_button_icon(button, self.automaton_equipped_dict[f"slot{i}"]["icon"])
-                button.clicked.connect(lambda checked=False, event=f"slot{i}": print(event))
-                self.automaton_equipped_dict[f"slot{i}"]["button"] = button
-                head_frame_layout.addWidget(button, 0, i)
-
-
-            capacity_frame = QtWidgets.QFrame()
-            capacity_frame.setFrameShape(QtWidgets.QFrame.Shape.Box)
-            capacity_frame.setFixedSize(120, 170)
-            container_layout.addWidget(capacity_frame, 1, 0)
-
-            gear_frame = QtWidgets.QFrame()
-            gear_frame.setFrameShape(QtWidgets.QFrame.Shape.Box)
-            gear_layout = QtWidgets.QGridLayout(gear_frame)
-            container_layout.addWidget(gear_frame, 1, 1)
-
-            for i,slot in enumerate(self.equipment_button_positions):
-                random_attachment = np.random.choice(["Fire Attachment", "Ice Attachment", "Thunder Attachment", "Earth Attachment", "Light Attachment", "Dark Attachment", "Water Attachment", "Wind Attachment"])
-                self.automaton_equipped_dict[f"slot{i+2}"]["icon"] = self.get_equipment_icon(random_attachment)
-                button = QtWidgets.QPushButton()
-                self.set_button_icon(button, self.automaton_equipped_dict[f"slot{i+2}"]["icon"])
-                button.clicked.connect(lambda checked=False, event=f"slot{i+2}": print(event))
-                self.automaton_equipped_dict[f"slot{i+2}"]["button"] = button
-                row, col = self.equipment_button_positions[slot]
-                gear_layout.addWidget(button, row, col)
-
-            maneuver_frame = QtWidgets.QFrame()
-            maneuver_frame.setFrameShape(QtWidgets.QFrame.Shape.Box)
-            maneuver_layout = QtWidgets.QGridLayout(maneuver_frame)
-            container_layout.addWidget(maneuver_frame, 1, 2, QtCore.Qt.AlignmentFlag.AlignTop)
-
-            for i in range(3):
-                random_maneuvers = [
-                            np.random.choice([element + " Maneuver" for element in ["Fire", "Earth", "Water", "Wind", "Ice", "Thunder", "Light", "Dark"]]),
-                            np.random.choice([element + " Maneuver" for element in ["Fire", "Earth", "Water", "Wind", "Ice", "Thunder", "Light", "Dark"]]),
-                            np.random.choice([element + " Maneuver" for element in ["Fire", "Earth", "Water", "Wind", "Ice", "Thunder", "Light", "Dark"]]),
-                            ]
-                self.automaton_equipped_dict[f"slot{i+18}"]["icon"] = self.get_equipment_icon(random_maneuvers[i])
-                button = QtWidgets.QPushButton()
-                self.set_button_icon(button, self.automaton_equipped_dict[f"slot{i+18}"]["icon"])
-                button.clicked.connect(lambda checked=False, event=f"slot{i+18}": print(event))
-                self.automaton_equipped_dict[f"slot{i+18}"]["button"] = button
-                maneuver_layout.addWidget(button, i, 0)
-
-
-            self.notebook.setCurrentWidget(automaton_tab)
+            self.automaton_tab = AutomatonTab(self)
+            self.notebook.addTab(self.automaton_tab, "Automaton")
+            QtGui.QShortcut(QtGui.QKeySequence("Ctrl+5"), self).activated.connect(lambda: self.notebook.setCurrentWidget(self.automaton_tab))
+            self.automaton_equipped_dict = self.automaton_tab.automaton_equipped_dict
+            self.notebook.setCurrentWidget(self.automaton_tab)
         '''
         ==============================================================================================
          The GUI has been built at this point.
@@ -2761,9 +1954,7 @@ class application(QtWidgets.QMainWindow):
         self.set_visible_frame(self.quicklook_scrollframes["main"])
         self.set_visible_frame(self.tp_quicklook_scrollframes["main"])
         self.set_visible_frame(self.ws_quicklook_scrollframes["main"])
-        self.set_visible_frame(self.optimize_scrollframes["main"])
         self.visible_quicklook_frame_slot = "main"
-        self.visible_optimize_frame_slot = "main"
 
 if __name__ == "__main__":
 
