@@ -34,6 +34,8 @@
     "tabs/stats_tab.py",
     "tabs/optimize_tab.py",
     "tabs/simulate_tab.py",
+    "tabs/quicklook_tab.py",
+    "gui_main.py",
     "wsdist.py"
   ],
   "exclude": [

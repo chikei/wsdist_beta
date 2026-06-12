@@ -7,6 +7,7 @@ Owns all quicklook input widgets and the handlers that read them. The sim driver
 '''
 
 import os
+from typing import Any
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -16,6 +17,7 @@ import gear as gear_pyfile
 import buffs as buffs_pyfile
 from widgets import WheelIntLineEdit, make_combo
 from virtual_frames import VirtualRadioFrame
+from wsdist_types import GearPiece, Gearset
 
 
 class QuicklookTab(QtWidgets.QWidget):
@@ -23,7 +25,7 @@ class QuicklookTab(QtWidgets.QWidget):
 
     slotsRefiltered = QtCore.Signal(dict)  # slot -> (filtered_list, deselect_spec); drives OptimizeTab on job change.
 
-    def __init__(self, ctx, parent=None):
+    def __init__(self, ctx: Any, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
 
@@ -47,7 +49,7 @@ class QuicklookTab(QtWidgets.QWidget):
         basic_inputs_layout.setSpacing(2)
         inputs_frame_layout.addWidget(basic_inputs_frame, 0, 0, QtCore.Qt.AlignmentFlag.AlignTop)
 
-        def add_basic_row(row, label_text, widget):
+        def add_basic_row(row: int, label_text: str, widget: QtWidgets.QWidget) -> None:
             label = QtWidgets.QLabel(label_text)
             label.setMinimumWidth(100)
             basic_inputs_layout.addWidget(label, row, 0, QtCore.Qt.AlignmentFlag.AlignRight)
@@ -73,8 +75,8 @@ class QuicklookTab(QtWidgets.QWidget):
         self.spell_selection_combobox = make_combo(spell_list, "", "defaults_spell_combobox")
         add_basic_row(4, "Spell: ", self.spell_selection_combobox)
 
-        self.wpn_type_main = "None"
-        self.wpn_type_ranged = "None"
+        self.wpn_type_main: str = "None"
+        self.wpn_type_ranged: str = "None"
         self.ws_selection_combobox = make_combo(self.ctx.state.ws_dict[self.wpn_type_main] + self.ctx.state.ws_dict[self.wpn_type_ranged], "", "defaults_ws_combobox")
         add_basic_row(5, "Weapon Skill: ", self.ws_selection_combobox)
 
@@ -106,7 +108,7 @@ class QuicklookTab(QtWidgets.QWidget):
         sf_layout.addWidget(sf_scroll, 0, 0)
 
         # Be careful here. The buff names here must match exactly what is presented in the "buffs.py" file under "misc_buffs" dict. # TODO: move this to buffs.py with debuffs
-        self.all_special_toggles_dict = dict(sorted({
+        self.all_special_toggles_dict: dict[str, dict[str, Any]] = dict(sorted({
             "Aggressor":          {"level requirement":45, "job requirement":["war"]}, 
             "Barrage":            {"level requirement":30, "job requirement":["rng"]}, 
             "Berserk":            {"level requirement":15, "job requirement":["war"]}, 
@@ -234,7 +236,7 @@ class QuicklookTab(QtWidgets.QWidget):
         subframe2_layout.setSpacing(1)
         enemy_stats_layout.addWidget(self.enemy_stats_subframe2, 0, 1)
 
-        def add_enemy_entry(layout, row, stat, label_width, field_width):
+        def add_enemy_entry(layout: QtWidgets.QGridLayout, row: int, stat: str, label_width: int, field_width: int) -> None:
             label = QtWidgets.QLabel(stat + ":")
             label.setMinimumWidth(label_width)
             layout.addWidget(label, row, 0, QtCore.Qt.AlignmentFlag.AlignRight)
@@ -245,7 +247,7 @@ class QuicklookTab(QtWidgets.QWidget):
             layout.addWidget(entry, row, 1)
             self.enemy_input_obj[stat] = entry
 
-        self.enemy_input_obj = {}
+        self.enemy_input_obj: dict[str, QtWidgets.QLineEdit] = {}
         self.enemy_stats_list1 = ["Evasion", "Defense", "Magic Evasion", "Magic Defense", "Magic DT%"]
         for i, stat in enumerate(self.enemy_stats_list1):
             add_enemy_entry(subframe1_layout, i, stat, 110, 64)
@@ -272,7 +274,7 @@ class QuicklookTab(QtWidgets.QWidget):
         player_buffs_layout.setSpacing(1)
         layout.addWidget(player_buffs_frame, 1, 0)
 
-        def make_buff_checkbox(text, object_name, checked, on_click=None):
+        def make_buff_checkbox(text: str, object_name: str, checked: bool, on_click: Any = None) -> QtWidgets.QCheckBox:
             checkbox = QtWidgets.QCheckBox(text)
             checkbox.setObjectName(object_name)
             checkbox.setChecked(checked)
@@ -280,7 +282,7 @@ class QuicklookTab(QtWidgets.QWidget):
                 checkbox.clicked.connect(on_click)
             return checkbox
 
-        def new_buff_subframe(column):
+        def new_buff_subframe(column: int) -> QtWidgets.QVBoxLayout:
             frame = QtWidgets.QWidget()
             frame.setFixedSize(166, 210)
             layout = QtWidgets.QVBoxLayout(frame)
@@ -298,7 +300,7 @@ class QuicklookTab(QtWidgets.QWidget):
         self.whm_checkbox = make_buff_checkbox("White Magic", "defaults_whm_checkbox", True)
         whm_layout.addWidget(self.whm_checkbox, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
 
-        self.whm_selections_dict = {}
+        self.whm_selections_dict: dict[str, str] = {}
 
         self.shell5_checkbox = make_buff_checkbox("Shell V", "defaults_shell5_checkbox", True)
         whm_layout.addWidget(self.shell5_checkbox, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
@@ -351,7 +353,7 @@ class QuicklookTab(QtWidgets.QWidget):
         whm_layout.addWidget(food_subframe)
 
         food_list = [k for k in gear_pyfile.all_food] + ["None"]
-        self.food_selections_dict = {}
+        self.food_selections_dict: dict[str, Any] = {}
         self.food_selections_dict["item"] = gear_pyfile.all_food["Grape Daifuku"]
         self.food_selections_dict["combobox"] = make_combo(food_list, "Grape Daifuku", "defaults_food_combobox", width_chars=0,
                                                            on_selected=lambda text: self.update_buffs("set food"))
@@ -372,7 +374,7 @@ class QuicklookTab(QtWidgets.QWidget):
 
         song_list = [song_name for song_name in buffs_pyfile.brd] + ["None"]
         number_of_songs = 5
-        self.song_selections_dict = {f"Song{i+1}":{} for i in range(number_of_songs)}
+        self.song_selections_dict: dict[str, dict[str, Any]] = {f"Song{i+1}":{} for i in range(number_of_songs)}
         for song_slot in self.song_selections_dict:
             combo = make_combo(song_list, "None", f"defaults_{song_slot}_combobox",
                                on_selected=lambda text, s=song_slot: self.update_buffs(f"set {s}"))
@@ -402,7 +404,7 @@ class QuicklookTab(QtWidgets.QWidget):
         roll_list = [roll_name for roll_name in buffs_pyfile.cor]
         roll_potency_list = ["XI", "X", "IX", "VIII", "VII", "VI", "V", "IV", "III", "II", "I"]
         number_of_rolls = 4
-        self.roll_selections_dict = {f"Roll{i+1}":{} for i in range(number_of_rolls)}
+        self.roll_selections_dict: dict[str, dict[str, Any]] = {f"Roll{i+1}":{} for i in range(number_of_rolls)}
         for roll_slot in self.roll_selections_dict:
             roll_row = QtWidgets.QWidget()
             roll_row_layout = QtWidgets.QHBoxLayout(roll_row)
@@ -439,7 +441,7 @@ class QuicklookTab(QtWidgets.QWidget):
 
         bubble_list = [bubble_name for bubble_name in sorted(list(buffs_pyfile.geo.keys()) + list(buffs_pyfile.geo_debuffs.keys()))]
         bubble_prefix_list = ["Indi-", "Geo-", "Entrust-"]
-        self.bubble_selections_dict = {f"{k}":{} for k in bubble_prefix_list}
+        self.bubble_selections_dict: dict[str, dict[str, Any]] = {f"{k}":{} for k in bubble_prefix_list}
         for i, bubble_slot in enumerate(self.bubble_selections_dict):
             combo = make_combo([bubble_prefix_list[i]+k for k in bubble_list] + ["None"], "None", f"defaults_{bubble_slot}_combobox",
                                on_selected=lambda text, s=bubble_slot: self.update_buffs(f"set {s}"))
@@ -510,7 +512,7 @@ class QuicklookTab(QtWidgets.QWidget):
         quicklook_gear_layout.setSpacing(1)
         quicklook_left_layout.addWidget(quicklook_gear_frame, 1, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
 
-        self.quicklook_equipped_dict = {slot: {"icon":self.ctx.get_equipment_icon(), "item":gear_pyfile.Empty} for slot in self.ctx.state.all_equipment_dict}
+        self.quicklook_equipped_dict: dict[str, dict[str, Any]] = {slot: {"icon":self.ctx.get_equipment_icon(), "item":gear_pyfile.Empty} for slot in self.ctx.state.all_equipment_dict}
 
         for slot in self.ctx.state.all_equipment_dict:
             button = QtWidgets.QPushButton()
@@ -545,8 +547,8 @@ class QuicklookTab(QtWidgets.QWidget):
         quicklook_left_layout.addWidget(quicklook_results_frame, 3, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
 
         courier_font = QtGui.QFont("Courier")
-        self.quicklook_damage_value = 0
-        self.quicklook_tp_value = 0
+        self.quicklook_damage_value: float = 0
+        self.quicklook_tp_value: float = 0
         self.quicklook_results_damage_label1 = QtWidgets.QLabel("Average Damage =")
         self.quicklook_results_damage_label1.setFont(courier_font)
         quicklook_results_layout.addWidget(self.quicklook_results_damage_label1, 0, 0, QtCore.Qt.AlignmentFlag.AlignRight)
@@ -565,7 +567,7 @@ class QuicklookTab(QtWidgets.QWidget):
         quicklook_frame_layout.addWidget(quicklook_subframe_right, 0, 1)
 
         quicklook_subframe_stack = QtWidgets.QStackedLayout(quicklook_subframe_right)
-        self.quicklook_scrollframes = {}
+        self.quicklook_scrollframes: dict[str, Any] = {}
         for slot in self.ctx.state.all_equipment_dict:
             equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict[slot]])
             self.quicklook_scrollframes[slot] = VirtualRadioFrame(quicklook_subframe_right, text=f"  Select {slot.capitalize()}  ", equipment_slot=slot, selection_type="quicklook", command=self.update_quicklook_equipment, master_data=equipment_list, N=16)
@@ -573,7 +575,7 @@ class QuicklookTab(QtWidgets.QWidget):
 
         self.visible_quicklook_frame_slot = "main"
 
-    def gather_player_inputs(self):
+    def gather_player_inputs(self) -> dict[str, Any]:
         '''
         Collect every quicklook-tab input the sim driver needs into one dict.
         This is the single sanctioned cross-tab accessor: SimulateTab.quicklook()
@@ -605,7 +607,7 @@ class QuicklookTab(QtWidgets.QWidget):
             "tp_value": tp_value, "special_toggles": special_toggles, "enemy_stats": enemy_stats,
         }
 
-    def validate_tp_value(self, event=None):
+    def validate_tp_value(self, event: Any = None) -> None:
         '''
         After the user clicks off the TP entry box, force the final value to be between 1000 and 3000.
         If the box is empty, use 1000 by default.
@@ -616,21 +618,21 @@ class QuicklookTab(QtWidgets.QWidget):
                 self.tp_entry_box.setText("1000")
             elif tp_value > 3000:
                 self.tp_entry_box.setText("3000")
-        except Exception as err:
+        except Exception:
             self.tp_entry_box.setText("1000")
 
-    def select_enemy(self,):
+    def select_enemy(self) -> None:
         '''
         When selecting a new enemy from the enemy input combobox
         Loop through the stats and update the user-input values based on the preset_enemies dictionaries from enemies.py
         '''
-        self.selected_enemy = enemies_pyfile.preset_enemies[self.selected_enemy_combobox.currentText()] 
-        for i,stat in enumerate(self.enemy_stats_list1 + self.enemy_stats_list2):
+        self.selected_enemy = enemies_pyfile.preset_enemies[self.selected_enemy_combobox.currentText()]
+        for stat in self.enemy_stats_list1 + self.enemy_stats_list2:
             self.enemy_input_obj[stat].setText(str(self.selected_enemy[stat]))
 
         self.enemy_level_location_label.setText(f"{self.selected_enemy['Location']} (Lv.{self.selected_enemy['Level']})")
 
-    def update_job(self, trigger):
+    def update_job(self, trigger: str) -> None:
         '''
         When selecting a new main or sub job
         Update the available spell list, special ability list, and equipment lists.
@@ -642,7 +644,7 @@ class QuicklookTab(QtWidgets.QWidget):
         dual_wield = (main_job_shorthand in ["nin", "dnc", "thf", "blu"] or sub_job_shorthand in ["nin", "dnc"])
 
         if trigger=="master level":
-            self.sub_job_level = 49 + int(self.master_level_combobox.currentText()//5)
+            self.sub_job_level = 49 + int(self.master_level_combobox.currentText()) // 5
 
         elif "main" in trigger.lower():
 
@@ -665,7 +667,7 @@ class QuicklookTab(QtWidgets.QWidget):
             new_subjob_options = [k for k in sorted(self.ctx.state.jobs_dict) if k != self.main_job_combobox.currentText()] + ["None"]
             self.ctx._set_combo_values(self.sub_job_selection_combobox, new_subjob_options)
             # Update the virtual scrollframes to show radiobuttons and checkbuttons for items equippable by the selected job.
-            optimize_updates = {}
+            optimize_updates: dict[str, Any] = {}
             for slot in self.ctx.state.all_equipment_dict:
                 if slot == "sub":
                     allowed_subtypes = ["Shield", "Grip", "None"]
@@ -713,6 +715,7 @@ class QuicklookTab(QtWidgets.QWidget):
         elif trigger=="sub":
             # Hide weapons in off-hand slot unless new main+sub combo allows dual wielding.
             allowed_subtypes = ["Shield", "Grip", "None"]
+            restricted_items: list[str] = []
             if dual_wield:
                 allowed_subtypes += ["Weapon"]
             else:
@@ -747,16 +750,16 @@ class QuicklookTab(QtWidgets.QWidget):
             else:
                 self.all_special_toggles_dict[ability_name]["checkbox"].setChecked(False)
 
-    def copy_to_clipboard(self, type):
+    def copy_to_clipboard(self, type: str) -> None:
         '''
         When clicking the "Copy to Clipboard" button.
         Build a set that can be copy-pasted into a gearswap lua (ignoring augments)
         '''
-        if type=="quicklook":
-            equipped_gear_dict = self.quicklook_equipped_dict
-        elif type=="tp":
+        if type=="tp":
             equipped_gear_dict = self.ctx.tp_quicklook_equipped_dict
-        elif type=="ws":
+        # type == quicklook
+        # type == ws
+        else:
             equipped_gear_dict = self.quicklook_equipped_dict
 
         output_string = "new_set = {\n"
@@ -768,7 +771,7 @@ class QuicklookTab(QtWidgets.QWidget):
 
         QtWidgets.QApplication.clipboard().setText(output_string)
 
-    def update_quicklook_equipment(self, selection):
+    def update_quicklook_equipment(self, selection: tuple[str, str, str]) -> None:
         '''
         When selecting a new equipment piece from the radio button lists in the quicklook frame.
         Update the item stored in the quicklook_equipped_dict object
@@ -785,24 +788,25 @@ class QuicklookTab(QtWidgets.QWidget):
         '''
         slot, new_item_name, source = selection
 
-        if source == "quicklook":
-            equipped_items_dict = self.quicklook_equipped_dict
-            scrollframe = self.quicklook_scrollframes
-        elif source == "tp":
+        if source == "tp":
             equipped_items_dict = self.ctx.tp_quicklook_equipped_dict
             scrollframe = self.ctx.tp_quicklook_scrollframes
         elif source == "ws":
             equipped_items_dict = self.ctx.ws_quicklook_equipped_dict
             scrollframe = self.ctx.ws_quicklook_scrollframes
+        # source == quicklook
+        else:
+            equipped_items_dict = self.quicklook_equipped_dict
+            scrollframe = self.quicklook_scrollframes
 
         new_item = gear_pyfile.all_gear[new_item_name] # New item (dictionary of stats)
         old_item = equipped_items_dict[slot]["item"]   # Old item (dictionary of stats)
 
-        if slot in ["ring1", "ring2", "ear1", "ear2"]: # Prepare for swapping rings/earrings later for convenience.
-            ring1_item_before = equipped_items_dict["ring1"]["item"]
-            ring2_item_before = equipped_items_dict["ring2"]["item"]
-            ear1_item_before = equipped_items_dict["ear1"]["item"]
-            ear2_item_before = equipped_items_dict["ear2"]["item"]
+        # Snapshot ring/earring slots for the swap-on-reselect convenience below.
+        ring1_item_before: GearPiece = equipped_items_dict["ring1"]["item"]
+        ring2_item_before: GearPiece = equipped_items_dict["ring2"]["item"]
+        ear1_item_before: GearPiece = equipped_items_dict["ear1"]["item"]
+        ear2_item_before: GearPiece = equipped_items_dict["ear2"]["item"]
 
         # Equip the new item now.
         equipped_items_dict[slot]["item"] = new_item
@@ -918,7 +922,7 @@ class QuicklookTab(QtWidgets.QWidget):
         scrollframe[slot].set_selected(new_item_name)
 
 
-    def update_buffs(self, event):
+    def update_buffs(self, event: str) -> None:
         '''
         When enabling/disabling/selecting buffs from WHM, COR, BRD, GEO selections.
         Ensure that no two buffs are identical (do not allow double chaos roll)
@@ -1002,14 +1006,14 @@ class QuicklookTab(QtWidgets.QWidget):
             if "sub" not in event.lower() and self.all_special_toggles_dict["Box Step"]["checkbox"].isChecked():
                 self.all_special_toggles_dict["Box Step (sub)"]["checkbox"].setChecked(False)
 
-    def aggregate_buffs(self,):
+    def aggregate_buffs(self) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
         '''
         Called by quicklook function
         Reads GUI values to determine active buffs and debuffs.
         Returns dictionary containing the sum of enabled buffs.
         '''
-        buffs = {"brd":{}, "cor":{}, "geo":{}, "whm":{}, "food":{}}
-        debuffs = {"cor":{}, "geo":{}, "whm":{}, "other":{}}
+        buffs: dict[str, dict[str, Any]] = {"brd":{}, "cor":{}, "geo":{}, "whm":{}, "food":{}}
+        debuffs: dict[str, dict[str, Any]] = {"cor":{}, "geo":{}, "whm":{}, "other":{}}
 
         # BRD buffs
         if self.brd_checkbox.isChecked() == True:
@@ -1036,7 +1040,7 @@ class QuicklookTab(QtWidgets.QWidget):
                     roll_value = self.roll_selections_dict[roll_slot]["potency combobox"].currentText() # I, II, III, IV, etc
                     crooked_cards = 1.0 + 0.2*self.crooked_checkbox.isChecked() if roll_slot in ["Roll1", "Roll3"] else 1.0 # Crooked Cards only affects rolls 1 and 3 here. 
                     for stat in buffs_pyfile.cor[roll_name]:
-                        values = buffs_pyfile.cor[roll_name][stat]
+                        values: Any = buffs_pyfile.cor[roll_name][stat]
                         job_bonus = self.job_bonus_checkbox.isChecked() * (values[2])
                         buffs["cor"][stat] = buffs["cor"].get(stat, 0) + crooked_cards * (values[0][roll_value] + roll_bonus*values[1] + job_bonus)
 
@@ -1109,14 +1113,14 @@ class QuicklookTab(QtWidgets.QWidget):
                         debuffs["other"][stat] = debuffs["other"].get(stat, 0) + self.all_special_toggles_dict[debuff_name][stat]
 
         # Combine debuffs into a simpler dictionary
-        combined_debuffs = {}
+        combined_debuffs: dict[str, Any] = {}
         for source in debuffs:
             for stat in debuffs[source]:
                 combined_debuffs[stat] = combined_debuffs.get(stat, 0) + debuffs[source][stat]
         # print(buffs)
         return buffs, combined_debuffs
 
-    def update_visible_quicklook_frame(self, slot):
+    def update_visible_quicklook_frame(self, slot: str) -> None:
         '''
         When clicking the quicklook equipment icons.
         Raise the selected slot's frame to the top and make it visible.
@@ -1125,7 +1129,7 @@ class QuicklookTab(QtWidgets.QWidget):
         self.ctx.set_visible_frame(self.quicklook_scrollframes[slot])
         self.visible_quicklook_frame_slot = slot
 
-    def equip_set(self, gearset):
+    def equip_set(self, gearset: Gearset) -> None:
         '''
         Equip a full gear set into the quicklook gear (slot by slot, updating
         icons/tooltips/radio selections) and switch to the Quicklook tab.

@@ -12,27 +12,25 @@ import numpy as np
 import os, sys
 sys.path.append(os.path.dirname(sys.executable))
 
-from PIL import Image
+from collections.abc import Iterable
+from typing import Any, cast
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 import pickle
+import random
 
 import importlib
 
 # Import other code related to this project.
-import enemies as enemies_pyfile
 import gear as gear_pyfile
 import create_player as create_player_pyfile
 import actions as actions_pyfile
 import buffs as buffs_pyfile
-import wsdist as wsdist_pyfile
-import fancy_plot as fancy_plot_pyfile
 from gpt_manage_defaults import *
 
-from virtual_frames import VirtualCheckboxFrame, VirtualRadioFrame
-from widgets import WheelIntLineEdit, make_combo
 from app_state import AppState
+from wsdist_types import GearPiece
 from tabs.stats_tab import StatsTab
 from tabs.automaton_tab import AutomatonTab
 from tabs.optimize_tab import OptimizeTab
@@ -41,6 +39,8 @@ from tabs.quicklook_tab import QuicklookTab
 
 
 class application(QtWidgets.QMainWindow):
+
+    states: dict[str, dict[str, Any]]
 
     def reload_gear_pyfile(self,):
         '''
@@ -86,13 +86,14 @@ class application(QtWidgets.QMainWindow):
             pickle.dump(self.states, f)
         print(f"File updated: defaults.pkl (default, {main_job})")
 
-    def load_defaults(self, type="default"):
+    def load_defaults(self, type: str = "default") -> None:
         '''
         When clicking the "Load Defaults" button or when changing main jobs.
         Read the defaults.pkl file and load the state saved in it for the currently selected main job.
         '''
         with open("defaults.pkl", "rb") as f:
             self.states = pickle.load(f)
+        selection = "default"
         try:
             main_job = self.main_job_combobox.currentText()
 
@@ -154,7 +155,7 @@ class application(QtWidgets.QMainWindow):
             print(f"Failed to load default values for {selection}")
             return
 
-    def format_tooltip_stats(self, item):
+    def format_tooltip_stats(self, item: GearPiece) -> str:
         '''
         Given a dictionary containing an item's stats, create a string to display with that item's icon as a tooltip.
         Returns a string.
@@ -163,7 +164,6 @@ class application(QtWidgets.QMainWindow):
         wpn_stats = ["DMG","Delay"] # DMG and Delay show up first if available
         base_stats = ["STR", "DEX", "VIT", "AGI", "INT", "MND", "CHR"] # Base parameters show up on their own line.
         main_stats = ["Accuracy","Attack","Ranged Accuracy","Ranged Attack","Magic Accuracy","Magic Damage","Magic Attack"]
-        all_stats = ["Striking Crit Rate","Climactic Crit Damage","Klimaform Damage%","Ebullience Bonus","Occult Acumen","Futae Bonus","WSC","Zanshin OA2","Recycle","Double Shot Damage%","Triple Shot Damage%","Ranged Crit Damage","Blood Pact Damage","Rank", "Kick Attacks", "Kick Attacks DMG", "Martial Arts", "Sneak Attack Bonus", "Trick Attack Bonus", "Double Shot", "True Shot","Zanshin", "Hasso", "Quick Draw Damage", "Quick Draw Magic Accuracy", "Quick Draw Damage%", "Triple Shot","Magic Crit Rate II","Magic Burst Accuracy","Fencer","JA Haste","Accuracy", "AGI", "Attack", "Axe Skill", "CHR", "Club Skill", "Crit Damage", "Crit Rate", "DA", "DA Damage%", "Dagger Skill", "Daken", "Dark Affinity", "Dark Elemental Bonus", "Delay", "DEX", "DMG", "Dual Wield", "Earth Affinity", "Earth Elemental Bonus", "Elemental Bonus", "Elemental Magic Skill", "Fire Affinity", "Fire Elemental Bonus", "ftp", "Gear Haste", "Great Axe Skill", "Great Katana Skill", "Great Sword Skill", "Hand-to-Hand Skill", "Ice Affinity", "Ice Elemental Bonus", "INT", "Jobs", "Katana Skill", "Light Affinity", "Light Elemental Bonus", "Magic Accuracy Skill", "Magic Accuracy", "Magic Attack", "Magic Burst Damage II", "Magic Burst Damage", "Magic Damage", "MND", "Name", "Name2", "Ninjutsu Damage%", "Ninjutsu Magic Attack","Ninjutsu Magic Accuracy", "Ninjutsu Skill", "OA2", "OA3", "OA4", "OA5", "OA6", "OA7", "OA8", "PDL", "Polearm Skill", "QA", "Ranged Accuracy", "Ranged Attack", "Scythe Skill", "Skill Type", "Skillchain Bonus", "Staff Skill", "Store TP", "STR", "Sword Skill", "TA", "TA Damage%", "Throwing Skill", "Thunder Affinity", "Thunder Elemental Bonus", "TP Bonus", "Type", "VIT", "Water Affinity", "Water Elemental Bonus", "Weapon Skill Accuracy", "Weapon Skill Damage", "Weather", "Wind Affinity", "Wind Elemental Bonus","Polearm Skill","Marksmanship Skill","Archery Skill"]
         def_stats = ["Evasion","Magic Evasion", "Magic Defense","DT","MDT","PDT","MDT2","PDT2","Subtle Blow","Subtle Blow II",]
 
         tooltip = f"{item['Name2' if 'Name2' in item else 'Name']}\n" # Start with the item's unique name
@@ -208,7 +208,7 @@ class application(QtWidgets.QMainWindow):
 
         return tooltip.strip()
 
-    def get_equipment_icon(self, item_name="Empty"):
+    def get_equipment_icon(self, item_name: str = "Empty") -> QtGui.QPixmap:
         try:
             item_id = self.item_id_dict["id"][self.item_id_dict["name"]==item_name.lower()][0]
             icon = QtGui.QPixmap(f"icons32/{item_id}.png")
@@ -219,12 +219,12 @@ class application(QtWidgets.QMainWindow):
             icon = self.get_equipment_icon(np.random.choice(["fire", "earth", "water", "wind", "ice", "thunder", "light", "dark"]) + " attachment")
         return icon
 
-    def set_button_icon(self, button, icon):
+    def set_button_icon(self, button: QtWidgets.QAbstractButton, icon: QtGui.QPixmap) -> None:
         '''Set an equipment-slot button's icon from a QPixmap.'''
         button.setIcon(QtGui.QIcon(icon))
         button.setIconSize(icon.size())
 
-    def _set_combo_values(self, combo, values):
+    def _set_combo_values(self, combo: QtWidgets.QComboBox, values: Iterable[Any]) -> None:
         '''Replace a QComboBox's items, preserving the current selection if still valid.'''
         current = combo.currentText()
         combo.blockSignals(True)
@@ -235,12 +235,15 @@ class application(QtWidgets.QMainWindow):
         combo.blockSignals(False)
 
 
-    def set_visible_frame(self, frame):
+    def set_visible_frame(self, frame: QtWidgets.QWidget) -> None:
         '''Raise a scrollframe to the top of its QStackedLayout parent.'''
-        frame.parentWidget().layout().setCurrentWidget(frame)
+        parent = frame.parentWidget()
+        assert parent is not None, "scrollframe has no parent widget"
+        stack = cast(QtWidgets.QStackedLayout, parent.layout())
+        stack.setCurrentWidget(frame)
 
 
-    def test_gui(self,):
+    def test_gui(self) -> None:
         '''
         Run a series of generic tests to ensure there are no errors
         TODO: Determine proper tests to implement...
@@ -268,7 +271,7 @@ class application(QtWidgets.QMainWindow):
         # Build a player character with one piece of gear equipped, checking all possible items one at a time.
         for slot in gear_pyfile.gear_dict:
             for item in gear_pyfile.gear_dict[slot]:
-                equipped_gearset = {slot0:gear_pyfile.Empty for slot0 in gear_pyfile.gear_dict}
+                equipped_gearset: dict[str, GearPiece] = {slot0:gear_pyfile.Empty for slot0 in gear_pyfile.gear_dict}
                 equipped_gearset[slot] = item
                 player = create_player_pyfile.create_player(main_job, sub_job, master_level, gearset=equipped_gearset, buffs=active_buffs, abilities=special_toggles_dict,)
 
@@ -283,10 +286,10 @@ class application(QtWidgets.QMainWindow):
         spell_list = [k for job in self.spells_dict for k in self.spells_dict[job]]
 
         # Build N random ML, job, buffs, toggles, ws, spell, combinations and return WS damage
-        for i in range(10000):
+        for _ in range(10000):
             special_toggles_dict = {k:self.all_special_toggles_dict[k]["checkbox"].isChecked() for k in self.all_special_toggles_dict if k not in buffs_pyfile.misc_debuffs}
             special_toggles_dict["99999"] = True
-            special_toggles_dict_random = {}
+            special_toggles_dict_random: dict[str, Any] = {}
             for ability_name in special_toggles_dict:
                 if isinstance(special_toggles_dict[ability_name], bool):
                     special_toggles_dict_random[ability_name] = np.random.uniform() < 0.5
@@ -301,9 +304,9 @@ class application(QtWidgets.QMainWindow):
             sub_job = np.random.choice(list(self.jobs_dict.values()) + ["None"])
             master_level = np.random.randint(0, 51)
 
-            equipped_gearset = {slot:np.random.choice(gear_pyfile.gear_dict[slot]) for slot in gear_pyfile.gear_dict}
+            equipped_gearset = {slot:random.choice(gear_pyfile.gear_dict[slot]) for slot in gear_pyfile.gear_dict}
             while equipped_gearset["main"]["Name"] == "Empty":
-                equipped_gearset["main"] = np.random.choice(gear_pyfile.gear_dict["main"])
+                equipped_gearset["main"] = random.choice(gear_pyfile.gear_dict["main"])
 
             main_skill_type = equipped_gearset["main"]["Skill Type"]
             ranged_skill_type = equipped_gearset["ranged"].get("Skill Type", "None")
@@ -313,14 +316,15 @@ class application(QtWidgets.QMainWindow):
                 ws_list = ws_list + self.ws_dict[ranged_skill_type]
 
                 ranged_type = equipped_gearset["ranged"].get("Type", "None")
+                ammo_type = "None"
                 if ranged_type == "Crossbow":
                     ammo_type = "Bolt"
                 elif ranged_type == "Gun":
                     ammo_type = "Bullet"
                 elif ranged_type == "Bow":
                     ammo_type = "Arrow"
-                
-                forced_ammo = np.random.choice([k for k in gear_pyfile.ammos if k.get("Type", "None")==ammo_type])
+
+                forced_ammo = random.choice([k for k in gear_pyfile.ammos if k.get("Type", "None")==ammo_type])
                 equipped_gearset["ammo"] = forced_ammo
 
             ws_name = np.random.choice(ws_list)
@@ -344,7 +348,7 @@ class application(QtWidgets.QMainWindow):
             enemy.stats["Magic Defense"] = max(-50, enemy.stats.get("Magic Defense", 0)) # Enemy Magic Defense can not be brought lower than -50 (magic damage taken x2)
             enemy.stats["Magic Damage Taken"] = enemy.stats.pop("Magic DT%")
 
-            active_buffs = {"cor":{}, "brd":{}, "whm":{}}
+            active_buffs: dict[str, dict[str, Any]] = {"cor":{}, "brd":{}, "whm":{}}
             for job in active_buffs:
                 if np.random.uniform() < 0.1:
                     continue
@@ -376,11 +380,9 @@ class application(QtWidgets.QMainWindow):
             else:
                 spell_type = "Elemental Magic"
 
-            output_ws = actions_pyfile.average_ws(player, enemy, ws_name, tp_entry_value, ws_type, "Damage dealt")
-            output_spell = actions_pyfile.cast_spell(player, enemy, spell_name, spell_type, "Damage dealt")
-            output_tp = actions_pyfile.average_attack_round(player, enemy, 0, tp_entry_value, "Time to WS")
-
-            # print(main_job, sub_job, ws_name, spell_name, output_tp[0], output_ws[0], output_spell[0])
+            actions_pyfile.average_ws(player, enemy, ws_name, tp_entry_value, ws_type, "Damage dealt")
+            actions_pyfile.cast_spell(player, enemy, spell_name, spell_type, "Damage dealt")
+            actions_pyfile.average_attack_round(player, enemy, 0, tp_entry_value, "Time to WS")
 
     def __init__(self):
         super().__init__()
