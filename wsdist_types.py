@@ -29,9 +29,16 @@ GearPiece: TypeAlias = dict[str, Any]
 # Equipment set: slot name ("main", "sub", "head", ...) -> gear piece.
 Gearset: TypeAlias = dict[str, GearPiece]
 
-# Accumulated player/enemy stat sheet keyed by stat name. Mostly float values,
-# with a few keys (e.g. "WSC") holding lists.
+# Accumulated player stat sheet keyed by stat name. Mostly float values, with a
+# few keys (e.g. "WSC") holding lists.
 Stats: TypeAlias = dict[str, Any]
+
+# Enemy stat sheet keyed by stat name. Unlike the player sheet, every value is
+# numeric (Defense, Evasion, VIT, ..., Magic Damage Taken) -- no list/str keys --
+# so the value type narrows to float. Kept a plain dict (not a TypedDict) because
+# the debuff loop writes runtime-computed keys (``stats[stat] -= ...``) and
+# ``stats.pop("Magic DT%")``, both of which a TypedDict forbids.
+EnemyStats: TypeAlias = dict[str, float]
 
 # Buff tables (see buffs.py) are deeply/heterogeneously nested; consumers narrow
 # on access.

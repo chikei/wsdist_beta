@@ -6,7 +6,7 @@ Author: Kastra (Asura server)
 from typing import Any
 
 from enemies import *
-from wsdist_types import Buffs, Gearset, Stats
+from wsdist_types import Buffs, EnemyStats, Gearset, Stats
 
 class create_enemy:
     #
@@ -16,7 +16,7 @@ class create_enemy:
         #
         #
         #
-        self.stats: Stats = {}
+        self.stats: EnemyStats = {}
         ignore_stats = ["Name", "Location"] # Ignore the strings to create a dictionary of numeric values
         for stat in enemy:
             if stat not in ignore_stats:
