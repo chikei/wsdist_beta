@@ -1024,9 +1024,8 @@ class QuicklookTab(QtWidgets.QWidget):
                     song_bonus_limit = buffs_pyfile.brd_song_limits[song_name]   # Some songs are limited to Songs+X due to instrument requirements or other gear limitations.
                     soul_voice = 1.0 + 1.0*self.soul_voice_checkbox.isChecked() # Soul Voice affects all songs. 
                     marcato = 1.0 + 0.5*self.marcato_checkbox.isChecked() if song_slot in ["Song1"] else 1.0 # Marcato only affects song in slot 1
-                    for stat in buffs_pyfile.brd[song_name]:
-                        values = buffs_pyfile.brd[song_name][stat]
-                        buffs["brd"][stat] = buffs["brd"].get(stat, 0) + soul_voice * marcato * (values[0] + min(song_bonus_limit, song_bonus)*values[1]) + 20*("minuet" in song_name.lower() and stat.lower() in ["attack", "ranged attack"]) # +20 Attack to Minuets from Job Point gifts (assuming it applies to all players, not just the BRD)
+                    for stat, song in buffs_pyfile.brd[song_name].items():
+                        buffs["brd"][stat] = buffs["brd"].get(stat, 0) + soul_voice * marcato * (song.base + min(song_bonus_limit, song_bonus)*song.per_point) + 20*("minuet" in song_name.lower() and stat.lower() in ["attack", "ranged attack"]) # +20 Attack to Minuets from Job Point gifts (assuming it applies to all players, not just the BRD)
 
         buffs["brd"]["Attack"] = int(buffs["brd"].get("Attack",0))
         buffs["brd"]["Ranged Attack"] = int(buffs["brd"].get("Ranged Attack",0))
@@ -1039,10 +1038,9 @@ class QuicklookTab(QtWidgets.QWidget):
                     roll_bonus = int(self.roll_bonus_combobox.currentText().split("+")[-1]) # "Rolls +7" etc
                     roll_value = self.roll_selections_dict[roll_slot]["potency combobox"].currentText() # I, II, III, IV, etc
                     crooked_cards = 1.0 + 0.2*self.crooked_checkbox.isChecked() if roll_slot in ["Roll1", "Roll3"] else 1.0 # Crooked Cards only affects rolls 1 and 3 here. 
-                    for stat in buffs_pyfile.cor[roll_name]:
-                        values: Any = buffs_pyfile.cor[roll_name][stat]
-                        job_bonus = self.job_bonus_checkbox.isChecked() * (values[2])
-                        buffs["cor"][stat] = buffs["cor"].get(stat, 0) + crooked_cards * (values[0][roll_value] + roll_bonus*values[1] + job_bonus)
+                    for stat, roll in buffs_pyfile.cor[roll_name].items():
+                        job_bonus = self.job_bonus_checkbox.isChecked() * roll.job_bonus
+                        buffs["cor"][stat] = buffs["cor"].get(stat, 0) + crooked_cards * (roll.potency[roll_value] + roll_bonus*roll.per_roll_bonus + job_bonus)
 
         # COR debuffs
         if self.light_shot_checkbox.isChecked() and self.whm_checkbox.isChecked() and ("dia" in self.whm_selections_dict["Dia"].lower()):
@@ -1060,9 +1058,8 @@ class QuicklookTab(QtWidgets.QWidget):
                 
                 # GEO Buffs
                 if bubble_name in buffs_pyfile.geo:
-                    for stat in buffs_pyfile.geo[bubble_name]:
-                        values = buffs_pyfile.geo[bubble_name][stat]
-                        buffs["geo"][stat] = buffs["geo"].get(stat, 0) + bolster * bog * (values[0] + bubble_bonus*values[1]) 
+                    for stat, bubble in buffs_pyfile.geo[bubble_name].items():
+                        buffs["geo"][stat] = buffs["geo"].get(stat, 0) + bolster * bog * (bubble.base + bubble_bonus*bubble.per_point)
 
                 # GEO Debuffs
                 if bubble_name in buffs_pyfile.geo_debuffs:
@@ -1070,9 +1067,8 @@ class QuicklookTab(QtWidgets.QWidget):
                     # Debuffing bubbles are frequently reduced to 10~70% of their original potency.
                     bubble_potency = max(0, int(self.bubble_potency_entry.text() or 0)/100)
 
-                    for stat in buffs_pyfile.geo_debuffs[bubble_name]:
-                        values = buffs_pyfile.geo_debuffs[bubble_name][stat]
-                        debuffs["geo"][stat] = debuffs["geo"].get(stat, 0) + bolster * bog * (values[0] + bubble_bonus*values[1]) * bubble_potency
+                    for stat, bubble in buffs_pyfile.geo_debuffs[bubble_name].items():
+                        debuffs["geo"][stat] = debuffs["geo"].get(stat, 0) + bolster * bog * (bubble.base + bubble_bonus*bubble.per_point) * bubble_potency
 
         # WHM buffs and debuffs
         if self.whm_checkbox.isChecked() == True:
