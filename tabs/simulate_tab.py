@@ -130,7 +130,7 @@ class SimulateTab(QtWidgets.QWidget):
         ws_distribution_button.clicked.connect(lambda checked=False: self.quicklook("build distribution"))
         simulation_button_layout.addWidget(ws_distribution_button, 0, 1)
 
-        compare_sets = QtWidgets.QPushButton("Compare TP & WS stats")
+        compare_sets = QtWidgets.QPushButton("Compare TP && WS stats")
         compare_sets.setFixedSize(150, 30)
         compare_sets.clicked.connect(lambda checked=False: self.quicklook("compare tp ws stats"))
         simulation_button_layout.addWidget(compare_sets, 0, 2)

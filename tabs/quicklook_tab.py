@@ -282,9 +282,9 @@ class QuicklookTab(QtWidgets.QWidget):
                 checkbox.clicked.connect(on_click)
             return checkbox
 
-        def new_buff_subframe(column: int) -> QtWidgets.QVBoxLayout:
+        def new_buff_subframe(column: int, height: int = 210) -> QtWidgets.QVBoxLayout:
             frame = QtWidgets.QWidget()
-            frame.setFixedSize(166, 210)
+            frame.setFixedSize(166, height)
             layout = QtWidgets.QVBoxLayout(frame)
             layout.setContentsMargins(2, 2, 2, 2)
             layout.setSpacing(1)
@@ -296,7 +296,7 @@ class QuicklookTab(QtWidgets.QWidget):
                 Build the White Magic and Food subframe
             ===============================================
         '''
-        whm_layout = new_buff_subframe(0)
+        whm_layout = new_buff_subframe(0, height=260)
         self.whm_checkbox = make_buff_checkbox("White Magic", "defaults_whm_checkbox", True)
         whm_layout.addWidget(self.whm_checkbox, 0, QtCore.Qt.AlignmentFlag.AlignHCenter)
 

@@ -410,7 +410,7 @@ class application(QtWidgets.QMainWindow):
         QtGui.QShortcut(QtGui.QKeySequence("q"), self).activated.connect(self.close)
 
         self.setWindowTitle("Kastra FFXI Damage Simulator  (2026 May 21a)") # pyinstaller --exclude-module gear --exclude-module enemies --clean --onefile --icon=icons32/23937.ico gui_main.py
-        self.setFixedSize(700, 850)
+        # self.setFixedSize(700, 850)
         self.setWindowIcon(QtGui.QIcon("icons32/23937.png")) # hat
 
         # Define the GUI tabs as a notebook of pages.
