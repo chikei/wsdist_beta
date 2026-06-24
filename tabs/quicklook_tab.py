@@ -709,7 +709,7 @@ class QuicklookTab(QtWidgets.QWidget):
                     self.enhancing_skill_label.setText("Enhancing Skill:")
                     self.enhancing_skill_entry.setText(str(500))
         
-            if os.path.isfile("defaults.pkl") and "static" not in trigger:
+            if (os.path.isfile("defaults.json") or os.path.isfile("defaults.pkl")) and "static" not in trigger:
                 self.ctx.load_defaults("main") # Update GUI to reflect the new main job
             
         elif trigger=="sub":

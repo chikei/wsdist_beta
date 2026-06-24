@@ -17,6 +17,7 @@ from typing import Any, cast
 
 from PySide6 import QtGui, QtWidgets
 
+import json
 import pickle
 import random
 
@@ -61,7 +62,7 @@ class application(QtWidgets.QMainWindow):
     def save_defaults(self,):
         '''
         When clicking the "Save Defaults" button.
-        Save relevant GUI selections to an output pickle file to be read in later.
+        Save relevant GUI selections to an output JSON file to be read in later.
         The outfile file is a dictionary with keys being jobs and values being dictionaries containing the relevant GUI parameters to be loaded for each job.
         '''
         main_job = self.main_job_combobox.currentText()
@@ -82,17 +83,35 @@ class application(QtWidgets.QMainWindow):
         self.states["default"] = state
         self.states[main_job] = state
 
-        with open("defaults.pkl", "wb") as f:
-            pickle.dump(self.states, f)
-        print(f"File updated: defaults.pkl (default, {main_job})")
+        with open("defaults.json", "w") as f:
+            json.dump(self.states, f, indent=2, sort_keys=True)
+        print(f"File updated: defaults.json (default, {main_job})")
+
+    def read_states(self) -> dict[str, dict[str, Any]]:
+        '''
+        Load the saved job profiles, preferring defaults.json.
+
+        Falls back to the legacy defaults.pkl when no JSON file exists yet, then
+        writes defaults.json so the next read uses the new format. The pickle path
+        runs arbitrary code on load, so only the user's own local file is trusted.
+        '''
+        if os.path.isfile("defaults.json"):
+            with open("defaults.json") as f:
+                return json.load(f)
+
+        with open("defaults.pkl", "rb") as f:
+            states = pickle.load(f)
+        with open("defaults.json", "w") as f:
+            json.dump(states, f, indent=2, sort_keys=True)
+        print("Migrated legacy defaults.pkl -> defaults.json")
+        return states
 
     def load_defaults(self, type: str = "default") -> None:
         '''
         When clicking the "Load Defaults" button or when changing main jobs.
-        Read the defaults.pkl file and load the state saved in it for the currently selected main job.
+        Read the defaults.json file and load the state saved in it for the currently selected main job.
         '''
-        with open("defaults.pkl", "rb") as f:
-            self.states = pickle.load(f)
+        self.states = self.read_states()
         selection = "default"
         try:
             main_job = self.main_job_combobox.currentText()
@@ -509,11 +528,11 @@ class application(QtWidgets.QMainWindow):
          Call the update functions to set good values in all entries.
         ==============================================================================================
         '''
-        if os.path.isfile("defaults.pkl"):
+        if os.path.isfile("defaults.json") or os.path.isfile("defaults.pkl"):
             self.load_defaults("default")
         else:
             # Dictionary containing the job profiles for saving/loading defaults by main job selection.
-            # Saved to defaults.pkl when using "Save Defaults" button.
+            # Saved to defaults.json when using "Save Defaults" button.
             self.states = {"default":{}, **{job:{} for job in self.jobs_dict.keys()}}
 
             self.quicklook_tab.update_job("main")
