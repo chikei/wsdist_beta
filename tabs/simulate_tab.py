@@ -307,6 +307,7 @@ class SimulateTab(QtWidgets.QWidget):
                                                             tp_entry_value, check_gear_dict, starting_gearset,
                                                             self.ctx.optimize_tab.pdt_requirements_entry.value(), self.ctx.optimize_tab.mdt_requirements_entry.value(), actions[trigger][1],
                                                             self.ctx.optimize_tab.show_similar_results_checkbox.isChecked(), int(self.ctx.optimize_tab.show_similar_results_entry.text() or 0),
+                                                            optimizer_options=self.ctx.optimize_tab.get_optimizer_options(),
                                                         )
             self.ctx.optimize_tab.equip_best_set_button.setEnabled(True)
 

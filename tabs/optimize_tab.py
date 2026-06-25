@@ -15,6 +15,7 @@ import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import gear as gear_pyfile
+import wsdist as wsdist_pyfile
 from widgets import WheelIntLineEdit, make_combo
 from virtual_frames import VirtualCheckboxFrame
 
@@ -199,7 +200,7 @@ class OptimizeTab(QtWidgets.QWidget):
             setattr(self, attr, combo)
 
         optimize_frame_bottomright = QtWidgets.QWidget()
-        optimize_frame_bottomright.setFixedSize(300, 230)
+        optimize_frame_bottomright.setFixedSize(300, 300)
         optimize_frame_bottomright_layout = QtWidgets.QGridLayout(optimize_frame_bottomright)
         optimize_frame_bottomright_layout.setContentsMargins(0, 0, 0, 0)
         optimize_frame_bottomright_layout.setSpacing(2)
@@ -223,11 +224,13 @@ class OptimizeTab(QtWidgets.QWidget):
         self.show_similar_results_entry.setToolTip("Print equipment that is within x% of the best set. Enter x here.")
         show_similar_results_layout.addWidget(self.show_similar_results_entry, 0, 1)
 
+        optimize_frame_bottomright_layout.addWidget(self._build_optimizer_options_frame(), 1, 0, align_hcenter)
+
         optimize_buttons_frame = QtWidgets.QWidget()
         optimize_buttons_layout = QtWidgets.QGridLayout(optimize_buttons_frame)
         optimize_buttons_layout.setContentsMargins(0, 0, 0, 0)
         optimize_buttons_layout.setSpacing(1)
-        optimize_frame_bottomright_layout.addWidget(optimize_buttons_frame, 1, 0, align_hcenter)
+        optimize_frame_bottomright_layout.addWidget(optimize_buttons_frame, 2, 0, align_hcenter)
 
         for label, event, pos in [
             ("Optimize WS", "optimize ws", (0, 0)),
@@ -246,6 +249,65 @@ class OptimizeTab(QtWidgets.QWidget):
         optimize_buttons_layout.addWidget(self.equip_best_set_button, 1, 1)
 
         self.ctx.set_visible_frame(self.optimize_scrollframes["main"])
+
+    def _build_optimizer_options_frame(self) -> QtWidgets.QWidget:
+        '''Build the form of optimizer tuning controls (see wsdist.OptimizerOptions).'''
+        frame = QtWidgets.QWidget()
+        layout = QtWidgets.QGridLayout(frame)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.setColumnStretch(0, 1)
+        align_left = QtCore.Qt.AlignmentFlag.AlignLeft
+
+        self.optimizer_iterations_entry = WheelIntLineEdit(value=10, lo=1, hi=1000)
+        self.optimizer_iterations_entry.setObjectName("defaults_optimizer_iterations_entry")
+        self.optimizer_iterations_entry.setFixedWidth(80)
+        self.optimizer_iterations_entry.setToolTip("Number of optimization passes per restart. More iterations find better sets but take longer.")
+
+        self.optimizer_swap_slots_combobox = make_combo(["2", "1"], "2", object_name="defaults_optimizer_swap_slots_combobox", width_chars=6)
+        self.optimizer_swap_slots_combobox.setToolTip("Maximum number of gear slots swapped at once each pass. 2 is slower but more thorough.")
+
+        self.optimizer_restart_count_entry = WheelIntLineEdit(value=1, lo=1, hi=100)
+        self.optimizer_restart_count_entry.setObjectName("defaults_optimizer_restart_count_entry")
+        self.optimizer_restart_count_entry.setFixedWidth(80)
+        self.optimizer_restart_count_entry.setToolTip("Number of independent restarts from different starting sets. Helps escape local minima.")
+
+        self.optimizer_dt_step_entry = WheelIntLineEdit(value=1, lo=1, hi=50)
+        self.optimizer_dt_step_entry.setObjectName("defaults_optimizer_dt_step_entry")
+        self.optimizer_dt_step_entry.setFixedWidth(80)
+        self.optimizer_dt_step_entry.setToolTip("Granularity (in %) for searching damage taken requirements.")
+
+        self.optimizer_seed_entry = QtWidgets.QLineEdit()
+        self.optimizer_seed_entry.setObjectName("defaults_optimizer_seed_entry")
+        self.optimizer_seed_entry.setValidator(QtGui.QIntValidator(0, 2_000_000_000, self.optimizer_seed_entry))
+        self.optimizer_seed_entry.setAlignment(QtCore.Qt.AlignmentFlag.AlignHCenter)
+        self.optimizer_seed_entry.setFixedWidth(80)
+        self.optimizer_seed_entry.setPlaceholderText("random")
+        self.optimizer_seed_entry.setToolTip("Random seed for reproducible runs. Leave blank for a random seed each run.")
+
+        for row, (text, widget) in enumerate([
+            ("Iterations", self.optimizer_iterations_entry),
+            ("Max swap slots", self.optimizer_swap_slots_combobox),
+            ("Restarts", self.optimizer_restart_count_entry),
+            ("DT search step %", self.optimizer_dt_step_entry),
+            ("Random seed", self.optimizer_seed_entry),
+        ]):
+            label = QtWidgets.QLabel(text)
+            label.setMinimumWidth(160)
+            layout.addWidget(label, row, 0, align_left)
+            layout.addWidget(widget, row, 1)
+        return frame
+
+    def get_optimizer_options(self) -> wsdist_pyfile.OptimizerOptions:
+        '''Read the optimizer form into an OptimizerOptions for build_set.'''
+        seed_text = self.optimizer_seed_entry.text().strip()
+        return wsdist_pyfile.OptimizerOptions(
+            iterations=self.optimizer_iterations_entry.value(),
+            max_swap_slots=int(self.optimizer_swap_slots_combobox.currentText()),
+            restart_count=self.optimizer_restart_count_entry.value(),
+            seed=int(seed_text) if seed_text else None,
+            dt_step=self.optimizer_dt_step_entry.value(),
+        )
 
     def apply_slot_refilter(self, updates: dict[str, Any]) -> None:
         '''
