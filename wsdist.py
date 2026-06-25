@@ -13,6 +13,7 @@ Author: Kastra (Asura server)
 import os
 import sys
 from datetime import datetime # For timestamping new sets to put on BG Wiki
+from dataclasses import dataclass
 from typing import Any, cast
 
 from create_player import *
@@ -27,6 +28,222 @@ from gear import *
 
 # Imported last so the numpy alias is not shadowed by the wildcard imports above.
 import numpy as np
+
+
+@dataclass(frozen=True)
+class OptimizerOptions:
+    iterations: int = 10
+    max_swap_slots: int = 2
+    restart_count: int = 1
+    seed: int | None = None
+    dt_step: int = 1
+
+
+def _normalize_optimizer_options(options: OptimizerOptions | None) -> OptimizerOptions:
+    if options is None:
+        options = OptimizerOptions()
+    return OptimizerOptions(
+        iterations=max(1, options.iterations),
+        max_swap_slots=1 if options.max_swap_slots <= 1 else 2,
+        restart_count=max(1, options.restart_count),
+        seed=options.seed,
+        dt_step=max(1, options.dt_step),
+    )
+
+
+def _jse_ear_names() -> list[str]:
+    names = ["Hattori", "Heathen's", "Lethargy", "Ebers", "Wicce", "Peltast's", "Boii", "Bhikku", "Skulker's", "Chevalier's", "Nukumi", "Fili", "Amini", "Kasuga", "Beckoner's", "Hashishin", "Chasseur's", "Karagoz", "Maculele", "Arbatel", "Azimuth", "Erilaz"]
+    return [k + " Earring +1" for k in names] + [k + " Earring +2" for k in names]
+
+
+def _copy_gearset(gearset: Gearset) -> Gearset:
+    return {slot: piece for slot, piece in gearset.items()}
+
+
+def _prefilter_check_gear(check_gear: dict[str, Any], main_job: str) -> dict[str, list[GearPiece]]:
+    return {
+        slot: [
+            item
+            for item in cast("list[GearPiece]", items)
+            if main_job in cast("list[str]", item["Jobs"])
+        ]
+        for slot, items in check_gear.items()
+    }
+
+
+def _fast_dt_for_gearset(gearset: Gearset, buffs: Buffs) -> tuple[float, float]:
+    pdt = 0.0
+    mdt = 0.0
+    dt = 0.0
+    pdt2 = 0.0
+    mdt2 = 0.0
+    dt2 = 0.0
+
+    for piece in gearset.values():
+        pdt += float(piece.get("PDT", 0))
+        mdt += float(piece.get("MDT", 0))
+        dt += float(piece.get("DT", 0))
+        pdt2 += float(piece.get("PDT2", 0))
+        mdt2 += float(piece.get("MDT2", 0))
+        dt2 += float(piece.get("DT2", 0))
+
+    for buff_stats in buffs.values():
+        pdt += float(buff_stats.get("PDT", 0))
+        mdt += float(buff_stats.get("MDT", 0))
+        dt += float(buff_stats.get("DT", 0))
+        pdt2 += float(buff_stats.get("PDT2", 0))
+        mdt2 += float(buff_stats.get("MDT2", 0))
+        dt2 += float(buff_stats.get("DT2", 0))
+
+    total_pdt = max(-50.0, pdt + dt) + pdt2 + dt2
+    total_mdt = max(-50.0, mdt + dt) + mdt2 + dt2
+    return total_pdt, total_mdt
+
+
+def _dt_for_player(player: "create_player") -> tuple[float, float]:
+    pdt = player.stats.get("PDT", 0) + player.stats.get("DT", 0)
+    mdt = player.stats.get("MDT", 0) + player.stats.get("DT", 0)
+    pdt = -50 if pdt < -50 else pdt
+    mdt = -50 if mdt < -50 else mdt
+    pdt += player.stats.get("PDT2", 0) + player.stats.get("DT2", 0)
+    mdt += player.stats.get("MDT2", 0) + player.stats.get("DT2", 0)
+    return pdt, mdt
+
+
+def _can_use_fast_dt_gate(abilities: dict[str, Any]) -> bool:
+    return int(abilities.get("Aftermath", 0) or 0) == 0
+
+
+def _slot_pairs(check_slots: list[str], max_swap_slots: int) -> list[tuple[int, str, int, str]]:
+    pairs: list[tuple[int, str, int, str]] = []
+    for i1, slot1 in enumerate(check_slots):
+        for i2, slot2 in enumerate(check_slots):
+            if i2 < i1:
+                continue
+            if max_swap_slots == 1 and i2 != i1:
+                continue
+            pairs.append((i1, slot1, i2, slot2))
+    return pairs
+
+
+def _is_valid_gearset(test_set: Gearset, main_job: str, sub_job: str, action_type: str, ws_name: str, spell_name: str, ws_dict: dict[str, list[str]], restricted_ws: dict[str, str], jse_ears: list[str]) -> bool:
+    if (test_set["ring1"] == test_set["ring2"]) and (test_set["ring1"]["Name"] != "Empty"):
+        return False
+    if (test_set["ear1"] == test_set["ear2"]) and (test_set["ear1"]["Name"] != "Empty"):
+        return False
+    if (test_set["main"] == test_set["sub"]) and (test_set["main"]["Name"] != "Empty"):
+        return False
+
+    one_handed = ["Axe", "Club", "Dagger", "Sword", "Katana"]
+    if (test_set["main"]["Skill Type"] in one_handed) and (test_set["sub"]["Type"] == "Grip"):
+        return False
+
+    two_handed = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff"]
+    if (test_set["main"]["Skill Type"] in two_handed) and (test_set["sub"]["Type"] == "Weapon" or test_set["sub"]["Type"] == "Shield"):
+        return False
+
+    if (test_set["main"]["Skill Type"] == "Hand-to-Hand") and (test_set["sub"]["Name"] != "Empty"):
+        return False
+
+    archery = ["Empyreal Arrow", "Flaming Arrow", "Namas Arrow", "Jishnu's Radiance", "Apex Arrow", "Refulgent Arrow", "Sidewinder", "Blast Arrow", "Piercing Arrow"]
+    marksmanship = ["Last Stand", "Hot Shot", "Leaden Salute", "Wildfire", "Coronach", "Trueflight", "Detonator", "Blast Shot", "Slug Shot", "Split Shot"]
+    if (action_type == "weapon skill") and (ws_name in archery + marksmanship):
+        if (ws_name in archery) and (test_set["ranged"]["Skill Type"] != "Archery" or test_set["ammo"]["Type"] != "Arrow"):
+            return False
+        if (ws_name in marksmanship) and (test_set["ranged"]["Skill Type"] != "Marksmanship" or test_set["ammo"]["Type"] not in ["Bolt", "Bullet"]):
+            return False
+        if (test_set["ranged"]["Type"] == "Crossbow") and (test_set["ammo"]["Type"] != "Bolt"):
+            return False
+        if (test_set["ranged"]["Type"] == "Gun") and (test_set["ammo"]["Type"] != "Bullet"):
+            return False
+
+    if (action_type == "spell cast") and (spell_name == "Ranged Attack"):
+        if (test_set["ranged"]["Type"] not in ["Gun", "Bow", "Crossbow"]) or (test_set["ammo"]["Type"] not in ["Bullet", "Arrow", "Bolt"]):
+            return False
+
+    if (test_set["ranged"]["Type"] == "Gun") and (test_set["ammo"].get("Type", "None") not in ["Bullet", "None"]):
+        return False
+    if (test_set["ranged"]["Type"] == "Bow") and (test_set["ammo"].get("Type", "None") not in ["Arrow", "None"]):
+        return False
+    if (test_set["ranged"]["Type"] == "Crossbow") and (test_set["ammo"].get("Type", "None") not in ["Bolt", "None"]):
+        return False
+
+    if (test_set["ammo"].get("Type", "None") == "Bullet") and (test_set["ranged"].get("Type", "None") != "Gun"):
+        return False
+    if (test_set["ammo"].get("Type", "None") == "Arrow") and (test_set["ranged"].get("Type", "None") != "Bow"):
+        return False
+    if (test_set["ammo"].get("Type", "None") == "Bolt") and (test_set["ranged"].get("Type", "None") != "Crossbow"):
+        return False
+
+    if (test_set["ranged"].get("Type", "None") == "Instrument") and (test_set["ammo"].get("Type", "None") != "None"):
+        return False
+
+    if (main_job not in ["nin", "dnc", "thf", "blu"] and sub_job not in ["nin", "dnc"]) and (test_set["sub"]["Type"] == "Weapon"):
+        return False
+
+    if (test_set["ear1"]["Name"] in jse_ears) and (test_set["ear2"]["Name"] == "Balder Earring +1"):
+        return False
+    if (test_set["ear2"]["Name"] in jse_ears) and (test_set["ear1"]["Name"] == "Balder Earring +1"):
+        return False
+
+    if (test_set["body"]["Name"] in ["Cohort Cloak", "Cohort Cloak +1", "Crepuscular Cloak", "Twilight Cloak"]) and (test_set["head"]["Name"] != "Empty"):
+        return False
+
+    if action_type == "spell cast":
+        if (spell_name == "Impact") and (test_set["body"]["Name"] not in ["Crepuscular Cloak", "Twilight Cloak"]):
+            return False
+
+    if action_type == "weapon skill":
+        if ws_name in restricted_ws:
+            if (restricted_ws[ws_name] != test_set["main"]["Name"]) and (restricted_ws[ws_name] != test_set["ranged"]["Name"]):
+                return False
+
+        ws_on_main = ws_name in ws_dict.get(test_set["main"]["Skill Type"], [])
+        ws_on_ranged = ws_name in ws_dict.get(test_set["ranged"]["Skill Type"], [])
+        if (not ws_on_main) and (not ws_on_ranged):
+            return False
+
+    return True
+
+
+def _evaluate_metric(player: "create_player", enemy: "create_enemy", ws_name: str, spell_name: str, action_type: str, min_tp: float, ws_type: str, spell_type: str, input_metric: str) -> tuple[float, list[Any], int, int, int]:
+    if action_type == "weapon skill":
+        decimals = 1
+        nondecimals = 8
+        metric_base, output = average_ws(player, enemy, ws_name, min_tp, ws_type, input_metric)
+        invert = output[-1]
+        metric = metric_base**invert
+    elif action_type == "spell cast":
+        decimals = 1
+        nondecimals = 8
+        metric_base, output = cast_spell(player, enemy, spell_name, spell_type, input_metric)
+        invert = output[-1]
+        metric = metric_base**invert
+    elif action_type == "attack round":
+        decimals = 3
+        nondecimals = 8
+        metric_base, output, _ = average_attack_round(player, enemy, 0, min_tp, input_metric)
+        invert = output[-1]
+        metric = metric_base**invert
+    else:
+        raise ValueError(f"Unknown action_type ({action_type})")
+
+    metric = 0.0001 if metric <= 0 else metric
+    return metric, output, invert, decimals, nondecimals
+
+
+def _single_start_options(options: OptimizerOptions, restart_index: int) -> OptimizerOptions:
+    return OptimizerOptions(
+        iterations=options.iterations,
+        max_swap_slots=options.max_swap_slots,
+        restart_count=1,
+        seed=None if options.seed is None else options.seed + restart_index,
+        dt_step=options.dt_step,
+    )
+
+
+def _copy_check_gear(check_gear: dict[str, Any]) -> dict[str, list[GearPiece]]:
+    return {slot: list(cast("list[GearPiece]", items)) for slot, items in check_gear.items()}
 
 def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric: Any) -> None:
     #
@@ -146,14 +363,18 @@ def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric:
     """
     print(bgwiki_text)
 
-def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abilities: dict[str, Any], enemy: "create_enemy", ws_name: str, spell_name: str, action_type: str, min_tp: float, check_gear: dict[str, Any], starting_gearset: Gearset, pdt_requirement: float, mdt_requirement: float, input_metric: str, print_swaps: bool, next_best_percent: float, ) -> tuple[Any, Any]:
+def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abilities: dict[str, Any], enemy: "create_enemy", ws_name: str, spell_name: str, action_type: str, min_tp: float, check_gear: dict[str, Any], starting_gearset: Gearset, pdt_requirement: float, mdt_requirement: float, input_metric: str, print_swaps: bool, next_best_percent: float, optimizer_options: OptimizerOptions | None = None, ) -> tuple[Any, Any]:
     #
     # Build a valid gear set, test it, and return the best set found.
     #
     # action_type = "ranged attack", "weapon skill", "tp round", "spell cast"
     #
-    n_iter = 10
-    fitn: int = 2
+    main_job = main_job.lower()
+    sub_job = sub_job.lower()
+    options = _normalize_optimizer_options(optimizer_options)
+    if options.seed is not None:
+        np.random.seed(options.seed)
+    n_iter = options.iterations
 
     # Defaults for values otherwise only set inside the optimization loop / branches.
     best_metric = 0.0001
@@ -164,6 +385,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
     swaps: dict[str, list[Any]] = {}
 
     verbose_swaps = abilities.get("Verbose Swaps", False)
+    use_fast_dt_gate = _can_use_fast_dt_gate(abilities)
 
     ws_dict = {"Katana": ["Blade: Retsu", "Blade: Teki", "Blade: To", "Blade: Chi", "Blade: Ei", "Blade: Jin", "Blade: Ten", "Blade: Ku", "Blade: Yu", "Blade: Metsu", "Blade: Kamu", "Blade: Hi", "Blade: Shun", "Zesho Meppo",],
         "Great Katana": ["Tachi: Enpi", "Tachi: Goten", "Tachi: Kagero", "Tachi: Jinpu", "Tachi: Koki","Tachi: Yukikaze", "Tachi: Gekko", "Tachi: Kasha", "Tachi: Ageha","Tachi: Kaiten", "Tachi: Rana", "Tachi: Fudo", "Tachi: Shoha", "Tachi: Mumei"],
@@ -194,6 +416,39 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
         spell_type = "Ninjutsu"
     else:
         spell_type = "Elemental Magic"
+
+    if options.restart_count > 1:
+        best_restart_player: Any = None
+        best_restart_output: list[Any] = []
+        best_restart_metric = 0.0001
+        for restart_index in range(options.restart_count):
+            restart_player, restart_output = build_set(
+                main_job,
+                sub_job,
+                master_level,
+                buffs,
+                abilities,
+                enemy,
+                ws_name,
+                spell_name,
+                action_type,
+                min_tp,
+                _copy_check_gear(check_gear),
+                _copy_gearset(starting_gearset),
+                pdt_requirement,
+                mdt_requirement,
+                input_metric,
+                print_swaps,
+                next_best_percent,
+                _single_start_options(options, restart_index),
+            )
+            restart_metric, _, _, _, _ = _evaluate_metric(restart_player, enemy, ws_name, spell_name, action_type, min_tp, ws_type, spell_type, input_metric)
+            if restart_metric > best_restart_metric:
+                best_restart_metric = restart_metric
+                best_restart_player = restart_player
+                best_restart_output = restart_output
+
+        return best_restart_player, best_restart_output
 
     # List of weapon skills and their associated weapons.
     restricted_ws = {"Blade: Metsu":"Kikoku",
@@ -234,6 +489,8 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
         check_gear["ranged"] = [k for k in check_gear["ranged"] if k["Type"] not in ["Crossbow", "Gun", "Bow"]]
         check_gear["ammo"] = [k for k in check_gear["ammo"] if k["Type"] not in ["Bolt", "Bullet", "Arrow"] and "antitail" not in k["Name2"]]
 
+    check_gear = _prefilter_check_gear(check_gear, main_job.lower())
+
     # Rather than start with an empty slot, randomly build a set from the selected gear so we likely start with some accuracy+ and avoid getting stuck.
     # Do not adjust slots that are not being checked.
     for slot in starting_gearset:
@@ -256,9 +513,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
     best_set =  starting_gearset.copy()
 
     # Define JSE earrings now. We'll use them later to prevent Balder's Earring+1 and a JSE+2 being equipped at the same time since we ignore right_ear requirement for testing.
-    jse_ears1 = [k + " Earring +1" for k in ["Hattori", "Heathen's", "Lethargy", "Ebers", "Wicce", "Peltast's", "Boii", "Bhikku", "Skulker's", "Chevalier's", "Nukumi", "Fili", "Amini", "Kasuga", "Beckoner's", "Hashishin", "Chasseur's", "Karagoz", "Maculele", "Arbatel", "Azimuth", "Erilaz"]]
-    jse_ears2 = [k + " Earring +2" for k in ["Hattori", "Heathen's", "Lethargy", "Ebers", "Wicce", "Peltast's", "Boii", "Bhikku", "Skulker's", "Chevalier's", "Nukumi", "Fili", "Amini", "Kasuga", "Beckoner's", "Hashishin", "Chasseur's", "Karagoz", "Maculele", "Arbatel", "Azimuth", "Erilaz"]]
-    jse_ears = jse_ears1+jse_ears2
+    jse_ears = _jse_ear_names()
 
     pdt = 200 # How much PDT the set has
     mdt = 200
@@ -293,229 +548,57 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
             check_slots: list[str] = list(check_gear)
             np.random.shuffle(check_slots)
 
-            # For now, the code will only support two simultaneous swaps. Adding a third requires only adding a new for loop, but it adds a significant amount of computation time.
-            for i1, slot1 in enumerate(check_slots): 
-                for i2, slot2 in enumerate(check_slots):
+            # For now, the code supports one- or two-slot swaps. Larger neighborhoods
+            # need a different candidate strategy because the item-pair count grows fast.
+            for _, slot1, _, slot2 in _slot_pairs(check_slots, options.max_swap_slots):
+                # Randomize the order that the gear in each slot is checked.
+                np.random.shuffle(check_gear[slot1])
+                np.random.shuffle(check_gear[slot2])
 
-                    # Do not check duplicate sets.
-                    if i2 < i1:
-                        continue
-                    
-                    # Only check single item swaps if fitn==1
-                    if fitn==1:  # pyright: ignore[reportUnnecessaryComparison]  # fitn is a feature toggle, currently fixed to 2
-                        if i2 != i1:
+                for item1 in check_gear[slot1]:
+                    for item2 in check_gear[slot2]:
+                        if (slot1 == slot2) and (item1 != item2): # Do not try to equip two different items in the same slot.
                             continue
 
-                    test_set: Gearset = {slot: cast(GearPiece, piece) for slot, piece in best_set.items()}
-                    
-                    # Randomize the order that the gear in each slot is checked.
-                    np.random.shuffle(check_gear[slot1])
-                    np.random.shuffle(check_gear[slot2])
+                        if (item1 == best_set[slot1]) or (item2 == best_set[slot2]): # If an item is already equipped in one of the slots, then skip the iteration. I let the "item1==item2" cases handle single-item swaps.
+                            continue
 
-                    for item1 in cast("list[GearPiece]", check_gear[slot1]):
-                        for item2 in cast("list[GearPiece]", check_gear[slot2]):
+                        test_set = _copy_gearset(best_set)
+                        test_set[slot1] = item1
+                        test_set[slot2] = item2
 
-                            if (slot1==slot2) and (item1!=item2): # Do not try to equip two different items in the same slot.
-                                continue
+                        if not _is_valid_gearset(test_set, main_job, sub_job, action_type, ws_name, spell_name, ws_dict, restricted_ws, jse_ears):
+                            continue
 
-                            # Booleans (rather than a direct `main_job not in ...`) so the
-                            # membership test does not flow-narrow main_job against the Any-typed
-                            # "Jobs" lists.
-                            item1_usable = main_job in cast("list[str]", item1["Jobs"])
-                            item2_usable = main_job in cast("list[str]", item2["Jobs"])
-                            if (not item1_usable) or (not item2_usable): # Do not equip items your main job can not use.
-                                continue
-
-                            if (item1==best_set[slot1]) or (item2==best_set[slot2]): # If an item is already equipped in one of the slots, then skip the iteration. I let the "item1==item2" cases handle single-item swaps.
-                                continue
-
-                            # Equip the items and check that the test_set is valid.
-                            test_set[slot1] = item1
-                            test_set[slot2] = item2
-
-                            # Re-bind to reset pyright's flow narrowing: across this large
-                            # nested loop with dozens of membership tests, both types
-                            # otherwise degrade to "Unknown" downstream.
-                            main_job = cast(str, main_job)
-                            test_set = cast(Gearset, test_set)  # pyright: ignore[reportUnnecessaryCast]
-
-
-                            if (test_set["ring1"]==test_set["ring2"]) and (test_set["ring1"]["Name"]!="Empty"): # Do not try to equip a second unique ring (unless the item is "Empty").
-                                continue
-                            if (test_set["ear1"]==test_set["ear2"]) and (test_set["ear1"]["Name"]!="Empty"): # Do not try to equip a second unique earring (unless the item is "Empty").
-                                continue
-                            if (test_set["main"]==test_set["sub"]) and (test_set["main"]["Name"]!="Empty"): # Do not try to equip a unique weapon (unless the item is "Empty").
-                                continue
-                            #print("test1")
-
-                            # Do not test 1-handed weapons with grips.
-                            one_handed = ["Axe", "Club", "Dagger", "Sword", "Katana"]
-                            if (test_set["main"]["Skill Type"] in one_handed) and (test_set["sub"]["Type"] == "Grip"):
-                                continue
-                            #print("test2")
-
-                            # Do not allow 2-handed weapons with shields or 1-handed weapons.
-                            two_handed = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff"]
-                            if (test_set["main"]["Skill Type"] in two_handed) and (test_set["sub"]["Type"]=="Weapon" or test_set["sub"]["Type"]=="Shield"):
-                                continue
-                            #print("test3")
-
-                            # Do not allow a hand-to-hand weapon with an off-hand item.
-                            if (test_set["main"]["Skill Type"] == "Hand-to-Hand") and (test_set["sub"]["Name"] != "Empty"):
-                                continue
-
-                            #print("test4")
-
-                            archery = ["Empyreal Arrow", "Flaming Arrow", "Namas Arrow","Jishnu's Radiance","Apex Arrow","Refulgent Arrow","Sidewinder","Blast Arrow","Piercing Arrow"]
-                            marksmanship = ["Last Stand","Hot Shot","Leaden Salute","Wildfire","Coronach","Trueflight", "Detonator","Blast Shot","Slug Shot","Split Shot"]
-                            if (action_type=="weapon skill") and (ws_name in archery+marksmanship):
-                                # If using a ranged weapon skill, ensure that the weapon and ammo type match the weapon skill.
-
-                                if (ws_name in archery) and (test_set["ranged"]["Skill Type"]!="Archery" or test_set["ammo"]["Type"]!="Arrow"):
-                                    continue
-                                
-                                if (ws_name in marksmanship) and (test_set["ranged"]["Skill Type"]!="Marksmanship" or test_set["ammo"]["Type"] not in ["Bolt", "Bullet"]):
-                                    continue
-
-                                if (test_set["ranged"]["Type"]=="Crossbow") and (test_set["ammo"]["Type"]!="Bolt"):
-                                    continue
-                                if (test_set["ranged"]["Type"]=="Gun") and (test_set["ammo"]["Type"]!="Bullet"):
-                                    continue
-                            #print("test5")
-
-                            # Ranged TP attacks require a ranged weapon and ammo to be equipped. We check that the ammo matches the weapon later.
-                            if (action_type=="spell cast") and (spell_name=="Ranged Attack"):
-                                if (test_set["ranged"]["Type"] not in ["Gun","Bow","Crossbow"]) or (test_set["ammo"]["Type"] not in ["Bullet","Arrow","Bolt"]):
-                                    continue
-                            #print("test6")
-
-                            # Do not equip an ammo incompatible with your ranged weapon
-                            if (test_set["ranged"]["Type"]=="Gun") and (test_set["ammo"].get("Type","None") not in ["Bullet","None"]):
-                                continue
-                            if (test_set["ranged"]["Type"]=="Bow") and (test_set["ammo"].get("Type","None") not in ["Arrow","None"]):
-                                continue
-                            if (test_set["ranged"]["Type"]=="Crossbow") and (test_set["ammo"].get("Type","None") not in ["Bolt","None"]):
-                                continue
-                            #print("test7")
-
-                            # Do not equip a ranged weapon incompatible with your ammo
-                            if (test_set["ammo"].get("Type","None")=="Bullet") and (test_set["ranged"].get("Type","None")!="Gun"):
-                                continue
-                            if (test_set["ammo"].get("Type","None")=="Arrow") and (test_set["ranged"].get("Type","None")!="Bow"):
-                                continue
-                            if (test_set["ammo"].get("Type","None")=="Bolt") and (test_set["ranged"].get("Type","None")!="Crossbow"):
-                                continue
-                            #print("test8")
-
-                            if (test_set["ranged"].get("Type","None")=="Instrument") and (test_set["ammo"].get("Type","None")!="None"):
-                                continue
-                            #print("test9")
-
-                            # Do not allow dual wielding unless the selected main job has native dual wield.
-                            if (main_job not in ["nin", "dnc", "thf", "blu"] and sub_job not in ["nin", "dnc"]) and (test_set["sub"]["Type"] == "Weapon"):
-                                    continue
-                            #print("test10")
-
-                            # Do not equip Balder Earring +1 and the JSE +2 ears at the same time. They both only work if in the right ear.
-                            if (test_set["ear1"]["Name"] in jse_ears) and (test_set["ear2"]["Name"]=="Balder Earring +1"):
-                                continue
-                            if (test_set["ear2"]["Name"] in jse_ears) and (test_set["ear1"]["Name"]=="Balder Earring +1"):
-                                continue
-                            #print("test11")
-
-                            # "Cannot equip headgear" armor is checked here.
-                            if (test_set["body"]["Name"] in ["Cohort Cloak","Cohort Cloak +1","Crepuscular Cloak","Twilight Cloak"]) and (test_set["head"]["Name"]!="Empty"):
-                                continue
-                            #print("test12")
-
-                            # Impact can only be casted with Twilight Cloak or Crepuscular Cloak
-                            if action_type == "spell cast":
-                                if (spell_name=="Impact") and (test_set["body"]["Name"] not in ["Crepuscular Cloak","Twilight Cloak"]):
-                                    continue
-                            #print("test13")
-
-                            if action_type == "weapon skill":
-                                # Some weapon skills can only be used with certain weapons.
-                                if ws_name in restricted_ws:
-                                    if (restricted_ws[ws_name]!=test_set["main"]["Name"]) and (restricted_ws[ws_name]!=test_set["ranged"]["Name"]):
-                                        continue
-                                #print("test14")
-
-                                # Reject sets if their main-hand weapon or ranged weapon can't use the selected weapon skill.
-                                # Booleans so the membership tests do not flow-narrow ws_name against the Any-typed skill lists.
-                                ws_on_main = ws_name in ws_dict.get(test_set["main"]["Skill Type"], [])
-                                ws_on_ranged = ws_name in ws_dict.get(test_set["ranged"]["Skill Type"], [])
-                                if (not ws_on_main) and (not ws_on_ranged):
-                                    continue
-                                #print("test15")
-                            
-                            # At this point, the code should have a valid gear set to play with.
-
-
-
-                            # Sets thats survive this long are valid and satisfy the temporary PDT/MDT requirements. We can now test the set.
-                            player = create_player(main_job, sub_job, master_level, test_set, buffs, abilities)
-
-
-                            # Don't even test the set if the DT requirement is not met in both PDT and MDT
-                            pdt = player.stats.get("PDT",0) + player.stats.get("DT",0)
-                            mdt = player.stats.get("MDT",0) + player.stats.get("DT",0)
-                            pdt = -50 if pdt < -50 else pdt # Apply the 50% cap.
-                            mdt = -50 if mdt < -50 else mdt
-                            pdt += player.stats.get("PDT2",0) + player.stats.get("DT2",0)
-                            mdt += player.stats.get("MDT2",0) + player.stats.get("DT2",0)
-                            # for slot in test_set:   # TODO: Loop through gear and add MDT/PDT instead of creating a player class
-                            #     pdt += test_set[slot].get("PDT2",0) # PDT2 breaks the cap.
-                            #     mdt += test_set[slot].get("MDT2",0)
+                        if use_fast_dt_gate:
+                            pdt, mdt = _fast_dt_for_gearset(test_set, buffs)
                             if pdt > pdt_thresh_temp or mdt > mdt_thresh_temp:
                                 continue
 
+                        player = create_player(main_job, sub_job, master_level, test_set, buffs, abilities)
+                        pdt, mdt = _dt_for_player(player)
+                        if pdt > pdt_thresh_temp or mdt > mdt_thresh_temp:
+                            continue
 
-                            # Prepare to test the set.
-
-                            if action_type=="weapon skill":
-                                decimals = 1
-                                nondecimals = 8
-                                metric_base, output = average_ws(player, enemy, ws_name, min_tp, ws_type, input_metric)
-                                invert = output[-1]
-                                metric = metric_base**invert
-                            elif action_type=="spell cast":
-                                decimals = 1
-                                nondecimals = 8
-                                metric_base, output = cast_spell(player, enemy, spell_name, spell_type, input_metric)
-                                invert = output[-1]
-                                metric = metric_base**invert
-                            elif action_type=="attack round":
-                                decimals = 3 # How many decimals to show in the output.
-                                nondecimals = 8
-                                metric_base, output, _ = average_attack_round(player, enemy, 0, min_tp, input_metric)
-                                invert = output[-1]
-                                metric = metric_base**invert
-
+                        metric, output, invert, decimals, nondecimals = _evaluate_metric(player, enemy, ws_name, spell_name, action_type, min_tp, ws_type, spell_type, input_metric)
+                        if metric > best_metric:
+                            if item1 == item2:
+                                print(f"[{slot1:<15s}]: [{best_set[slot1]['Name2']} ->  {item1['Name2']}   [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
+                                best_set[slot1] = item1
                             else:
-                                print(f"Unknown action_type  ({action_type})")
-                                import sys; sys.exit()
+                                print(f"[{slot1:<6s} & {slot2:<6s}]: [{best_set[slot1]['Name2']} & {best_set[slot2]['Name2']}] -> [{item1['Name2']} & {item2['Name2']}] [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
+                                best_set[slot1] = item1
+                                best_set[slot2] = item2
+                            best_metric = metric
+                            best_output = output
 
-                            metric = 0.0001 if metric <= 0 else metric # Prevent divide-by-zero errors
-                            if (metric > best_metric):
-                                if item1==item2:
-                                    print(f"[{slot1:<15s}]: [{best_set[slot1]['Name2']} ->  {item1['Name2']}   [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
-                                    best_set[slot1] = item1
-                                else:
-                                    print(f"[{slot1:<6s} & {slot2:<6s}]: [{best_set[slot1]['Name2']} & {best_set[slot2]['Name2']}] -> [{item1['Name2']} & {item2['Name2']}] [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
-                                    best_metric = metric
-                                    best_set[slot1] = item1
-                                    best_set[slot2] = item2
-                                best_metric = metric
-                                best_output = output
-    
-                            elif (item1==item2):
-                                try:
-                                    if (best_metric%metric / best_metric < (float(next_best_percent)/100)) and (slot1 not in ["main","sub","ranged","back"]):
-                                        swaps[slot1].append([item1["Name2"],metric**invert])
-                                except:
-                                    # print(f"Error on \"{item1['Name2']}\" - Metric = {metric}  - Best Metric = {best_metric}")
-                                    pass
+                        elif item1 == item2:
+                            try:
+                                if (best_metric%metric / best_metric < (float(next_best_percent)/100)) and (slot1 not in ["main","sub","ranged","back"]):
+                                    swaps[slot1].append([item1["Name2"], metric**invert])
+                            except Exception:
+                                # print(f"Error on \"{item1['Name2']}\" - Metric = {metric}  - Best Metric = {best_metric}")
+                                pass
 
             if best_set==converged_set: # If no improvement is found after one full iteration.
                 # best_player = create_player(main_job, sub_job, master_level, best_set, buffs, abilities)
@@ -524,19 +607,8 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
                 # print(best_output)
                 break # Break out of the main loop and check PDT/MDT conditions.
 
-        best_player0 = create_player(main_job, sub_job, master_level, best_set, buffs, abilities) # TODO: Loop through gear and add MDT/PDT instead of creating a player class
-
-        pdt = best_player0.stats.get("PDT",0) + best_player0.stats.get("DT",0)
-        mdt = best_player0.stats.get("MDT",0) + best_player0.stats.get("DT",0)
-        pdt = -50 if pdt < -50 else pdt
-        mdt = -50 if mdt < -50 else mdt
-        pdt += best_player0.stats.get("PDT2",0) + best_player0.stats.get("DT2",0)
-        mdt += best_player0.stats.get("MDT2",0) + best_player0.stats.get("DT2",0)
-
-        # for slot in best_set:
-        #     pdt += best_set[slot].get("PDT2",0)
-        #     mdt += best_set[slot].get("MDT2",0)
-
+        best_player0 = create_player(main_job, sub_job, master_level, best_set, buffs, abilities)
+        pdt, mdt = _dt_for_player(best_player0)
 
         # Compare the pdt and mdt values from this iteration with the previous iteration.
         if pdt == pdt_old and mdt == mdt_old:
@@ -552,8 +624,8 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
         mdt_old = mdt
 
         # Update the temporary PDT and MDT requirements so that the next set is slightly closer to the true requirements.
-        pdt_thresh_temp = pdt - 1 if pdt-1 > pdt_thresh else pdt_thresh
-        mdt_thresh_temp = mdt - 1 if mdt-1 > mdt_thresh else mdt_thresh
+        pdt_thresh_temp = pdt - options.dt_step if pdt-options.dt_step > pdt_thresh else pdt_thresh
+        mdt_thresh_temp = mdt - options.dt_step if mdt-options.dt_step > mdt_thresh else mdt_thresh
         
         print(f"Current best set: PDT:{pdt},  MDT:{mdt}")
 
