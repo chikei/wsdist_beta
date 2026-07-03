@@ -55,7 +55,7 @@ def plot_final(damage: Any, player: "create_player", tp1: float, WS_name: str,) 
     rc('font',**{'family':['Courier New']})
     rc('text', usetex=False)
 
-    sub_type = player.gearset['sub'].get('Type', 'None') # Check if the item equipped in the sub slot is a weapon or a grip or nothing. If the item doesn't have a "Type" Key then return "None", meaning nothing is equipped.
+    sub_type = player.gearset['sub'].type # Check if the item equipped in the sub slot is a weapon or a grip or nothing. If the item doesn't have a "Type" Key then return "None", meaning nothing is equipped.
     dual_wield = sub_type == 'Weapon'
 
     # https://jakevdp.github.io/PythonDataScienceHandbook/04.08-multiple-subplots.html

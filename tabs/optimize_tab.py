@@ -264,7 +264,7 @@ class OptimizeTab(QtWidgets.QWidget):
         self.optimizer_iterations_entry.setFixedWidth(80)
         self.optimizer_iterations_entry.setToolTip("Number of optimization passes per restart. More iterations find better sets but take longer.")
 
-        self.optimizer_swap_slots_combobox = make_combo(["2", "1"], "2", object_name="defaults_optimizer_swap_slots_combobox", width_chars=6)
+        self.optimizer_swap_slots_combobox = make_combo(["4", "3", "2", "1"], "2", object_name="defaults_optimizer_swap_slots_combobox", width_chars=6)
         self.optimizer_swap_slots_combobox.setToolTip("Maximum number of gear slots swapped at once each pass. 2 is slower but more thorough.")
 
         self.optimizer_restart_count_entry = WheelIntLineEdit(value=1, lo=1, hi=100)

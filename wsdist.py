@@ -65,7 +65,7 @@ def _prefilter_check_gear(check_gear: dict[str, Any], main_job: str) -> dict[str
         slot: [
             item
             for item in cast("list[GearPiece]", items)
-            if main_job in cast("list[str]", item.jobs)
+            if main_job in item.jobs
         ]
         for slot, items in check_gear.items()
     }
@@ -260,12 +260,12 @@ def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric:
     name_map = {k[0].lower():k[1] for k in item_list}
 
     backaugs: list[str] = []
-    for stat in player.gearset["back"]:
+    for stat in player.gearset["back"].stats:
         if stat.lower() in ["str","dex","vit","agi","int","mnd","chr","da","store tp","dual wield","crit rate","weapon skill damage", "magic attack"]:
             backaugs.append(stat)
 
     linosaugs: list[str] = []
-    for stat in player.gearset["ranged"]:
+    for stat in player.gearset["ranged"].stats:
         if stat.lower() in ["str","dex","vit","agi","int","mnd","chr","da","store tp","dual wield","crit rate","weapon skill damage", "magic attack","qa","da","ta"]:
             linosaugs.append(stat)
 
@@ -583,10 +583,10 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
                         metric, output, invert, decimals, nondecimals = _evaluate_metric(player, enemy, ws_name, spell_name, action_type, min_tp, ws_type, spell_type, input_metric)
                         if metric > best_metric:
                             if item1 == item2:
-                                print(f"[{slot1:<15s}]: [{best_set[slot1]['Name2']} ->  {item1['Name2']}   [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
+                                print(f"[{slot1:<15s}]: [{best_set[slot1].name2} ->  {item1.name2}   [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
                                 best_set[slot1] = item1
                             else:
-                                print(f"[{slot1:<6s} & {slot2:<6s}]: [{best_set[slot1]['Name2']} & {best_set[slot2]['Name2']}] -> [{item1['Name2']} & {item2['Name2']}] [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
+                                print(f"[{slot1:<6s} & {slot2:<6s}]: [{best_set[slot1].name2} & {best_set[slot2].name2}] -> [{item1.name2} & {item2.name2}] [{best_metric**invert:>{nondecimals}.{decimals}f} -> {metric**invert:>{nondecimals}.{decimals}f}]") if verbose_swaps else None
                                 best_set[slot1] = item1
                                 best_set[slot2] = item2
                             best_metric = metric
@@ -597,7 +597,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
                                 if (best_metric%metric / best_metric < (float(next_best_percent)/100)) and (slot1 not in ["main","sub","ranged","back"]):
                                     swaps[slot1].append([item1.name2, metric**invert])
                             except Exception:
-                                # print(f"Error on \"{item1['Name2']}\" - Metric = {metric}  - Best Metric = {best_metric}")
+                                # print(f"Error on \"{item1.name2}\" - Metric = {metric}  - Best Metric = {best_metric}")
                                 pass
 
             if best_set==converged_set: # If no improvement is found after one full iteration.
@@ -646,7 +646,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
     print(f"Best   \"{input_metric}\"   \"{header}\"   set")
     print("==============================================================")
     for k in best_player.gearset:
-        print(f"{k:>10s}  {best_player.gearset[k]['Name2']:<50s}")
+        print(f"{k:>10s}  {best_player.gearset[k].name2:<50s}")
     print()
     if action_type=="attack round":
         if input_metric=="Time to WS":

@@ -43,7 +43,7 @@ class GearPiece:
     """
 
     name: str
-    jobs: list[str] = field(default_factory=list)
+    jobs: list[str] = field(default_factory=list[str])
     name2: str = ""
     type: str = "None"
     skill_type: str = "None"
@@ -51,7 +51,7 @@ class GearPiece:
     delay: int = 0
     rank: int | None = None
     wsc: tuple[str, int] | None = None
-    stats: dict[str, int] = field(default_factory=dict)
+    stats: dict[str, int] = field(default_factory=dict[str, int])
 
     def __post_init__(self) -> None:
         if not self.name2:
