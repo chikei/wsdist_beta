@@ -35,7 +35,7 @@ def get_image_ids(gearset: Gearset) -> list[int]:
 
     gear_list = []
     for k in gearset:
-        gear_list.append(gearset[k]["Name"])
+        gear_list.append(gearset[k].name)
 
     ids = []
     for i,k in enumerate(gear_list):
@@ -106,7 +106,7 @@ def plot_final(damage: Any, player: "create_player", tp1: float, WS_name: str,) 
 
     ids = get_image_ids(player.gearset)
     # ids = [20977,21925,21391,25614,25491,27544,27545,26528,27118,28471,26175,26258,28440,25892,27496]
-    gear_list = [player.gearset[k]["Name"] for k in player.gearset]
+    gear_list = [player.gearset[k].name for k in player.gearset]
     for i,id in enumerate(ids):
         id = int(id)
         try:

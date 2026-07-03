@@ -371,7 +371,7 @@ class create_player:
         #
 
         # Define Dual Wield to simplify some code.
-        dual_wield = self.gearset["sub"]["Type"] == "Weapon" or self.gearset["main"]["Skill Type"] == "Hand-to-Hand"
+        dual_wield = self.gearset["sub"].type == "Weapon" or self.gearset["main"].skill_type == "Hand-to-Hand"
 
         # Compute Evasion, per-hand Attack/Accuracy, and Ranged Attack/Accuracy.
         self.finalize_offensive_stats()
@@ -396,14 +396,14 @@ class create_player:
 
         # Create "Attack1" for main-hand and "Attack2" for off-hand.
         # Off-hand attack uses STR/2
-        main_skill = self.gearset["main"].get("Skill Type","None") + " Skill"
-        sub_skill = self.gearset["sub"].get("Skill Type","None") + " Skill"
+        main_skill = self.gearset["main"].skill_type + " Skill"
+        sub_skill = self.gearset["sub"].skill_type + " Skill"
         self.stats["Attack1"] = 8 + self.stats.get(main_skill, 0) + self.stats["STR"] + self.stats.get("Attack",0) + self.stats.get(f"main {main_skill}", 0)
         self.stats["Attack2"] = 8 + self.stats.get(sub_skill, 0) + int(0.5*self.stats["STR"]) + self.stats.get("Attack",0) + self.stats.get(f"sub {sub_skill}",0)
 
         # Update Ranged Attack
-        ranged_skill = self.gearset["ranged"].get("Skill Type", "None") + " Skill"
-        ammo_skill = self.gearset["ammo"].get("Skill Type", "None") + " Skill"
+        ranged_skill = self.gearset["ranged"].skill_type + " Skill"
+        ammo_skill = self.gearset["ammo"].skill_type + " Skill"
         if ammo_skill=="Throwing Skill": # For Shuriken
             self.stats["Ranged Attack"] += 8 + self.stats.get(ammo_skill,0) + self.stats.get("STR",0)
         elif ranged_skill in ["Marksmanship Skill", "Archery Skill"]:
@@ -440,26 +440,26 @@ class create_player:
         #
         # Set weapon DMG/Delay stats and zero-out stats that don't apply to the gearset.
         #
-        self.stats["Delay1"] = self.gearset["main"].get("Delay",480-self.stats.get("Martial Arts",0)) # Use base hand-to-hand delay if main-hand item does not have a Delay stat
-        self.stats["Delay2"] = self.gearset["sub"].get("Delay",self.stats["Delay1"]) # Copy main-hand delay if off-hand item does not have delay stat
-        self.stats["Ranged Delay"] = self.gearset["ranged"].get("Delay",0)
-        self.stats["Ammo Delay"] = self.gearset["ammo"].get("Delay",0)
+        self.stats["Delay1"] = self.gearset["main"].delay or (480-self.stats.get("Martial Arts",0)) # Use base hand-to-hand delay if main-hand item does not have a Delay stat
+        self.stats["Delay2"] = self.gearset["sub"].delay or self.stats["Delay1"] # Copy main-hand delay if off-hand item does not have delay stat
+        self.stats["Ranged Delay"] = self.gearset["ranged"].delay
+        self.stats["Ammo Delay"] = self.gearset["ammo"].delay
 
-        self.stats["DMG1"] = self.gearset["main"].get("DMG",0)
-        self.stats["DMG2"] = self.gearset["sub"].get("DMG",0)
-        self.stats["Ranged DMG"] = self.gearset["ranged"].get("DMG",0)
-        self.stats["Ammo DMG"] = self.gearset["ammo"].get("DMG",0)
+        self.stats["DMG1"] = self.gearset["main"].dmg
+        self.stats["DMG2"] = self.gearset["sub"].dmg
+        self.stats["Ranged DMG"] = self.gearset["ranged"].dmg
+        self.stats["Ammo DMG"] = self.gearset["ammo"].dmg
 
         # Zero-out stats that don't apply for the given gearset. We have already dealt with Smite/LastResort/Hasso requiring 2-handed weapons too.
         two_handed = TWO_HANDED_SKILLS
-        if self.gearset["ammo"].get("Type","None")!="Shuriken" or self.main_job.lower() != "nin":
+        if self.gearset["ammo"].type!="Shuriken" or self.main_job.lower() != "nin":
             self.stats["Daken"] = 0
-        if self.gearset["main"].get("Skill Type","None")!="Hand-to-Hand":
+        if self.gearset["main"].skill_type!="Hand-to-Hand":
             self.stats["Kick Attacks"] = 0
             self.stats["Martial Arts"] = 0
-        if self.gearset["main"]["Skill Type"] not in two_handed:
+        if self.gearset["main"].skill_type not in two_handed:
             self.stats["Zanshin"] = 0
-        if (self.gearset["ranged"].get("Type") not in ["Gun","Bow","Crossbow"]) and (self.gearset["ammo"].get("Type","None") not in ["Bullet","Arrow","Bolt","Shuriken"]):
+        if (self.gearset["ranged"].type not in ["Gun","Bow","Crossbow"]) and (self.gearset["ammo"].type not in ["Bullet","Arrow","Bolt","Shuriken"]):
             self.stats["Ranged Attack"] = 0
             self.stats["Ranged Accuracy"] = 0
         if not self.abilities.get("True Shot",False): # Disable True Shot bonuses if True Shot is not enabled.
@@ -483,10 +483,10 @@ class create_player:
         total_haste = (self.stats["Gear Haste"] if self.stats["Gear Haste"] < 0.25 else 0.25) + (self.stats["JA Haste"] if self.stats["JA Haste"] < 0.25 else 0.25) + (self.stats["Magic Haste"] if self.stats["Magic Haste"] < 448./1024 else 448./1024)
 
         # Deal with the special case of Hand-to-Hand values.
-        if self.gearset["main"]["Skill Type"] == "Hand-to-Hand":
+        if self.gearset["main"].skill_type == "Hand-to-Hand":
             self.stats["Attack2"] = self.stats["Attack1"] - 0.5*self.stats["STR"]*(1+self.stats.get("Attack%",0))*0 # The off-hand H2H Attack might use STR/2 like normal weapons. This is ignored in the main code where I simply set attack1 = attack2 before calculating H2H damage.
             self.stats["Accuracy2"] = self.stats["Accuracy1"]
-            self.gearset["sub"]["Skill Type"] = self.gearset["main"]["Skill Type"]
+            self.gearset["sub"].skill_type = self.gearset["main"].skill_type
             base_dmg = 3 + int((self.stats.get("Hand-to-Hand Skill",0) + self.stats.get("main Hand-to-Hand Skill",0))*0.11)
             self.stats["DMG1"] = base_dmg + self.stats["DMG1"]
             self.stats["DMG2"] = self.stats["DMG1"]
@@ -554,9 +554,9 @@ class create_player:
         # Warrior abilities
         if "war" in jobs:
             if self.abilities.get("Berserk",False):
-                self.add_stat("Attack%", 0.25 + 0.085*(self.gearset["main"]["Name"]=="Conqueror") + (100./1024)*(self.main_job=="war")) # Warrior main gets +10% more attack with berserk.
+                self.add_stat("Attack%", 0.25 + 0.085*(self.gearset["main"].name=="Conqueror") + (100./1024)*(self.main_job=="war")) # Warrior main gets +10% more attack with berserk.
                 self.add_stat("Attack", 40*(self.main_job=="war"))
-                self.add_stat("Crit Rate", 14*(self.gearset["main"]["Name"]=="Conqueror"))
+                self.add_stat("Crit Rate", 14*(self.gearset["main"].name=="Conqueror"))
             if self.abilities.get("Aggressor",False):
                 self.add_stat("Accuracy", 25 + 20*(self.main_job=="war"))
             if self.main_job=="war":
@@ -573,14 +573,14 @@ class create_player:
                     self.add_stat("Accuracy", 100 + 20)
                 if self.abilities.get("Footwork",False):
                     self.add_stat("Kick Attacks", 20)
-                    self.stats["Kick Attacks Attack%"] = self.stats.get("Kick Attacks Attack%",0) + 100./1024 + (130./1024 if "Bhikku Gaiters +2"==self.gearset["feet"]["Name"] else 160./1024)
+                    self.stats["Kick Attacks Attack%"] = self.stats.get("Kick Attacks Attack%",0) + 100./1024 + (130./1024 if "Bhikku Gaiters +2"==self.gearset["feet"].name else 160./1024)
                     self.add_stat("Kick Attacks DMG", 20 + 20) # Activating footwork increases Kick DMG by 20, with an additional 20 from job points
                 if self.abilities.get("Impetus",False):
                     impetus_potency = 0.9
                     self.add_stat("Crit Rate", 50*impetus_potency)
                     self.add_stat("Attack", (100+40)*impetus_potency)
-                    self.add_stat("Crit Damage", 50*impetus_potency*("Bhikku Cyclas" in self.gearset["body"]["Name"]))
-                    self.add_stat("Accuracy", 100*impetus_potency*("Bhikku Cyclas" in self.gearset["body"]["Name"]))
+                    self.add_stat("Crit Damage", 50*impetus_potency*("Bhikku Cyclas" in self.gearset["body"].name))
+                    self.add_stat("Accuracy", 100*impetus_potency*("Bhikku Cyclas" in self.gearset["body"].name))
             if self.sub_job=="mnk":
                 if self.abilities.get("Focus",False):
                     self.add_stat("Crit Rate", 20*(1 - (99 - (self.sub_job_level))/100))
@@ -623,7 +623,7 @@ class create_player:
                 if self.abilities.get("Conspirator",False): # Assuming 6 players on the enmity list.
                     self.add_stat("Accuracy", 25 + 20)
                     self.add_stat("Subtle Blow", 50)
-                    self.add_stat("Attack", 25*("Skulker's Vest" in self.gearset["body"]["Name"])) # Must be equipped for the extra Attack
+                    self.add_stat("Attack", 25*("Skulker's Vest" in self.gearset["body"].name)) # Must be equipped for the extra Attack
         # ===========================================================================
         # ===========================================================================
         # Paladin abilities
@@ -648,7 +648,7 @@ class create_player:
             if self.abilities.get("Last Resort",False):
                 self.add_stat("Attack%", 256./1024 + 100./1024*(self.main_job=="drk"))
                 self.add_stat("Attack", 40*(self.main_job=="drk"))
-                self.stats["JA Haste"] = self.stats.get("JA Haste",0) + 15 + 10*(self.main_job=="drk") if self.gearset["main"]["Skill Type"] in two_handed else self.stats.get("JA Haste",0)
+                self.stats["JA Haste"] = self.stats.get("JA Haste",0) + 15 + 10*(self.main_job=="drk") if self.gearset["main"].skill_type in two_handed else self.stats.get("JA Haste",0)
             if self.main_job=="drk":
                 if self.abilities.get("Endark II",False): # https://ffxiclopedia.fandom.com/wiki/Endark_II
                     endark_potency = 0.80
@@ -679,14 +679,14 @@ class create_player:
                 if self.abilities.get("Velocity Shot",False):
                     self.add_stat("Ranged Attack", 40)
                     self.stats["JA Haste"] = self.stats.get("JA Haste",0) - 15
-                    self.add_stat("Ranged Attack%", 152./1024 + 112./1024*("Amini Caban +3"==self.gearset["body"]["Name"]) + 92./1024*("Amini Caban +2"==self.gearset["body"]["Name"]) + 20./1024*("Belenus" in self.gearset["back"]["Name"]))
+                    self.add_stat("Ranged Attack%", 152./1024 + 112./1024*("Amini Caban +3"==self.gearset["body"].name) + 92./1024*("Amini Caban +2"==self.gearset["body"].name) + 20./1024*("Belenus" in self.gearset["back"].name))
                 if self.abilities.get("Double Shot",False):
-                    self.add_stat("Double Shot", 40 + 5*("Arcadian Jerkin" in self.gearset["body"]["Name"]))
-                    if "Arcadian Jerkin" in self.gearset["body"]["Name"]: # Half of your Double Shot becomes Triple Shot with the relic body equipped. This ratio is assumed from the Triple>Quad ratio for COR linked below.
+                    self.add_stat("Double Shot", 40 + 5*("Arcadian Jerkin" in self.gearset["body"].name))
+                    if "Arcadian Jerkin" in self.gearset["body"].name: # Half of your Double Shot becomes Triple Shot with the relic body equipped. This ratio is assumed from the Triple>Quad ratio for COR linked below.
                         self.stats["Triple Shot"] = self.stats.get("Double Shot",0)/2 # The way this is written will overwrite "Triple Shot" from Oshosi. This is intentional since I believe that RNG can't proc Triple Shot on Oshosi and COR can't proc Double Shot on Oshosi
                         self.stats["Double Shot"] = self.stats.get("Double Shot",0)/2
                 else:
-                    self.stats["Double Shot"] = 0 + 5*("Arcadian Jerkin" in self.gearset["body"]["Name"])
+                    self.stats["Double Shot"] = 0 + 5*("Arcadian Jerkin" in self.gearset["body"].name)
                     self.stats["Triple Shot"] = 0
                 if self.abilities.get("Hover Shot",False): # We double damage dealt with Hover Shot enabled in the main code.
                     self.add_stat("Ranged Accuracy", 100)
@@ -695,7 +695,7 @@ class create_player:
         # ===========================================================================
         # Samurai abilities
         if "sam" in jobs:
-            if self.abilities.get("Hasso",False) and (self.gearset["main"]["Skill Type"] in two_handed):
+            if self.abilities.get("Hasso",False) and (self.gearset["main"].skill_type in two_handed):
                 if self.main_job=="sam":
                     self.add_stat("STR", 14 + 20)
                     self.stats["Zanshin"] = 100 if self.stats.get("Zanshin",0) > 100 else self.stats.get("Zanshin",0)
@@ -709,7 +709,7 @@ class create_player:
         # ===========================================================================
         # Ninja abilities
         if self.main_job=="nin":
-            if self.abilities.get("Sange",False) and self.gearset["ammo"]["Type"]=="Shuriken":
+            if self.abilities.get("Sange",False) and self.gearset["ammo"].type=="Shuriken":
                 self.add_stat("Ranged Accuracy", 100) # Assume 5/5 Sange Merits
                 self.stats["Daken"] = 100
             if self.abilities.get("Innin",False):
@@ -728,7 +728,7 @@ class create_player:
         if self.main_job == "cor":
             if self.abilities.get("Triple Shot",False):
                 self.add_stat("Triple Shot", 40)
-                if "Lanun Gants" in self.gearset["hands"]["Name"]: # Half of your Triple Shot becomes Quad Shot with Relic Hands. See: (https://www.ffxiah.com/forum/topic/31312/the-pirates-lair-a-guide-to-corsair/154/#3323623) and (http://wiki.ffo.jp/html/30818.html)
+                if "Lanun Gants" in self.gearset["hands"].name: # Half of your Triple Shot becomes Quad Shot with Relic Hands. See: (https://www.ffxiah.com/forum/topic/31312/the-pirates-lair-a-guide-to-corsair/154/#3323623) and (http://wiki.ffo.jp/html/30818.html)
                     self.stats["Quad Shot"] = self.stats.get("Triple Shot",0)/2 
                     self.stats["Triple Shot"] = self.stats.get("Triple Shot",0)/2
             else:
@@ -752,7 +752,7 @@ class create_player:
             if self.abilities.get("Saber Dance",False):
                 self.add_stat("DA", 25) # Assume minimum potency Saber Dance since it decays quickly.
             if self.abilities.get("Closed Position", False):
-                self.add_stat("Store TP", (3*5)*("Horos Toe Shoes +3"==self.gearset["feet"]["Name"] or "Horos Toe Shoes +4"==self.gearset["feet"]["Name"])) # DNC Relic+3 feet provide +3 Store TP for each merit into Closed Position
+                self.add_stat("Store TP", (3*5)*("Horos Toe Shoes +3"==self.gearset["feet"].name or "Horos Toe Shoes +4"==self.gearset["feet"].name)) # DNC Relic+3 feet provide +3 Store TP for each merit into Closed Position
 
         # ===========================================================================
         # ===========================================================================
@@ -807,7 +807,7 @@ class create_player:
         # ===========================================================================
         # Puppetmaster exclusive gear bonus
         if self.main_job=="pup":
-            if self.gearset["main"]["Name"] == "Dragon Fangs":
+            if self.gearset["main"].name == "Dragon Fangs":
                 self.add_stat("Kick Attacks", 14)
         # ===========================================================================
         # ===========================================================================
@@ -817,11 +817,11 @@ class create_player:
         # Add Smite (two-handed/H2H Attack%) and Fencer (TP Bonus/Crit Rate).
         #
         # Add Smite.
-        if self.gearset["main"]["Skill Type"] in (two_handed+["Hand-to-Hand"]):
+        if self.gearset["main"].skill_type in (two_handed+["Hand-to-Hand"]):
             smite_level = int(self.stats.get("Smite",0))
             self.add_stat("Attack%", SMITE_ATTACK_PCT[smite_level])
         # Add Fencer.
-        if (self.gearset["sub"]["Type"] in ["Shield","None"]) and (self.gearset["main"]["Skill Type"]!="Hand-to-Hand") and (self.gearset["main"]["Skill Type"] not in two_handed):
+        if (self.gearset["sub"].type in ["Shield","None"]) and (self.gearset["main"].skill_type!="Hand-to-Hand") and (self.gearset["main"].skill_type not in two_handed):
             fencer_level = 8 if self.stats.get("Fencer",0) > 8 else int(self.stats.get("Fencer",0))
             fencer_tp_bonus, fencer_crit_rate = FENCER_BONUSES[fencer_level]
             self.add_stat("TP Bonus", fencer_tp_bonus + self.stats.get("Fencer TP Bonus",0))
@@ -833,9 +833,9 @@ class create_player:
         #
         aftermath_level = self.abilities.get("Aftermath",0)
         if aftermath_level > 0:
-            main_wpn_name = self.gearset["main"]["Name"]
-            main_wpn_name2 = self.gearset["main"]["Name2"]
-            ranged_wpn_name = self.gearset["ranged"]["Name"]
+            main_wpn_name = self.gearset["main"].name
+            main_wpn_name2 = self.gearset["main"].name2
+            ranged_wpn_name = self.gearset["ranged"].name
             self.add_relic_aftermath(aftermath_level, main_wpn_name, ranged_wpn_name)
             self.add_mythic_aftermath(aftermath_level, main_wpn_name, ranged_wpn_name)
             self.add_prime_aftermath(aftermath_level, main_wpn_name, main_wpn_name2)
@@ -948,25 +948,24 @@ class create_player:
         #
         # Accumulate the individual stats from each equipped gear piece into self.stats.
         #
-        # A list of stats to not include in <stats>. These do not affect player stats. We will use DMG and Delay in the main code later to calculate damage, though.
-        ignore_stats = GEAR_METADATA_KEYS
+        # Accumulate every additive stat from each piece's stat pool. Metadata
+        # (Name/Type/DMG/Delay/...) is not in `piece.stats`, so no filtering needed.
         for slot in self.gearset:
-            for stat in self.gearset[slot]:
+            piece = self.gearset[slot]
+            for stat, value in piece.stats.items():
                 if stat=="Triple Shot" and self.main_job=="rng": # Skip Triple Shot bonuses on Oshosi for RNG
                     continue
                 if stat=="Double Shot" and self.main_job=="cor": # Skip Double Shot bonuses on Oshosi for COR
                     continue
-                if stat not in ignore_stats:
-                    if not (slot in ["main","sub"] and stat in MAIN_SUB_ONLY_SKILLS):
-                        if stat in ["FUA","OA8","OA7","OA6","OA5","OA4","OA3","OA2","EnSpell Damage","EnSpell Damage%"] and slot in ["main", "sub"]: # OAX stats apply only to the weapon they are attached to.
-                            self.add_stat(f"{stat} {slot}", self.gearset[slot][stat])
-                        elif stat=="WSC":
-                            name, coeff = self.gearset[slot][stat]
-                            self.wsc.append((name, coeff))
-                        else:
-                            self.add_stat(stat, self.gearset[slot][stat])
+                if not (slot in ["main","sub"] and stat in MAIN_SUB_ONLY_SKILLS):
+                    if stat in ["FUA","OA8","OA7","OA6","OA5","OA4","OA3","OA2","EnSpell Damage","EnSpell Damage%"] and slot in ["main", "sub"]: # OAX stats apply only to the weapon they are attached to.
+                        self.add_stat(f"{stat} {slot}", value)
                     else:
-                        self.add_stat(f"{slot} {stat}", self.gearset[slot][stat])
+                        self.add_stat(stat, value)
+                else:
+                    self.add_stat(f"{slot} {stat}", value)
+            if piece.wsc is not None: # WSC (Utu Grip, Crepuscular Knife) adds weapon-skill stat coefficients, not a summed stat.
+                self.wsc.append(piece.wsc)
 
     def add_set_bonuses(self,) -> None:
         #
@@ -977,7 +976,7 @@ class create_player:
         for set_bonus in ARMOR_SET_BONUSES:
             count = 0
             for slot in self.gearset:
-                name = self.gearset[slot]["Name"]
+                name = self.gearset[slot].name
                 if set_bonus.name_substring not in name:
                     continue
                 if set_bonus.requires_plus1 and "+1" not in name:
@@ -994,12 +993,12 @@ class create_player:
         # Regal Ring / Regal Earring give Accuracy/Ranged Accuracy/Magic Accuracy
         # per equipped AF+3 armor piece (max 5 pieces each).
         af_prefix = AF_ARMOR_PREFIX[self.main_job]
-        af_count = sum(af_prefix in self.gearset[slot]["Name"].lower() for slot in ["head","body","hands","legs","feet"])
+        af_count = sum(af_prefix in self.gearset[slot].name.lower() for slot in ["head","body","hands","legs","feet"])
         af_count = min(af_count, 5)
         regal_count = 0
-        if "Regal Ring" in [self.gearset["ring1"]["Name"], self.gearset["ring2"]["Name"]]:
+        if "Regal Ring" in [self.gearset["ring1"].name, self.gearset["ring2"].name]:
             regal_count += af_count
-        if "Regal Earring" in [self.gearset["ear1"]["Name"], self.gearset["ear2"]["Name"]]:
+        if "Regal Earring" in [self.gearset["ear1"].name, self.gearset["ear2"].name]:
             regal_count += af_count
         self.add_stat("Accuracy", regal_count*15)
         self.add_stat("Ranged Accuracy", regal_count*15)

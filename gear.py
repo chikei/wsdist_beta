@@ -45,7 +45,6 @@ for stat in Altana_Repast.copy():
      if stat not in ["Name", "Type"]:
         Altana_Repast[f"Pet:{stat}"] = Altana_Repast[stat]
 foods: list[GearPiece] = [Grape_Daifuku2, Grape_Daifuku, Sublime_Sushi2, Sublime_Sushi, Gyudon2, Gyudon, Red_Curry_Bun2, Red_Curry_Bun, Tropical_Crepe2, Tropical_Crepe, Omellete_Sandwich2, Omellete_Sandwich, Marine_Stewpot, Altana_Repast]
-all_food: dict[str, GearPiece] = {k["Name"]:k for k in foods}
 
 # If adding new weapons, you must include a dictionary key for "Skill Type", "Type", "DMG", and "Delay". Use the entries already present as examples
 Amanomurakumo = {"Name":"Amanomurakumo", "Name2":"Amanomurakumo R15", "Skill Type":"Great Katana", "Type":"Weapon", "DMG": 308+18, "Delay": 437, "Accuracy": 60, "Great Katana Skill": 269, "Magic Accuracy Skill": 228, "Skillchain Bonus":0+5, "Jobs":["sam"]}
@@ -652,7 +651,7 @@ Abyssal_Beads = {"Name":"Abyssal Bead Necklace +2", "Name2":"Abyssal Bead Neckla
 Abyssal_Beads1 = {"Name":"Abyssal Bead Necklace +1", "Name2":"Abyssal Bead Necklace +1 R20", "Accuracy":10, "Magic Accuracy":10, "Attack":35, "Store TP":0+6, "STR":0+20, "Crit Rate":3, "PDL":0+8, "Jobs":["drk"]}
 Baetyl_Pendant = {"Name":"Baetyl Pendant", "Magic Attack":13, "Jobs":all_jobs}
 Caro_Necklace = {"Name":"Caro Necklace", "STR":6, "DEX":6, "Attack":10, "Jobs":all_jobs}
-Fotia_Gorget = {"Name":"Fotia Gorget", "Weapon Skill Accuracy": 10, "ftp": 25./256., "Jobs":all_jobs}
+Fotia_Gorget = {"Name":"Fotia Gorget", "Weapon Skill Accuracy": 10, "ftp": 25, "Jobs":all_jobs}
 Ninja_Nodowa = {"Name":"Ninja Nodowa +2", "Name2":"Ninja Nodowa +2 R25", "Accuracy": 25, "Ranged Accuracy": 25, "Store TP": 7, "DEX":15, "AGI":15, "Daken":25, "PDL":10, "Jobs":["nin"]}
 Ninja_Nodowa1 = {"Name":"Ninja Nodowa +1", "Name2":"Ninja Nodowa +1 R20", "Accuracy": 20, "Ranged Accuracy": 20, "Store TP": 5, "DEX":12, "AGI":12, "Daken":20, "PDL":8, "Jobs":["nin"]}
 Rep_Plat_Medal = {"Name":"Republican Platinum Medal", "STR":10, "Attack":30, "Ranged Attack":30, "Jobs":all_jobs}
@@ -1247,7 +1246,7 @@ capes.append(Empty)
 
 
 Eschan_Stone = {"Name":"Eschan Stone", "Accuracy":15, "Ranged Accuracy":15, "Attack":15, "Ranged Attack":15, "Magic Accuracy":7, "Magic Attack":7, "Jobs":all_jobs}
-Fotia_Belt = {"Name":"Fotia Belt", "Weapon Skill Accuracy": 10, "ftp": 25./256., "Conserve TP":7, "Jobs":all_jobs}
+Fotia_Belt = {"Name":"Fotia Belt", "Weapon Skill Accuracy": 10, "ftp": 25, "Conserve TP":7, "Jobs":all_jobs}
 Grunfeld_Rope = {"Name":"Grunfeld Rope", "STR":5, "DEX":5, "Accuracy":10, "Attack":20, "DA":2, "Jobs":all_jobs}
 Hachirin_no_Obi = {"Name":"Hachirin-no-Obi", "Jobs":all_jobs}
 Ioskeha_Belt = {"Name":"Ioskeha Belt +1", "Accuracy":17, "DA":9, "Gear Haste":8, "Jobs":["war", "drk", "sam", "drg", "run"]}
@@ -1957,5 +1956,30 @@ if typo:
   print("Check the \"available_stats\" list at the end of the gear.py file for a list of accepted stat names.")
   import sys ; sys.exit()
 
+# ---------------------------------------------------------------------------
+# Convert the flat gear dicts above into typed GearPiece objects. Done here,
+# after validation + Name2 backfill, so from_flat() sees the final contents.
+# Slot lists are converted in place; every module-level gear dict (Empty,
+# Heishi, Kraken_Club, ...) is rebound to its GearPiece so `from gear import *`
+# and `gear.<Name>` yield typed objects, reusing the list instance.
+# ---------------------------------------------------------------------------
+_gearpiece_cache: dict[int, GearPiece] = {}
+def _as_gearpiece(piece):
+    if isinstance(piece, GearPiece):
+        return piece
+    converted = _gearpiece_cache.get(id(piece))
+    if converted is None:
+        converted = GearPiece.from_flat(piece)
+        _gearpiece_cache[id(piece)] = converted
+    return converted
+
+for _slot_list in slots:
+    _slot_list[:] = [_as_gearpiece(_piece) for _piece in _slot_list]
+
+for _name, _value in list(globals().items()):
+    if isinstance(_value, dict) and "Name" in _value:
+        globals()[_name] = _as_gearpiece(_value)
+
 gear_dict: dict[str, list[GearPiece]] = {"main":mains, "sub":subs+grips, "ranged":ranged, "ammo":ammos, "head":heads, "neck":necks, "ear1":ears, "ear2":ears2, "body":bodies, "hands":hands, "ring1":rings, "ring2":rings2, "back":capes, "waist":waists, "legs":legs, "feet":feet}
-all_gear: dict[str, GearPiece] = {k["Name2"]:k for k in mains+subs+grips+ranged+ammos+heads+necks+ears+ears2+bodies+hands+rings+rings2+capes+waists+legs+feet}
+all_gear: dict[str, GearPiece] = {p.name2: p for p in mains+subs+grips+ranged+ammos+heads+necks+ears+ears2+bodies+hands+rings+rings2+capes+waists+legs+feet}
+all_food: dict[str, GearPiece] = {p.name: p for p in foods}

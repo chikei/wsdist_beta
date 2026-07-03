@@ -87,8 +87,8 @@ def get_weapon_damage_bonuses(player: "create_player", aftermath: int) -> tuple[
     # damage, prime hidden double/triple damage, and the Dragon Fangs H2H kick
     # bonus. Returns a 4-tuple of multipliers, each starting at 1.0.
     #
-    main_name = player.gearset["main"]["Name"]
-    main_name2 = player.gearset["main"]["Name2"]
+    main_name = player.gearset["main"].name
+    main_name2 = player.gearset["main"].name2
 
     empyrean_am_damage_bonus = 1.0
     if main_name in EMPYREAN_WEAPONS and aftermath > 0:
@@ -191,12 +191,12 @@ def run_simulation(player_tp: "create_player", player_ws: "create_player", enemy
     #
     verbose_dps = player_tp.abilities.get("Verbose DPS", False)
     very_verbose_dps = player_tp.abilities.get("Very Verbose DPS", False)
-    dual_wield = ((player_tp.gearset["sub"].get("Type",None) == "Weapon") or (player_tp.gearset["main"]["Skill Type"] == "Hand-to-Hand")) and ((player_ws.gearset["sub"].get("Type",None) == "Weapon") or (player_ws.gearset["main"]["Skill Type"] == "Hand-to-Hand"))
+    dual_wield = ((player_tp.gearset["sub"].type == "Weapon") or (player_tp.gearset["main"].skill_type == "Hand-to-Hand")) and ((player_ws.gearset["sub"].type == "Weapon") or (player_ws.gearset["main"].skill_type == "Hand-to-Hand"))
 
-    time_per_attack_round = get_delay_timing(player_tp.stats["Delay1"], player_tp.stats["Delay2"] if dual_wield and (player_ws.gearset["main"]["Skill Type"] != "Hand-to-Hand") else 0, player_tp.stats.get("Dual Wield",0)/100, player_tp.stats.get("Martial Arts",0), player_tp.stats.get("Magic Haste",0), player_tp.stats.get("JA Haste",0), player_tp.stats.get("Gear Haste",0))
+    time_per_attack_round = get_delay_timing(player_tp.stats["Delay1"], player_tp.stats["Delay2"] if dual_wield and (player_ws.gearset["main"].skill_type != "Hand-to-Hand") else 0, player_tp.stats.get("Dual Wield",0)/100, player_tp.stats.get("Martial Arts",0), player_tp.stats.get("Magic Haste",0), player_tp.stats.get("JA Haste",0), player_tp.stats.get("Gear Haste",0))
 
-    regain_tp = player_tp.stats.get("Dual Wield",0)*(player_tp.gearset["main"]["Name"]=="Gokotai") + player_tp.stats.get("Regain",0) # Total regain in TP set
-    regain_ws = player_ws.stats.get("Dual Wield",0)*(player_ws.gearset["main"]["Name"]=="Gokotai") + player_ws.stats.get("Regain",0) # Total regain in WS set
+    regain_tp = player_tp.stats.get("Dual Wield",0)*(player_tp.gearset["main"].name=="Gokotai") + player_tp.stats.get("Regain",0) # Total regain in TP set
+    regain_ws = player_ws.stats.get("Dual Wield",0)*(player_ws.gearset["main"].name=="Gokotai") + player_ws.stats.get("Regain",0) # Total regain in WS set
 
     time = 0 # Time since simulation start in seconds
     tp = 0
@@ -308,7 +308,7 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
     # starting_tp = starting TP value.
     # ending_tp = TP threshold (use WS after this TP value is reached)
     #
-    dual_wield = (player.gearset["sub"].get("Type",None) == "Weapon") or (player.gearset["main"]["Skill Type"] == "Hand-to-Hand")
+    dual_wield = (player.gearset["sub"].type == "Weapon") or (player.gearset["main"].skill_type == "Hand-to-Hand")
 
     verbose_dps = player.abilities.get("Verbose DPS", False)
     very_verbose_dps = player.abilities.get("Very Verbose DPS", False)
@@ -345,11 +345,11 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
     crit_dmg = player.stats.get("Crit Damage",0)/100 # Crit rate was read in earlier directly from the WS attributes.
 
 
-    crit_rate += 0.5*(1 - starting_tp/3000) * (player.gearset["main"]["Name"]=="Tauret") # Tauret provides +crit_rate to auto attacks with low TP. (https://www.bg-wiki.com/ffxi/Tauret)
+    crit_rate += 0.5*(1 - starting_tp/3000) * (player.gearset["main"].name=="Tauret") # Tauret provides +crit_rate to auto attacks with low TP. (https://www.bg-wiki.com/ffxi/Tauret)
     
     crit_rate = 1.0 if crit_rate > 1.0 else crit_rate
 
-    stp = player.stats.get("Store TP",0)/100 + (50./100)*crit_rate*(player.gearset["main"]["Name"]=="Karambit") # Karambit provides +50 STP to critical hit auto attacks. Thus we add crit% of 50 to our STP for average attack rounds, then divide by 100 to keep Store TP as a %. (https://www.bg-wiki.com/ffxi/Karambit)
+    stp = player.stats.get("Store TP",0)/100 + (50./100)*crit_rate*(player.gearset["main"].name=="Karambit") # Karambit provides +50 STP to critical hit auto attacks. Thus we add crit% of 50 to our STP for average attack rounds, then divide by 100 to keep Store TP as a %. (https://www.bg-wiki.com/ffxi/Karambit)
 
     # Read in delay values now so we can use them in the magical WS section, which return TP for their one magic hit.
     base_delay = (player.stats["Delay1"] + player.stats["Delay2"])/2 
@@ -369,8 +369,8 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
     one_handed_skills = ONE_HANDED_SKILLS
     two_handed_skills = TWO_HANDED_SKILLS
 
-    main_skill_type = player.gearset["main"]["Skill Type"]
-    sub_skill_type = player.gearset["sub"].get("Skill Type","None") if not main_skill_type=="Hand-to-Hand" else "Hand-to-Hand"
+    main_skill_type = player.gearset["main"].skill_type
+    sub_skill_type = player.gearset["sub"].skill_type if not main_skill_type=="Hand-to-Hand" else "Hand-to-Hand"
     attack2 = attack1 if main_skill_type == "Hand-to-Hand" else attack2
 
     hit_rate_cap_main = 0.99 if main_skill_type in one_handed_skills or main_skill_type == "Hand-to-Hand" else 0.95
@@ -394,7 +394,7 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
     ammo_delay = player.stats.get("Ammo Delay",0)
     ranged_accuracy = player.stats["Ranged Accuracy"] + 100*(player.stats.get("Daken",0)>0) # Daken gets +100 ranged accuracy by default.
     ranged_attack = player.stats.get("Ranged Attack",0)
-    ammo_skill_type = player.gearset["ammo"].get("Skill Type","None")
+    ammo_skill_type = player.gearset["ammo"].skill_type
     hit_rate_cap_ranged = 0.99 if player.abilities.get("Sharpshot",False) else 0.95 # Maybe NIN/RNG uses Sharpshot? May as well leave this in.
     hit_rate_ranged = get_hit_rate(ranged_accuracy, enemy_evasion, hit_rate_cap_ranged)
 
@@ -428,7 +428,7 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
         magic_crit_rate2 = player.stats.get("Magic Crit Rate II",0)/100
 
         active_storm = player.abilities.get("Storm spell",False)
-        if active_storm!="None" and player.gearset["waist"]["Name"]=="Hachirin-no-Obi":
+        if active_storm!="None" and player.gearset["waist"].name=="Hachirin-no-Obi":
             dayweather = 0.25 if "II" in active_storm else 0.10 # Assume the EnSpell element matches the storm spell selected.
         else:
             dayweather = 0
@@ -524,7 +524,7 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
                         pdif, crit = get_pdif_melee(attack, skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
                         phys_dmg_ph = get_phys_damage(dmg, fstr, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0)
                         if roll_empyrean:
-                            phys_dmg_ph *= (1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0))
+                            phys_dmg_ph *= (1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"].name in empyrean_weapons and aftermath>0))
                         phys_dmg_ph *= dmg_mult
                         total_damage += phys_dmg_ph
                         tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp, tp_sam)
@@ -544,12 +544,12 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
         if rng().uniform() < hit_rate11:
             main_hit_connects = True
             pdif, crit = get_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
-            phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1.0 + 2.0*(rng().uniform()<0.13 and player.gearset["main"]["Name"] in relic_weapons30)) \
-                                                                                            * (1.0 + 1.5*(rng().uniform()<0.16 and player.gearset["main"]["Name"] in relic_weapons25)) \
-                                                                                            * (1.0 + 1.0*(rng().uniform()<0.2 and player.gearset["main"]["Name"] in relic_weapons20)) \
-                                                                                            * (1.0 + 2.0*(rng().uniform()<0.3 and player.gearset["main"]["Name2"] in prime_weapons3)) \
-                                                                                            * (1.0 + 1.0*(rng().uniform()<0.3 and player.gearset["main"]["Name2"] in prime_weapons2)) \
-                                                                                            * (1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"]["Name"] in empyrean_weapons and aftermath>0)) \
+            phys_dmg_ph = get_phys_damage(main_dmg, fstr_main, 0, pdif, 1.0, crit, crit_dmg, 0, 0, 0, 0) * (1.0 + 2.0*(rng().uniform()<0.13 and player.gearset["main"].name in relic_weapons30)) \
+                                                                                            * (1.0 + 1.5*(rng().uniform()<0.16 and player.gearset["main"].name in relic_weapons25)) \
+                                                                                            * (1.0 + 1.0*(rng().uniform()<0.2 and player.gearset["main"].name in relic_weapons20)) \
+                                                                                            * (1.0 + 2.0*(rng().uniform()<0.3 and player.gearset["main"].name2 in prime_weapons3)) \
+                                                                                            * (1.0 + 1.0*(rng().uniform()<0.3 and player.gearset["main"].name2 in prime_weapons2)) \
+                                                                                            * (1.0 + 2.0*(rng().uniform() < empyrean_am[aftermath-1] and player.gearset["main"].name in empyrean_weapons and aftermath>0)) \
                                                                                             * (1 + da_dmg*da_proc_main) * (1 + ta_dmg*ta_proc_main) # Boosts first hit damage if DA or TA procs and you have DA/TA Damage+ stat
             main_hit_damage += phys_dmg_ph
             tp_ph = get_tp(1, mdelay/2 if (main_skill_type == "Hand-to-Hand") else mdelay, stp) # Add TP return from the main-hand hit
@@ -716,10 +716,10 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
         tp_per_attack_round = 0 if tp_per_attack_round < 0 else tp_per_attack_round
 
         # This next line's function call can probably be brought into this main code instead of being its own function/file. TODO
-        time_per_attack_round = max(0, get_delay_timing(player.stats["Delay1"], player.stats["Delay2"] if dual_wield and (player.gearset["main"]["Skill Type"] != "Hand-to-Hand") else 0, player.stats.get("Dual Wield",0)/100, player.stats.get("Martial Arts",0), player.stats.get("Magic Haste",0), player.stats.get("JA Haste",0), player.stats.get("Gear Haste",0)))
+        time_per_attack_round = max(0, get_delay_timing(player.stats["Delay1"], player.stats["Delay2"] if dual_wield and (player.gearset["main"].skill_type != "Hand-to-Hand") else 0, player.stats.get("Dual Wield",0)/100, player.stats.get("Martial Arts",0), player.stats.get("Magic Haste",0), player.stats.get("JA Haste",0), player.stats.get("Gear Haste",0)))
 
         # Add the passive TP generation from Regain, occuring once every 3 seconds.
-        regain_tp = player.stats.get("Dual Wield",0)*(player.gearset["main"]["Name"]=="Gokotai") + player.stats.get("Regain",0)
+        regain_tp = player.stats.get("Dual Wield",0)*(player.gearset["main"].name=="Gokotai") + player.stats.get("Regain",0)
         tp_per_attack_round += (time_per_attack_round/3)*(regain_tp)
         
         try:
@@ -733,7 +733,7 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
         # Damage from first main-hand hit with no bonuses (also known as the damage dealt by multi-attacks from the main-hand)
         main_hit_pdif = get_avg_pdif_melee(attack1, main_skill_type, pdl_trait, pdl_gear, enemy_defense, crit_rate)
         main_hit_damage = get_avg_phys_damage(main_dmg, fstr_main, 0, main_hit_pdif, 1.0, crit_rate, crit_dmg, 0, 0, 0) #Using FTP2, WSD=0, etc
-        main_hit_damage *= (empyrean_am_damage_bonus if player.gearset["main"]["Name"]!="Verethragna" else 1.0) # Verethragna Empyrean Aftermath apparently only applies to the first main-hit?
+        main_hit_damage *= (empyrean_am_damage_bonus if player.gearset["main"].name!="Verethragna" else 1.0) # Verethragna Empyrean Aftermath apparently only applies to the first main-hit?
         physical_damage += main_hits*main_hit_damage
 
         # Calculate the correction to the first hit based on the full set of buffs and bonuses.
@@ -745,7 +745,7 @@ def average_attack_round(player: "create_player", enemy: "create_enemy", startin
 
         climactic_crit_dmg = player.stats.get("Climactic Crit Damage",0)/100*climactic_flourish # Crit damage +31% for the first hit when using the DNC Empy+3 head
         striking_crit_rate = player.stats.get("Striking Crit Rate",0)/100*striking_flourish # Crit rate +70% for the first hit when using the DNC Empy+3 body
-        vajra_bonus_crit_dmg = 0.3*(player.gearset["main"]["Name"]=="Vajra" and (sneak_attack or trick_attack)) # Crit damage +30% for the first hit.
+        vajra_bonus_crit_dmg = 0.3*(player.gearset["main"].name=="Vajra" and (sneak_attack or trick_attack)) # Crit damage +30% for the first hit.
 
         first_main_hit_crit_rate = (1.0 if sneak_attack or trick_attack or climactic_flourish else (crit_rate+striking_crit_rate*(crit_rate>0))) # Special crit rate for SA/TA/Flourishes.
         adjusted_crit_dmg = (crit_dmg + vajra_bonus_crit_dmg)*(1+climactic_crit_dmg) # Special crit damage that applies to first hit of SA/TA/ClimacticFlourish. Climactic with DNC Empy head provides a unique Crit Damage that applies separately.
@@ -857,11 +857,11 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
 
     if spell_name == "EnSpell":
 
-        if (player.gearset["waist"]["Name"]=="Hachirin-no-Obi") and active_storm: # Assume enspell always matches storm spell. Users can disable Hachirin otherwise.
+        if (player.gearset["waist"].name=="Hachirin-no-Obi") and active_storm: # Assume enspell always matches storm spell. Users can disable Hachirin otherwise.
             dayweather_bonus += 0.25 if "II" in active_storm else 0.1
 
 
-        main_skill_type = player.gearset["main"]["Skill Type"]
+        main_skill_type = player.gearset["main"].skill_type
         # two_handed_skills = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff",]
         # one_handed_skills = ["Axe", "Club", "Dagger", "Sword", "Katana",]
         # hit_rate_cap_main = 0.99 if main_skill_type in one_handed_skills or main_skill_type == "Hand-to-Hand" else 0.95
@@ -928,7 +928,7 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
     if spell_type=="Quick Draw":
         element = spell_name.split()[0]
 
-        if (player.gearset["waist"]["Name"]=="Hachirin-no-Obi") and active_storm:
+        if (player.gearset["waist"].name=="Hachirin-no-Obi") and active_storm:
             if element.lower() == storm_elements.get(active_storm,False):
                 dayweather_bonus += 0.25 if "II" in active_storm else 0.1
 
@@ -982,7 +982,7 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
         element = spells[spell_name.split(":")[0]].lower()
         tier = spell_name.split()[-1]
 
-        if (player.gearset["waist"]["Name"]=="Hachirin-no-Obi") and active_storm:
+        if (player.gearset["waist"].name=="Hachirin-no-Obi") and active_storm:
             if element.lower() == storm_elements.get(active_storm,False):
                 dayweather_bonus += 0.25 if "II" in active_storm else 0.1
 
@@ -1109,7 +1109,7 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
                 mp_cost = spells[spell_name][0]
 
 
-        if (player.gearset["waist"]["Name"]=="Hachirin-no-Obi" or tier=="helix") and active_storm:
+        if (player.gearset["waist"].name=="Hachirin-no-Obi" or tier=="helix") and active_storm:
             if element.lower() == storm_elements.get(active_storm,False):
                 dayweather_bonus += 0.25 if "II" in active_storm else 0.1
 
@@ -1202,17 +1202,17 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
         aftermath = int(player.abilities.get("Aftermath",0))
         # Empyrean Aftermath: 30%/40%/50% chance of dealing triple damage.
         empyrean_am_damage_bonus = 1.0
-        if player.gearset["ranged"]["Name"] in ["Gandiva","Armageddon"] and aftermath>0:
+        if player.gearset["ranged"].name in ["Gandiva","Armageddon"] and aftermath>0:
             empyrean_am_damage_bonus += 2*EMPYREAN_AM[aftermath-1]
 
         # Hidden triple damage +13% of the time on relics. No Aftermath required.
         relic_hidden_damage_bonus = 1.0
-        if player.gearset["ranged"]["Name"] in ["Annihilator","Yoichinoyumi"]:
+        if player.gearset["ranged"].name in ["Annihilator","Yoichinoyumi"]:
             relic_hidden_damage_bonus += 2*0.13
 
         # Mythic Aftermath Lv3: 40% chance to double damage, 20% chance to triple damage.
         mythic_am_damage_bonus = 1.0
-        if player.gearset["ranged"]["Name"] in ["Gastraphetes","Death Penalty"] and aftermath==3:
+        if player.gearset["ranged"].name in ["Gastraphetes","Death Penalty"] and aftermath==3:
             mythic_am_damage_bonus += 1*0.4 + 2*0.2
 
 
@@ -1246,8 +1246,8 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
         pdl_gear = player.stats.get("PDL",0)/100
         pdl_trait = player.stats.get("PDL Trait",0)/100
         
-        ranged_delay = player.gearset["ranged"].get("Delay",0)
-        ammo_delay = player.gearset["ammo"].get("Delay",0)
+        ranged_delay = player.gearset["ranged"].delay
+        ammo_delay = player.gearset["ammo"].delay
 
         ranged_dmg = player.stats.get("Ranged DMG",0)
         ammo_dmg = player.stats.get("Ammo DMG",0)
@@ -1257,14 +1257,14 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
         player_rangedaccuracy = player.stats.get("Ranged Accuracy",0)
 
         barrage_hits = 0
-        if player.abilities.get("Barrage",False) and player.gearset["ammo"].get("Type","None") in ["Bolt","Bullet","Arrow"]:
+        if player.abilities.get("Barrage",False) and player.gearset["ammo"].type in ["Bolt","Bullet","Arrow"]:
             # Barrage bonuses (do not apply to throwing)
             player_rangedattack += player.stats.get("Barrage Ranged Attack",0)
             player_rangedaccuracy += player.stats.get("Barrage Ranged Accuracy",0)
             barrage_hits += player.stats.get("Barrage",0)
 
-        ranged_skill_type = player.gearset["ranged"].get("Skill Type",False)
-        ranged_skill_type = player.gearset["ammo"].get("Skill Type","None") if not ranged_skill_type else ranged_skill_type
+        ranged_skill_type = player.gearset["ranged"].skill_type
+        ranged_skill_type = player.gearset["ammo"].skill_type if not ranged_skill_type else ranged_skill_type
 
 
         # Calculate ranged hit rates.
@@ -1310,7 +1310,7 @@ def cast_spell(player: "create_player", enemy: "create_enemy", spell_name: str, 
 
         # Recycle procs will increase TP gained by +50 for 5/5 Recycle merits on Ranger
         # This applies to all double/triple/quad shot bonuses too. Recycle simply has to proc.
-        if "Arcadian Beret" in player.gearset["head"]["Name"]:
+        if "Arcadian Beret" in player.gearset["head"].name:
             recycle = player.stats.get("Recycle",0)
             recycle = 90 if recycle > 90 else recycle
             tp_return += 50*recycle/100 # Chance to proc on first hit.
@@ -1385,7 +1385,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
     print(f"{ws_name} at {input_tp:.1f} TP (+{tp_bonus:.0f} TP Bonus; Effective TP: {tp:.1f} TP)") if (verbose_dps or very_verbose_dps) and simulation else None
 
-    dual_wield = (player.gearset["sub"].get("Type",None) == "Weapon") or (player.gearset["main"]["Skill Type"] == "Hand-to-Hand")
+    dual_wield = (player.gearset["sub"].type == "Weapon") or (player.gearset["main"].skill_type == "Hand-to-Hand")
 
     hover_shot = player.abilities.get("Hover Shot",False)*(ws_type=="ranged")
 
@@ -1403,9 +1403,9 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
     crit_rate = ws_info["crit_rate"] if ws_info["crit_rate"] < 1.0 else 1.0
     
-    ftp += player.stats.get("ftp",0)
+    ftp += player.stats.get("ftp",0)/256 # Gear/buff "ftp" is stored as a /256 fixed-point int (Fotia +25 -> +0.09765625 fTP); scale at lookup like every other fractional stat.
     if hybrid:
-        ftp_hybrid += player.stats.get("ftp",0)
+        ftp_hybrid += player.stats.get("ftp",0)/256
 
     ftp2 = ftp if ftp_rep else 1.0
 
@@ -1432,7 +1432,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
     wsd = player.stats.get("Weapon Skill Damage",0)/100 # Applies only to the first WS hit.
     ws_trait = player.stats.get("Weapon Skill Damage Trait",0)/100 # WS damage trait from DRG. Applies to all WS hits.
-    ws_bonus = get_weapon_bonus(player.gearset["main"]["Name2"], player.gearset["ranged"]["Name2"], ws_name) # WS damage from Ambuscade weapons and augmented REMA. Applies to all WS hits.
+    ws_bonus = get_weapon_bonus(player.gearset["main"].name2, player.gearset["ranged"].name2, ws_name) # WS damage from Ambuscade weapons and augmented REMA. Applies to all WS hits.
 
     crit_dmg = player.stats.get("Crit Damage",0)/100 # Crit rate was read in earlier directly from the WS attributes.
     stp = player.stats.get("Store TP",0)/100
@@ -1450,8 +1450,8 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
     total_damage = 0
     tp_return = 0
 
-    main_skill_type = player.gearset["main"]["Skill Type"]
-    sub_skill_type = player.gearset["sub"].get("Skill Type","None") if not main_skill_type=="Hand-to-Hand" else "Hand-to-Hand"
+    main_skill_type = player.gearset["main"].skill_type
+    sub_skill_type = player.gearset["sub"].skill_type if not main_skill_type=="Hand-to-Hand" else "Hand-to-Hand"
 
     # We add dSTAT magic accuracy in the magical/hybrid section later.
     magic_accuracy = player.stats.get("Magic Accuracy",0) + player.stats.get("main Magic Accuracy Skill",0) + 100*player.abilities.get("Hover Shot",False)*(ws_type=="ranged")
@@ -1510,7 +1510,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
             climactic_crit_dmg = player.stats.get("Climactic Crit Damage",0)/100*climactic_flourish # Crit damage +31% for the first hit when using the DNC Empy+3 head
             striking_crit_rate = player.stats.get("Striking Crit Rate",0)/100*striking_flourish # Crit rate +70% for the first hit when using the DNC Empy+3 body
-            vajra_bonus_crit_dmg = 0.3*(player.gearset["main"]["Name"]=="Vajra" and (sneak_attack or trick_attack)) # Crit damage +30% for the first hit.
+            vajra_bonus_crit_dmg = 0.3*(player.gearset["main"].name=="Vajra" and (sneak_attack or trick_attack)) # Crit damage +30% for the first hit.
 
             first_main_hit_crit_rate = (1.0 if sneak_attack or trick_attack or climactic_flourish else (crit_rate+striking_crit_rate*(crit_rate>0))) # Special crit rate for SA/TA/Flourishes.
             first_main_hit_crit_rate = first_main_hit_crit_rate if first_main_hit_crit_rate < 1.0 else 1.0
@@ -1563,7 +1563,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
             # Add TP return from the remaining main+off-hand hits together. All of these hits simply gain 10*(1+stp) TP
             tp_return += 10*(1+stp)*(main_hits+sub_hits - hit_rate11 - hit_rate21) # main_hits and sub_hits already account for hit rates, so we only subtract off the number of first main+sub hits.
-            tp_return += (base_tp)*(0.01*(player.gearset["neck"]["Name"]=="Fotia Gorget"))*(0.01*(player.gearset["waist"]["Name"]=="Fotia Belt")) # Fotia gorget/belt each include +1% chance to retain TP on WS (before TP bonus)
+            tp_return += (base_tp)*(0.01*(player.gearset["neck"].name=="Fotia Gorget"))*(0.01*(player.gearset["waist"].name=="Fotia Belt")) # Fotia gorget/belt each include +1% chance to retain TP on WS (before TP bonus)
             
             # Conserve TP procs return a random amount of TP between 10 and 200 (https://www.bg-wiki.com/ffxi/Conserve_TP). Here I assume the returned TP is uniformly distributed, which matches the testing linked on BG Wiki.
             tp_return += 95 * min(1,player.stats.get("Conserve TP",0)/100)
@@ -1586,7 +1586,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
 
             climactic_crit_dmg = player.stats.get("Climactic Crit Damage",0)/100*climactic_flourish # Crit damage +31% for the first hit when using the DNC Empy+3 head
             striking_crit_rate = player.stats.get("Striking Crit Rate",0)/100*striking_flourish # Crit rate +70% for the first hit when using the DNC Empy+3 body
-            vajra_bonus_crit_dmg = 0.3*(player.gearset["main"]["Name"]=="Vajra" and (sneak_attack or trick_attack)) # Crit damage +30% for the first hit.
+            vajra_bonus_crit_dmg = 0.3*(player.gearset["main"].name=="Vajra" and (sneak_attack or trick_attack)) # Crit damage +30% for the first hit.
 
             first_main_hit_crit_rate = (1.0 if sneak_attack or trick_attack or climactic_flourish else (crit_rate+striking_crit_rate*(crit_rate>0))) # Special crit rate for SA/TA/Flourishes.
             first_main_hit_crit_rate = first_main_hit_crit_rate if first_main_hit_crit_rate < 1.0 else 1.0
@@ -1667,7 +1667,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
                             ws_swings(ma_hits, hit_rate22, player_attack2, sub_skill_type, sub_dmg, fstr_sub)
                             break
 
-            fotia_chance =  (0.01*(player.gearset["neck"]["Name"]=="Fotia Gorget")) + (0.01*(player.gearset["waist"]["Name"]=="Fotia Belt"))
+            fotia_chance =  (0.01*(player.gearset["neck"].name=="Fotia Gorget")) + (0.01*(player.gearset["waist"].name=="Fotia Belt"))
             if rng().uniform() < fotia_chance:
                 tp_return += (base_tp) # Fotia gorget/belt each include +1% chance to retain TP on WS (before TP bonus)
                 fotia_tp = f"+{base_tp:.1f}"
@@ -1695,7 +1695,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
         crit_rate += player.stats.get("Ranged Crit Rate", 0)/100
         crit_rate = 1 if crit_rate > 1 else crit_rate
 
-        ranged_skill_type = player.gearset["ranged"].get("Skill Type","None")
+        ranged_skill_type = player.gearset["ranged"].skill_type
 
         # Calculate ranged hit rates.
         ranged_accuracy = player_rangedaccuracy + player.stats.get("Weapon Skill Accuracy",0)
@@ -1800,7 +1800,7 @@ def average_ws(player: "create_player", enemy: "create_enemy", ws_name: str, inp
         storm_elements = {"Sandstorm II":"earth","Rainstorm II":"water","Windstorm II":"wind","Firestorm II":"fire","Hailstorm II":"ice","Thunderstorm II":"thunder","Aurorastorm II":"light","Voidstorm II":"dark",
                           "Sandstorm":"earth","Rainstorm":"water","Windstorm":"wind","Firestorm":"fire","Hailstorm":"ice","Thunderstorm":"thunder","Aurorastorm":"light","Voidstorm":"dark"}
         active_storm =  player.abilities.get("Storm spell",False)
-        if player.gearset["waist"]["Name"]=="Hachirin-no-Obi" and active_storm:
+        if player.gearset["waist"].name=="Hachirin-no-Obi" and active_storm:
             if element.lower() == storm_elements.get(active_storm,False):
                 dayweather_bonus = 1.25 if "II" in active_storm else 1.1
 

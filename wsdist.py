@@ -65,7 +65,7 @@ def _prefilter_check_gear(check_gear: dict[str, Any], main_job: str) -> dict[str
         slot: [
             item
             for item in cast("list[GearPiece]", items)
-            if main_job in cast("list[str]", item["Jobs"])
+            if main_job in cast("list[str]", item.jobs)
         ]
         for slot, items in check_gear.items()
     }
@@ -80,12 +80,12 @@ def _fast_dt_for_gearset(gearset: Gearset, buffs: Buffs) -> tuple[float, float]:
     dt2 = 0.0
 
     for piece in gearset.values():
-        pdt += float(piece.get("PDT", 0))
-        mdt += float(piece.get("MDT", 0))
-        dt += float(piece.get("DT", 0))
-        pdt2 += float(piece.get("PDT2", 0))
-        mdt2 += float(piece.get("MDT2", 0))
-        dt2 += float(piece.get("DT2", 0))
+        pdt += float(piece.stats.get("PDT", 0))
+        mdt += float(piece.stats.get("MDT", 0))
+        dt += float(piece.stats.get("DT", 0))
+        pdt2 += float(piece.stats.get("PDT2", 0))
+        mdt2 += float(piece.stats.get("MDT2", 0))
+        dt2 += float(piece.stats.get("DT2", 0))
 
     for buff_stats in buffs.values():
         pdt += float(buff_stats.get("PDT", 0))
@@ -127,79 +127,79 @@ def _slot_pairs(check_slots: list[str], max_swap_slots: int) -> list[tuple[int, 
 
 
 def _is_valid_gearset(test_set: Gearset, main_job: str, sub_job: str, action_type: str, ws_name: str, spell_name: str, ws_dict: dict[str, list[str]], restricted_ws: dict[str, str], jse_ears: list[str]) -> bool:
-    if (test_set["ring1"] == test_set["ring2"]) and (test_set["ring1"]["Name"] != "Empty"):
+    if (test_set["ring1"] == test_set["ring2"]) and (test_set["ring1"].name != "Empty"):
         return False
-    if (test_set["ear1"] == test_set["ear2"]) and (test_set["ear1"]["Name"] != "Empty"):
+    if (test_set["ear1"] == test_set["ear2"]) and (test_set["ear1"].name != "Empty"):
         return False
-    if (test_set["main"] == test_set["sub"]) and (test_set["main"]["Name"] != "Empty"):
+    if (test_set["main"] == test_set["sub"]) and (test_set["main"].name != "Empty"):
         return False
 
     one_handed = ["Axe", "Club", "Dagger", "Sword", "Katana"]
-    if (test_set["main"]["Skill Type"] in one_handed) and (test_set["sub"]["Type"] == "Grip"):
+    if (test_set["main"].skill_type in one_handed) and (test_set["sub"].type == "Grip"):
         return False
 
     two_handed = ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff"]
-    if (test_set["main"]["Skill Type"] in two_handed) and (test_set["sub"]["Type"] == "Weapon" or test_set["sub"]["Type"] == "Shield"):
+    if (test_set["main"].skill_type in two_handed) and (test_set["sub"].type == "Weapon" or test_set["sub"].type == "Shield"):
         return False
 
-    if (test_set["main"]["Skill Type"] == "Hand-to-Hand") and (test_set["sub"]["Name"] != "Empty"):
+    if (test_set["main"].skill_type == "Hand-to-Hand") and (test_set["sub"].name != "Empty"):
         return False
 
     archery = ["Empyreal Arrow", "Flaming Arrow", "Namas Arrow", "Jishnu's Radiance", "Apex Arrow", "Refulgent Arrow", "Sidewinder", "Blast Arrow", "Piercing Arrow"]
     marksmanship = ["Last Stand", "Hot Shot", "Leaden Salute", "Wildfire", "Coronach", "Trueflight", "Detonator", "Blast Shot", "Slug Shot", "Split Shot"]
     if (action_type == "weapon skill") and (ws_name in archery + marksmanship):
-        if (ws_name in archery) and (test_set["ranged"]["Skill Type"] != "Archery" or test_set["ammo"]["Type"] != "Arrow"):
+        if (ws_name in archery) and (test_set["ranged"].skill_type != "Archery" or test_set["ammo"].type != "Arrow"):
             return False
-        if (ws_name in marksmanship) and (test_set["ranged"]["Skill Type"] != "Marksmanship" or test_set["ammo"]["Type"] not in ["Bolt", "Bullet"]):
+        if (ws_name in marksmanship) and (test_set["ranged"].skill_type != "Marksmanship" or test_set["ammo"].type not in ["Bolt", "Bullet"]):
             return False
-        if (test_set["ranged"]["Type"] == "Crossbow") and (test_set["ammo"]["Type"] != "Bolt"):
+        if (test_set["ranged"].type == "Crossbow") and (test_set["ammo"].type != "Bolt"):
             return False
-        if (test_set["ranged"]["Type"] == "Gun") and (test_set["ammo"]["Type"] != "Bullet"):
+        if (test_set["ranged"].type == "Gun") and (test_set["ammo"].type != "Bullet"):
             return False
 
     if (action_type == "spell cast") and (spell_name == "Ranged Attack"):
-        if (test_set["ranged"]["Type"] not in ["Gun", "Bow", "Crossbow"]) or (test_set["ammo"]["Type"] not in ["Bullet", "Arrow", "Bolt"]):
+        if (test_set["ranged"].type not in ["Gun", "Bow", "Crossbow"]) or (test_set["ammo"].type not in ["Bullet", "Arrow", "Bolt"]):
             return False
 
-    if (test_set["ranged"]["Type"] == "Gun") and (test_set["ammo"].get("Type", "None") not in ["Bullet", "None"]):
+    if (test_set["ranged"].type == "Gun") and (test_set["ammo"].type not in ["Bullet", "None"]):
         return False
-    if (test_set["ranged"]["Type"] == "Bow") and (test_set["ammo"].get("Type", "None") not in ["Arrow", "None"]):
+    if (test_set["ranged"].type == "Bow") and (test_set["ammo"].type not in ["Arrow", "None"]):
         return False
-    if (test_set["ranged"]["Type"] == "Crossbow") and (test_set["ammo"].get("Type", "None") not in ["Bolt", "None"]):
-        return False
-
-    if (test_set["ammo"].get("Type", "None") == "Bullet") and (test_set["ranged"].get("Type", "None") != "Gun"):
-        return False
-    if (test_set["ammo"].get("Type", "None") == "Arrow") and (test_set["ranged"].get("Type", "None") != "Bow"):
-        return False
-    if (test_set["ammo"].get("Type", "None") == "Bolt") and (test_set["ranged"].get("Type", "None") != "Crossbow"):
+    if (test_set["ranged"].type == "Crossbow") and (test_set["ammo"].type not in ["Bolt", "None"]):
         return False
 
-    if (test_set["ranged"].get("Type", "None") == "Instrument") and (test_set["ammo"].get("Type", "None") != "None"):
+    if (test_set["ammo"].type == "Bullet") and (test_set["ranged"].type != "Gun"):
+        return False
+    if (test_set["ammo"].type == "Arrow") and (test_set["ranged"].type != "Bow"):
+        return False
+    if (test_set["ammo"].type == "Bolt") and (test_set["ranged"].type != "Crossbow"):
         return False
 
-    if (main_job not in ["nin", "dnc", "thf", "blu"] and sub_job not in ["nin", "dnc"]) and (test_set["sub"]["Type"] == "Weapon"):
+    if (test_set["ranged"].type == "Instrument") and (test_set["ammo"].type != "None"):
         return False
 
-    if (test_set["ear1"]["Name"] in jse_ears) and (test_set["ear2"]["Name"] == "Balder Earring +1"):
-        return False
-    if (test_set["ear2"]["Name"] in jse_ears) and (test_set["ear1"]["Name"] == "Balder Earring +1"):
+    if (main_job not in ["nin", "dnc", "thf", "blu"] and sub_job not in ["nin", "dnc"]) and (test_set["sub"].type == "Weapon"):
         return False
 
-    if (test_set["body"]["Name"] in ["Cohort Cloak", "Cohort Cloak +1", "Crepuscular Cloak", "Twilight Cloak"]) and (test_set["head"]["Name"] != "Empty"):
+    if (test_set["ear1"].name in jse_ears) and (test_set["ear2"].name == "Balder Earring +1"):
+        return False
+    if (test_set["ear2"].name in jse_ears) and (test_set["ear1"].name == "Balder Earring +1"):
+        return False
+
+    if (test_set["body"].name in ["Cohort Cloak", "Cohort Cloak +1", "Crepuscular Cloak", "Twilight Cloak"]) and (test_set["head"].name != "Empty"):
         return False
 
     if action_type == "spell cast":
-        if (spell_name == "Impact") and (test_set["body"]["Name"] not in ["Crepuscular Cloak", "Twilight Cloak"]):
+        if (spell_name == "Impact") and (test_set["body"].name not in ["Crepuscular Cloak", "Twilight Cloak"]):
             return False
 
     if action_type == "weapon skill":
         if ws_name in restricted_ws:
-            if (restricted_ws[ws_name] != test_set["main"]["Name"]) and (restricted_ws[ws_name] != test_set["ranged"]["Name"]):
+            if (restricted_ws[ws_name] != test_set["main"].name) and (restricted_ws[ws_name] != test_set["ranged"].name):
                 return False
 
-        ws_on_main = ws_name in ws_dict.get(test_set["main"]["Skill Type"], [])
-        ws_on_ranged = ws_name in ws_dict.get(test_set["ranged"]["Skill Type"], [])
+        ws_on_main = ws_name in ws_dict.get(test_set["main"].skill_type, [])
+        ws_on_ranged = ws_name in ws_dict.get(test_set["ranged"].skill_type, [])
         if (not ws_on_main) and (not ws_on_ranged):
             return False
 
@@ -270,7 +270,7 @@ def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric:
             linosaugs.append(stat)
 
     # Moonshade natually looks best in the left ear slot.
-    if "moonshade" in player.gearset["ear2"]["Name"].lower():
+    if "moonshade" in player.gearset["ear2"].name.lower():
         ear2 = player.gearset["ear2"]
         ear1 = player.gearset["ear1"]
         player.gearset["ear1"] = ear2
@@ -279,7 +279,7 @@ def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric:
     # JSE earrings work in the right ear slot
     jse_ears1 = [k + " Earring +1" for k in ["Hattori", "Heathen's", "Lethargy", "Ebers", "Wicce", "Peltast's", "Boii", "Bhikku", "Skulker's", "Chevalier's", "Nukumi", "Fili", "Amini", "Kasuga", "Beckoner's", "Hashishin", "Chasseur's", "Karagoz", "Maculele", "Arbatel", "Azimuth", "Erilaz"]]
     jse_ears2 = [k + " Earring +2" for k in ["Hattori", "Heathen's", "Lethargy", "Ebers", "Wicce", "Peltast's", "Boii", "Bhikku", "Skulker's", "Chevalier's", "Nukumi", "Fili", "Amini", "Kasuga", "Beckoner's", "Hashishin", "Chasseur's", "Karagoz", "Maculele", "Arbatel", "Azimuth", "Erilaz"]]
-    if player.gearset["ear1"]["Name2"] in jse_ears1 or player.gearset["ear1"]["Name2"] in jse_ears2:
+    if player.gearset["ear1"].name2 in jse_ears1 or player.gearset["ear1"].name2 in jse_ears2:
         ear2 = player.gearset["ear2"]
         ear1 = player.gearset["ear1"]
         player.gearset["ear1"] = ear2
@@ -288,29 +288,29 @@ def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric:
     # Do it again because the above doesn't always work??
     empy = ["Hattori", "Heathen", "Lethargy", "Eber", "Wicce", "Peltast", "Boii", "Bhikku", "Skulker", "Chevalier", "Nukumi", "Fili", "Amini", "Kasuga", "Beckoner", "Hashishin", "Chasseur", "Karagoz", "Maculele", "Arbatel", "Azimuth", "Erilaz"]
     for name in empy:
-        if name.lower() in player.gearset["ear1"]["Name"].lower():
+        if name.lower() in player.gearset["ear1"].name.lower():
             ear2 = player.gearset["ear2"]
             ear1 = player.gearset["ear1"]
             player.gearset["ear1"] = ear2
             player.gearset["ear2"] = ear1
 
     # Epami looks best in the left ring slot, but only if sroda is not also equipped.
-    if "epami" in player.gearset["ring2"]["Name"].lower():
-        if "sroda" not in player.gearset["ring1"]["Name"].lower():
+    if "epami" in player.gearset["ring2"].name.lower():
+        if "sroda" not in player.gearset["ring1"].name.lower():
             ring2 = player.gearset["ring2"]
             ring1 = player.gearset["ring1"]
             player.gearset["ring1"] = ring2
             player.gearset["ring2"] = ring1
 
     # Sroda looks best in the left ring slot.
-    if "sroda" in player.gearset["ring2"]["Name"].lower():
+    if "sroda" in player.gearset["ring2"].name.lower():
             ring2 = player.gearset["ring2"]
             ring1 = player.gearset["ring1"]
             player.gearset["ring1"] = ring2
             player.gearset["ring2"] = ring1
 
     # Niqmaddu and Regal look best in the right ring slot
-    if ("niqmaddu" in player.gearset["ring1"]["Name"].lower() and "regal" not in player.gearset["ring2"]["Name"].lower()) or ("regal" in player.gearset["ring1"]["Name"].lower() and "niqmaddu" not in player.gearset["ring2"]["Name"].lower()):
+    if ("niqmaddu" in player.gearset["ring1"].name.lower() and "regal" not in player.gearset["ring2"].name.lower()) or ("regal" in player.gearset["ring1"].name.lower() and "niqmaddu" not in player.gearset["ring2"].name.lower()):
             ring2 = player.gearset["ring2"]
             ring1 = player.gearset["ring1"]
             player.gearset["ring1"] = ring2
@@ -318,7 +318,7 @@ def format_bgwiki(ws_name: str, tp: float, player: "create_player", best_metric:
 
     # player.gearset[slot]["Name"] = name_map[player.gearset[slot]["Name"].lower()]
 
-    hardcode_gearset = {slot:name_map[player.gearset[slot]["Name"].lower()] for slot in player.gearset}
+    hardcode_gearset = {slot:name_map[player.gearset[slot].name.lower()] for slot in player.gearset}
     for slot in hardcode_gearset:
         hardcode_gearset[slot] = "" if hardcode_gearset[slot].lower()=="empty" else hardcode_gearset[slot]
 
@@ -486,8 +486,8 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
     # If testing a melee WS, only check instruments in the "ranged" slot.
     # This does not apply to RNG or COR who might want savage blade sets to test gun/bow options
     if ws_type=="melee" and main_job not in ["rng", "cor"]:
-        check_gear["ranged"] = [k for k in check_gear["ranged"] if k["Type"] not in ["Crossbow", "Gun", "Bow"]]
-        check_gear["ammo"] = [k for k in check_gear["ammo"] if k["Type"] not in ["Bolt", "Bullet", "Arrow"] and "antitail" not in k["Name2"]]
+        check_gear["ranged"] = [k for k in check_gear["ranged"] if k.type not in ["Crossbow", "Gun", "Bow"]]
+        check_gear["ammo"] = [k for k in check_gear["ammo"] if k.type not in ["Bolt", "Bullet", "Arrow"] and "antitail" not in k.name2]
 
     check_gear = _prefilter_check_gear(check_gear, main_job.lower())
 
@@ -496,7 +496,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
     for slot in starting_gearset:
 
         # Unequip gear you can't wear if it's already equipped, even if the slot is "frozen"
-        if main_job.lower() not in starting_gearset[slot]["Jobs"]:
+        if main_job.lower() not in starting_gearset[slot].jobs:
             starting_gearset[slot] = Empty
 
         frozen_slot = (len(check_gear[slot]) == 0)
@@ -504,9 +504,9 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
             starting_gearset[slot] = np.random.choice(check_gear[slot])
             
             # Avoid wearing two rare items in initial gearset to prevent "unphysical" sets.
-            if slot == "ring2" and (starting_gearset["ring1"]["Name2"] == starting_gearset["ring2"]["Name2"]):
+            if slot == "ring2" and (starting_gearset["ring1"].name2 == starting_gearset["ring2"].name2):
                 starting_gearset["ring2"] = Empty
-            if slot == "ear2" and (starting_gearset["ear1"]["Name2"] == starting_gearset["ear2"]["Name2"]):
+            if slot == "ear2" and (starting_gearset["ear1"].name2 == starting_gearset["ear2"].name2):
                 starting_gearset["ear2"] = Empty
 
 
@@ -595,7 +595,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
                         elif item1 == item2:
                             try:
                                 if (best_metric%metric / best_metric < (float(next_best_percent)/100)) and (slot1 not in ["main","sub","ranged","back"]):
-                                    swaps[slot1].append([item1["Name2"], metric**invert])
+                                    swaps[slot1].append([item1.name2, metric**invert])
                             except Exception:
                                 # print(f"Error on \"{item1['Name2']}\" - Metric = {metric}  - Best Metric = {best_metric}")
                                 pass
@@ -633,7 +633,7 @@ def build_set(main_job: str, sub_job: str, master_level: int, buffs: Buffs, abil
     # At this point, we've found the best conditional set.
 
     # Swap the earrings to make sure the "Right Ear:" effect earrings show up in the ear2 slot.
-    if best_set["ear1"]["Name"] in jse_ears+["Balder Earring +1"]:
+    if best_set["ear1"].name in jse_ears+["Balder Earring +1"]:
         best_set["ear1"],best_set["ear2"] = best_set["ear2"],best_set["ear1"]
 
     # Record the stats for the best gear set.
@@ -703,7 +703,7 @@ if __name__ == "__main__":
                         'ear2' : Telos_Earring,
                         'ring1' : Gere_Ring,
                         'ring2' : Epona_Ring,
-                        'back' : np.random.choice(cast(Any, [k for k in capes if "nin" in k["Jobs"] and "DEX Store TP" in k["Name2"] and "Ranged" not in k]))}
+                        'back' : np.random.choice(cast(Any, [k for k in capes if "nin" in k.jobs and "DEX Store TP" in k.name2 and "Ranged" not in k.stats]))}
     pdt_requirement = -50
     mdt_requirement = -21
     print_swaps = True

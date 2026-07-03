@@ -91,7 +91,7 @@ class SimulateTab(QtWidgets.QWidget):
             outer_layout.addWidget(radio_frame, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
             radio_stack = QtWidgets.QStackedLayout(radio_frame)
             for slot in self.ctx.state.all_equipment_dict:
-                equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict[slot]])
+                equipment_list = sorted([k.name2 for k in self.ctx.state.all_equipment_dict[slot]])
                 scrollframes[slot] = VirtualRadioFrame(radio_frame, text=f"  Select {slot.capitalize()}  ", equipment_slot=slot, selection_type=set_type, command=self.ctx.quicklook_tab.update_quicklook_equipment, master_data=equipment_list, N=13)
                 radio_stack.addWidget(scrollframes[slot])
             return outer
@@ -175,11 +175,11 @@ class SimulateTab(QtWidgets.QWidget):
 
         for slot in destination_dict:
             destination_dict[slot]["item"] = source_dict[slot]["item"]
-            destination_dict[slot]["icon"] = self.ctx.get_equipment_icon(destination_dict[slot]["item"]["Name"])
+            destination_dict[slot]["icon"] = self.ctx.get_equipment_icon(destination_dict[slot]["item"].name)
             self.ctx.set_button_icon(destination_dict[slot]["button"], destination_dict[slot]["icon"])
             destination_dict[slot]["button"].setToolTip(self.ctx.format_tooltip_stats(destination_dict[slot]["item"]))
 
-            source_item_name = source_dict[slot]["item"]["Name2"]
+            source_item_name = source_dict[slot]["item"].name2
             destination_scrollframe[slot].set_selected(source_item_name)
 
         self.ctx.notebook.setCurrentIndex(int(destination_tab))
@@ -411,8 +411,8 @@ class SimulateTab(QtWidgets.QWidget):
 
                 # TODO: Move Gokotai regain to create_player.py and remove it from everywhere else.
                 if stat.lower() == "regain":
-                    tp_stat += tp_player.stats.get("Dual Wield",0)*(tp_player.gearset["main"]["Name"]=="Gokotai")
-                    ws_stat += ws_player.stats.get("Dual Wield",0)*(ws_player.gearset["main"]["Name"]=="Gokotai")
+                    tp_stat += tp_player.stats.get("Dual Wield",0)*(tp_player.gearset["main"].name=="Gokotai")
+                    ws_stat += ws_player.stats.get("Dual Wield",0)*(ws_player.gearset["main"].name=="Gokotai")
 
 
                 pet_stat = "pet:"==stat.lower()[:4]
@@ -473,6 +473,6 @@ class SimulateTab(QtWidgets.QWidget):
                     value = f"{value:.0f}"
 
                 if stat.lower() == "regain":
-                    value += player.stats.get("Dual Wield",0)*(player.gearset["main"]["Name"]=="Gokotai")
+                    value += player.stats.get("Dual Wield",0)*(player.gearset["main"].name=="Gokotai")
 
                 self.ctx.stats_tab.stats_dict[stat]["label2"].setText(str(value))

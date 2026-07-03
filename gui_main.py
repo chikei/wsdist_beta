@@ -51,9 +51,9 @@ class application(QtWidgets.QMainWindow):
 
         # Automatically re-equip gear to see changes immediately.
         for slot in self.equipment_button_positions:
-            self.quicklook_tab.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], "quicklook"))
-            self.quicklook_tab.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], "tp"))
-            self.quicklook_tab.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], "ws"))
+            self.quicklook_tab.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"].name2, "quicklook"))
+            self.quicklook_tab.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"].name2, "tp"))
+            self.quicklook_tab.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"].name2, "ws"))
 
         # Automatically reset main and subjobs to trigger refreshing the gear selection lists.
         self.quicklook_tab.update_job("main static")
@@ -76,9 +76,9 @@ class application(QtWidgets.QMainWindow):
                 state[key] = value # key and value are both string representations of the widget and its value.
 
         for slot in self.quicklook_equipped_dict:
-            state[f"quicklook_{slot}_item"] = self.quicklook_equipped_dict[slot]["item"]["Name2"]
-            state[f"tp_quicklook_{slot}_item"] = self.tp_quicklook_equipped_dict[slot]["item"]["Name2"]
-            state[f"ws_quicklook_{slot}_item"] = self.ws_quicklook_equipped_dict[slot]["item"]["Name2"]
+            state[f"quicklook_{slot}_item"] = self.quicklook_equipped_dict[slot]["item"].name2
+            state[f"tp_quicklook_{slot}_item"] = self.tp_quicklook_equipped_dict[slot]["item"].name2
+            state[f"ws_quicklook_{slot}_item"] = self.ws_quicklook_equipped_dict[slot]["item"].name2
 
         self.states["default"] = state
         self.states[main_job] = state
@@ -134,7 +134,7 @@ class application(QtWidgets.QMainWindow):
                 try:
                     saved_item = gear_pyfile.all_gear[state[f"quicklook_{slot}_item"]]
                     self.quicklook_equipped_dict[slot]["item"] = saved_item
-                    self.quicklook_equipped_dict[slot]["icon"] = self.get_equipment_icon(saved_item["Name"])
+                    self.quicklook_equipped_dict[slot]["icon"] = self.get_equipment_icon(saved_item.name)
                     self.set_button_icon(self.quicklook_equipped_dict[slot]["button"], self.quicklook_equipped_dict[slot]["icon"])
                     self.quicklook_equipped_dict[slot]["button"].setToolTip(self.format_tooltip_stats(saved_item))
                 except Exception as err:
@@ -143,7 +143,7 @@ class application(QtWidgets.QMainWindow):
                 try:
                     saved_item = gear_pyfile.all_gear[state[f"tp_quicklook_{slot}_item"]]
                     self.tp_quicklook_equipped_dict[slot]["item"] = saved_item
-                    self.tp_quicklook_equipped_dict[slot]["icon"] = self.get_equipment_icon(saved_item["Name"])
+                    self.tp_quicklook_equipped_dict[slot]["icon"] = self.get_equipment_icon(saved_item.name)
                     self.set_button_icon(self.tp_quicklook_equipped_dict[slot]["button"], self.tp_quicklook_equipped_dict[slot]["icon"])
                     self.tp_quicklook_equipped_dict[slot]["button"].setToolTip(self.format_tooltip_stats(saved_item))
                 except Exception as err:
@@ -152,7 +152,7 @@ class application(QtWidgets.QMainWindow):
                 try:
                     saved_item = gear_pyfile.all_gear[state[f"ws_quicklook_{slot}_item"]]
                     self.ws_quicklook_equipped_dict[slot]["item"] = saved_item
-                    self.ws_quicklook_equipped_dict[slot]["icon"] = self.get_equipment_icon(saved_item["Name"])
+                    self.ws_quicklook_equipped_dict[slot]["icon"] = self.get_equipment_icon(saved_item.name)
                     self.set_button_icon(self.ws_quicklook_equipped_dict[slot]["button"], self.ws_quicklook_equipped_dict[slot]["icon"])
                     self.ws_quicklook_equipped_dict[slot]["button"].setToolTip(self.format_tooltip_stats(saved_item))
                 except Exception as err:
@@ -165,9 +165,9 @@ class application(QtWidgets.QMainWindow):
             for input in [f"set {k}" for k in ["dia", "haste", "boost", "storm", "Indi-", "Geo-", "Entrust-", "food"]+[f"Song{i+1}" for i in range(4)]+[f"Roll{i+1}" for i in range(4)]]:
                 self.quicklook_tab.update_buffs(input)
             for slot in self.equipment_button_positions:
-                self.quicklook_tab.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], "quicklook"))
-                self.quicklook_tab.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], "tp"))
-                self.quicklook_tab.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], "ws"))
+                self.quicklook_tab.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"].name2, "quicklook"))
+                self.quicklook_tab.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"].name2, "tp"))
+                self.quicklook_tab.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"].name2, "ws"))
             self.simulate_tab.quicklook("show stats quicklook")
         except Exception as err:
             print(err)
@@ -179,47 +179,45 @@ class application(QtWidgets.QMainWindow):
         Given a dictionary containing an item's stats, create a string to display with that item's icon as a tooltip.
         Returns a string.
         '''
-        ignore_stats = ["Jobs","Name","Name2","Type","Skill Type","Rank"] # Do not include these stats in the tooltip
-        wpn_stats = ["DMG","Delay"] # DMG and Delay show up first if available
         base_stats = ["STR", "DEX", "VIT", "AGI", "INT", "MND", "CHR"] # Base parameters show up on their own line.
         main_stats = ["Accuracy","Attack","Ranged Accuracy","Ranged Attack","Magic Accuracy","Magic Damage","Magic Attack"]
         def_stats = ["Evasion","Magic Evasion", "Magic Defense","DT","MDT","PDT","MDT2","PDT2","Subtle Blow","Subtle Blow II",]
 
-        tooltip = f"{item['Name2' if 'Name2' in item else 'Name']}\n" # Start with the item's unique name
+        tooltip = f"{item.name2}\n" # Start with the item's unique name
 
         nl = False # nl = NL = New Line: insert a new line to force a line break
-        for k in wpn_stats:
-            if item.get(k,False):
-                tooltip += f"{k}:{item[k]},"
+        for k, val in (("DMG", item.dmg), ("Delay", item.delay)): # DMG and Delay show up first if available
+            if val:
+                tooltip += f"{k}:{val},"
                 nl = True
             if k=="Delay" and nl:
                 tooltip += "\n"
 
         nl = False
         for k in base_stats:
-            if item.get(k,False):
-                tooltip += f"{k}:{item[k]},"
+            if item.stats.get(k,False):
+                tooltip += f"{k}:{item.stats[k]},"
                 nl = True
             if nl and k=="CHR":
                 tooltip += "\n"
 
         nl = False
         for k in main_stats:
-            if item.get(k,False):
-                tooltip += f"{k}:{item[k]},"
+            if item.stats.get(k,False):
+                tooltip += f"{k}:{item.stats[k]},"
                 nl = True
             if "Attack" in k and nl:
                 tooltip += "\n"
                 nl = False
-        for k in item:
-            if k in base_stats or k in ignore_stats or k in main_stats or k in wpn_stats or k in def_stats:
+        for k, v in item.stats.items():
+            if k in base_stats or k in main_stats or k in def_stats:
                 continue
-            tooltip += f"{k}:{item[k]}\n"
+            tooltip += f"{k}:{v}\n"
 
         nl = False
         for k in def_stats:
-            if item.get(k,False):
-                tooltip += f"{k}:{item[k]},"
+            if item.stats.get(k,False):
+                tooltip += f"{k}:{item.stats[k]},"
                 nl = True
             if "Def" in k and nl:
                 tooltip += "\n"
@@ -298,8 +296,8 @@ class application(QtWidgets.QMainWindow):
         for slot in gear_pyfile.gear_dict:
             if slot not in ["main", "sub", "ranged", "ammo"]:
                 for item in gear_pyfile.gear_dict[slot]:
-                    for stat in item:
-                        if stat not in random_stats and stat not in ["Name", "Name2", "Jobs"]:
+                    for stat in item.stats:
+                        if stat not in random_stats:
                             random_stats.append(stat)
 
         spell_list = [k for job in self.spells_dict for k in self.spells_dict[job]]
@@ -324,17 +322,17 @@ class application(QtWidgets.QMainWindow):
             master_level = np.random.randint(0, 51)
 
             equipped_gearset = {slot:random.choice(gear_pyfile.gear_dict[slot]) for slot in gear_pyfile.gear_dict}
-            while equipped_gearset["main"]["Name"] == "Empty":
+            while equipped_gearset["main"].name == "Empty":
                 equipped_gearset["main"] = random.choice(gear_pyfile.gear_dict["main"])
 
-            main_skill_type = equipped_gearset["main"]["Skill Type"]
-            ranged_skill_type = equipped_gearset["ranged"].get("Skill Type", "None")
+            main_skill_type = equipped_gearset["main"].skill_type
+            ranged_skill_type = equipped_gearset["ranged"].skill_type
 
             ws_list = list(self.ws_dict[main_skill_type])
             if ranged_skill_type in self.ws_dict and ranged_skill_type != "None":
                 ws_list = ws_list + self.ws_dict[ranged_skill_type]
 
-                ranged_type = equipped_gearset["ranged"].get("Type", "None")
+                ranged_type = equipped_gearset["ranged"].type
                 ammo_type = "None"
                 if ranged_type == "Crossbow":
                     ammo_type = "Bolt"
@@ -343,7 +341,7 @@ class application(QtWidgets.QMainWindow):
                 elif ranged_type == "Bow":
                     ammo_type = "Arrow"
 
-                forced_ammo = random.choice([k for k in gear_pyfile.ammos if k.get("Type", "None")==ammo_type])
+                forced_ammo = random.choice([k for k in gear_pyfile.ammos if k.type==ammo_type])
                 equipped_gearset["ammo"] = forced_ammo
 
             ws_name = np.random.choice(ws_list)
@@ -374,7 +372,9 @@ class application(QtWidgets.QMainWindow):
                 for stat in random_stats:
                     if np.random.uniform() < 0.8:
                         continue
-                    if stat in ["Crit Rate", "Crit Damage", "ftp"] or "%" in stat or "haste" in stat.lower():
+                    if stat == "ftp": # ftp is a /256 fixed-point int stat; uniform(0,128)/256 keeps the intended 0-0.5 fTP range.
+                        active_buffs[job][stat] = np.random.uniform(0, 128)
+                    elif stat in ["Crit Rate", "Crit Damage"] or "%" in stat or "haste" in stat.lower():
                         active_buffs[job][stat] = np.random.uniform(0, 0.5)
                     elif stat in ["DA", "TA", "QA", *[f"OA{x} {j}" for x in [2,3,4,5,6,7,8] for j in ["main", "sub"]]]:
                         active_buffs[job][stat] = np.random.uniform(0, 50)
@@ -385,7 +385,7 @@ class application(QtWidgets.QMainWindow):
 
                                              
             spell_name = np.random.choice(np.unique(spell_list))
-            while spell_name in ["Barrage", "Ranged Attack"] and equipped_gearset["ranged"]["Skill Type"] not in ["Marksmanship", "Archery"]:
+            while spell_name in ["Barrage", "Ranged Attack"] and equipped_gearset["ranged"].skill_type not in ["Marksmanship", "Archery"]:
                 spell_name = np.random.choice(np.unique(spell_list))
 
             if "ton: " in spell_name.lower():
@@ -538,9 +538,9 @@ class application(QtWidgets.QMainWindow):
             self.quicklook_tab.update_job("main")
             self.quicklook_tab.update_job("sub")
             for slot in self.quicklook_equipped_dict:
-                self.quicklook_tab.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"]["Name2"], "quicklook"))
-                self.quicklook_tab.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"]["Name2"], "tp"))
-                self.quicklook_tab.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"]["Name2"], "ws"))
+                self.quicklook_tab.update_quicklook_equipment((slot, self.quicklook_equipped_dict[slot]["item"].name2, "quicklook"))
+                self.quicklook_tab.update_quicklook_equipment((slot, self.tp_quicklook_equipped_dict[slot]["item"].name2, "tp"))
+                self.quicklook_tab.update_quicklook_equipment((slot, self.ws_quicklook_equipped_dict[slot]["item"].name2, "ws"))
 
         self.set_visible_frame(self.quicklook_scrollframes["main"])
         self.set_visible_frame(self.tp_quicklook_scrollframes["main"])

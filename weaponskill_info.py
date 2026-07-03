@@ -28,7 +28,7 @@ def _apply_naegling(ctx: WSContext) -> None:
 
 def _apply_weapon_setup(ctx: WSContext) -> None:
     # Some main weapons modify attack or enemy defense before the WS-specific logic.
-    main_name = ctx.player.gearset["main"]["Name"]
+    main_name = ctx.player.gearset["main"].name
     if main_name == "Naegling":
         _apply_naegling(ctx)
     elif main_name == "Nandaka":
@@ -73,7 +73,7 @@ def _apply_ws_table(ctx: WSContext, ws_name: str) -> None:
 def _apply_shining_one(ctx: WSContext, ws_name: str) -> None:
     # Shining One allows most weapon skills to crit. https://www.bg-wiki.com/ffxi/Shining_One
     ranged_ws = ["Flaming Arrow", "Namas Arrow", "Apex Arrow", "Refulgent Arrow", "Empyreal Arrow", "Sidewinder", "Piercing Arrow", "Jishnu's Radiance", "Blast Arrow", "Hot Shot", "Coronach", "Last Stand", "Detonator", "Blast Shot", "Slug Shot", "Split Shot", ]
-    if ctx.player.gearset["main"]["Name"] != "Shining One" or ws_name in ranged_ws:
+    if ctx.player.gearset["main"].name != "Shining One" or ws_name in ranged_ws:
         return
 
     if not ctx.crit_ws:

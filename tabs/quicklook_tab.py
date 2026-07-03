@@ -569,7 +569,7 @@ class QuicklookTab(QtWidgets.QWidget):
         quicklook_subframe_stack = QtWidgets.QStackedLayout(quicklook_subframe_right)
         self.quicklook_scrollframes: dict[str, Any] = {}
         for slot in self.ctx.state.all_equipment_dict:
-            equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict[slot]])
+            equipment_list = sorted([k.name2 for k in self.ctx.state.all_equipment_dict[slot]])
             self.quicklook_scrollframes[slot] = VirtualRadioFrame(quicklook_subframe_right, text=f"  Select {slot.capitalize()}  ", equipment_slot=slot, selection_type="quicklook", command=self.update_quicklook_equipment, master_data=equipment_list, N=16)
             quicklook_subframe_stack.addWidget(self.quicklook_scrollframes[slot])
 
@@ -673,9 +673,9 @@ class QuicklookTab(QtWidgets.QWidget):
                     allowed_subtypes = ["Shield", "Grip", "None"]
                     if dual_wield:
                         allowed_subtypes += ["Weapon"]
-                    filtered_equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict["sub"] if (main_job_shorthand in k["Jobs"]) and (k["Type"] in allowed_subtypes)])
+                    filtered_equipment_list = sorted([k.name2 for k in self.ctx.state.all_equipment_dict["sub"] if (main_job_shorthand in k.jobs) and (k.type in allowed_subtypes)])
                 else:
-                    filtered_equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict[slot] if main_job_shorthand.lower() in k["Jobs"]])
+                    filtered_equipment_list = sorted([k.name2 for k in self.ctx.state.all_equipment_dict[slot] if main_job_shorthand.lower() in k.jobs])
                 self.quicklook_scrollframes[slot].set_visible_data(filtered_equipment_list)
                 self.ctx.tp_quicklook_scrollframes[slot].set_visible_data(filtered_equipment_list)
                 self.ctx.ws_quicklook_scrollframes[slot].set_visible_data(filtered_equipment_list)
@@ -719,8 +719,8 @@ class QuicklookTab(QtWidgets.QWidget):
             if dual_wield:
                 allowed_subtypes += ["Weapon"]
             else:
-                restricted_items = [k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict["sub"] if (main_job_shorthand in k["Jobs"]) and (k["Type"] == "Weapon")]
-            new_off_hand_equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict["sub"] if (main_job_shorthand in k["Jobs"]) and (k["Type"] in allowed_subtypes)])
+                restricted_items = [k.name2 for k in self.ctx.state.all_equipment_dict["sub"] if (main_job_shorthand in k.jobs) and (k.type == "Weapon")]
+            new_off_hand_equipment_list = sorted([k.name2 for k in self.ctx.state.all_equipment_dict["sub"] if (main_job_shorthand in k.jobs) and (k.type in allowed_subtypes)])
             
 
             self.quicklook_scrollframes["sub"].set_visible_data(new_off_hand_equipment_list)
@@ -729,10 +729,10 @@ class QuicklookTab(QtWidgets.QWidget):
             self.slotsRefiltered.emit({"sub": (new_off_hand_equipment_list, None if dual_wield else restricted_items)})
 
             # Unequip off-hand weapon if not able to dual-wield.
-            if not dual_wield and self.quicklook_equipped_dict["sub"]["item"]["Type"]=="Weapon":
+            if not dual_wield and self.quicklook_equipped_dict["sub"]["item"].type=="Weapon":
                 new_sub_item = gear_pyfile.all_gear["Empty"]
                 self.quicklook_equipped_dict["sub"]["item"] = new_sub_item
-                self.quicklook_equipped_dict["sub"]["icon"] = self.ctx.get_equipment_icon(new_sub_item["Name"])
+                self.quicklook_equipped_dict["sub"]["icon"] = self.ctx.get_equipment_icon(new_sub_item.name)
                 self.ctx.set_button_icon(self.quicklook_equipped_dict["sub"]["button"], self.quicklook_equipped_dict["sub"]["icon"])
                 self.quicklook_equipped_dict["sub"]["button"].setToolTip(self.ctx.format_tooltip_stats(new_sub_item))
 
@@ -810,13 +810,13 @@ class QuicklookTab(QtWidgets.QWidget):
 
         # Equip the new item now.
         equipped_items_dict[slot]["item"] = new_item
-        equipped_items_dict[slot]["icon"] = self.ctx.get_equipment_icon(new_item["Name"])
+        equipped_items_dict[slot]["icon"] = self.ctx.get_equipment_icon(new_item.name)
         self.ctx.set_button_icon(equipped_items_dict[slot]["button"], equipped_items_dict[slot]["icon"])
         equipped_items_dict[slot]["button"].setToolTip(self.ctx.format_tooltip_stats(new_item))
 
         # Remove equipment in other slots if the new combination is not possible
-        main_skill_type = equipped_items_dict["main"]["item"]["Skill Type"]
-        sub_item_type = equipped_items_dict["sub"]["item"]["Type"]
+        main_skill_type = equipped_items_dict["main"]["item"].skill_type
+        sub_item_type = equipped_items_dict["sub"]["item"].type
         if slot == "main":
             main_job_shorthand = self.ctx.state.jobs_dict[self.main_job_combobox.currentText()]
             sub_job_shorthand = self.ctx.state.jobs_dict.get(self.sub_job_selection_combobox.currentText(), "None")
@@ -824,16 +824,16 @@ class QuicklookTab(QtWidgets.QWidget):
             if (main_skill_type in ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff"] and sub_item_type not in ["Grip", "None"]) or (main_skill_type=="Hand-to-Hand") or (main_skill_type in ["Axe", "Club", "Dagger", "Sword", "Katana"] and (sub_item_type not in ["Shield", "None"]) and not dual_wield):
                 new_sub_item = gear_pyfile.all_gear["Empty"]
                 equipped_items_dict["sub"]["item"] = new_sub_item
-                equipped_items_dict["sub"]["icon"] = self.ctx.get_equipment_icon(new_sub_item["Name"])
+                equipped_items_dict["sub"]["icon"] = self.ctx.get_equipment_icon(new_sub_item.name)
                 self.ctx.set_button_icon(equipped_items_dict["sub"]["button"], equipped_items_dict["sub"]["icon"])
                 equipped_items_dict["sub"]["button"].setToolTip(self.ctx.format_tooltip_stats(new_sub_item))
                 scrollframe["sub"].set_selected("Empty")
 
 
             if source=="quicklook":
-                self.wpn_type_main = equipped_items_dict["main"]["item"]["Skill Type"]
+                self.wpn_type_main = equipped_items_dict["main"]["item"].skill_type
                 self.ctx._set_combo_values(self.ws_selection_combobox, self.ctx.state.ws_dict[self.wpn_type_main] + (self.ctx.state.ws_dict[self.wpn_type_ranged] if self.wpn_type_ranged not in ["None", "Instrument"] else []))
-                if old_item["Skill Type"] != new_item["Skill Type"]:
+                if old_item.skill_type != new_item.skill_type:
                     if self.ws_selection_combobox.currentText() not in [self.ws_selection_combobox.itemText(i) for i in range(self.ws_selection_combobox.count())]:
                         self.ws_selection_combobox.setCurrentText(self.ctx.state.ws_dict[self.wpn_type_main][0])
 
@@ -841,26 +841,26 @@ class QuicklookTab(QtWidgets.QWidget):
             if (sub_item_type=="Grip" and main_skill_type not in ["Great Sword", "Great Katana", "Great Axe", "Polearm", "Scythe", "Staff"]) or (sub_item_type=="Shield" and main_skill_type not in ["None", "Axe", "Club", "Dagger", "Sword", "Katana"]):
                 new_main_item = gear_pyfile.all_gear["Empty"]
                 equipped_items_dict["main"]["item"] = new_main_item
-                equipped_items_dict["main"]["icon"] = self.ctx.get_equipment_icon(new_main_item["Name"])
+                equipped_items_dict["main"]["icon"] = self.ctx.get_equipment_icon(new_main_item.name)
                 self.ctx.set_button_icon(equipped_items_dict["main"]["button"], equipped_items_dict["main"]["icon"])
                 equipped_items_dict["main"]["button"].setToolTip(self.ctx.format_tooltip_stats(new_main_item))
                 scrollframe["main"].set_selected("Empty")
 
-        ranged_item_type = equipped_items_dict["ranged"]["item"]["Type"]
-        ammo_item_type = equipped_items_dict["ammo"]["item"]["Type"]
+        ranged_item_type = equipped_items_dict["ranged"]["item"].type
+        ammo_item_type = equipped_items_dict["ammo"]["item"].type
         if slot == "ranged":
             if (ranged_item_type=="Gun" and ammo_item_type != "Bullet") or (ranged_item_type=="Bow" and ammo_item_type != "Arrow") or (ranged_item_type=="Crossbow" and ammo_item_type != "Bolt") or (ranged_item_type in ["Instrument", "Equipment"]):
                 new_ammo_item = gear_pyfile.all_gear["Empty"]
                 equipped_items_dict["ammo"]["item"] = new_ammo_item
-                equipped_items_dict["ammo"]["icon"] = self.ctx.get_equipment_icon(new_ammo_item["Name"])
+                equipped_items_dict["ammo"]["icon"] = self.ctx.get_equipment_icon(new_ammo_item.name)
                 self.ctx.set_button_icon(equipped_items_dict["ammo"]["button"], equipped_items_dict["ammo"]["icon"])
                 equipped_items_dict["ammo"]["button"].setToolTip(self.ctx.format_tooltip_stats(new_ammo_item))
                 scrollframe["ammo"].set_selected("Empty")
 
             if source=="quicklook":
-                self.wpn_type_ranged = equipped_items_dict["ranged"]["item"]["Skill Type"]
+                self.wpn_type_ranged = equipped_items_dict["ranged"]["item"].skill_type
                 self.ctx._set_combo_values(self.ws_selection_combobox, self.ctx.state.ws_dict[self.wpn_type_main] + (self.ctx.state.ws_dict[self.wpn_type_ranged] if self.wpn_type_ranged not in ["None", "Instrument"] else []))
-                if (old_item["Skill Type"] != new_item["Skill Type"]) and (new_item["Skill Type"] not in ["Instrument"]):
+                if (old_item.skill_type != new_item.skill_type) and (new_item.skill_type not in ["Instrument"]):
                     if self.ws_selection_combobox.currentText() not in self.ctx.state.ws_dict[self.wpn_type_main] + self.ctx.state.ws_dict[self.wpn_type_ranged]:
                         self.ws_selection_combobox.setCurrentText(self.ctx.state.ws_dict[self.wpn_type_main][0])
 
@@ -868,52 +868,52 @@ class QuicklookTab(QtWidgets.QWidget):
             if (ammo_item_type=="Bullet" and ranged_item_type != "Gun") or (ammo_item_type=="Arrow" and ranged_item_type != "Bow") or (ammo_item_type=="Bolt" and ranged_item_type != "Crossbow") or (ammo_item_type in ["Equipment", "Shuriken"]):
                 new_ammo_item = gear_pyfile.all_gear["Empty"]
                 equipped_items_dict["ranged"]["item"] = new_ammo_item
-                equipped_items_dict["ranged"]["icon"] = self.ctx.get_equipment_icon(new_ammo_item["Name"])
+                equipped_items_dict["ranged"]["icon"] = self.ctx.get_equipment_icon(new_ammo_item.name)
                 self.ctx.set_button_icon(equipped_items_dict["ranged"]["button"], equipped_items_dict["ranged"]["icon"])
                 equipped_items_dict["ranged"]["button"].setToolTip(self.ctx.format_tooltip_stats(new_ammo_item))
                 scrollframe["ranged"].set_selected("Empty")
 
         # Swap the rings if selecting ring1/ring2 to be the item in ring2/ring1 slot.
-        if ((slot == "ring1" and (new_item == ring2_item_before)) or (slot == "ring2" and (new_item == ring1_item_before))) and (new_item["Name"] != "Empty"):
+        if ((slot == "ring1" and (new_item == ring2_item_before)) or (slot == "ring2" and (new_item == ring1_item_before))) and (new_item.name != "Empty"):
             equipped_items_dict["ring1"]["item"] = ring2_item_before
-            equipped_items_dict["ring1"]["icon"] = self.ctx.get_equipment_icon(ring2_item_before["Name"])
+            equipped_items_dict["ring1"]["icon"] = self.ctx.get_equipment_icon(ring2_item_before.name)
             self.ctx.set_button_icon(equipped_items_dict["ring1"]["button"], equipped_items_dict["ring1"]["icon"])
             equipped_items_dict["ring1"]["button"].setToolTip(self.ctx.format_tooltip_stats(ring2_item_before))
-            scrollframe["ring1"].set_selected(ring2_item_before["Name2"])
+            scrollframe["ring1"].set_selected(ring2_item_before.name2)
 
             equipped_items_dict["ring2"]["item"] = ring1_item_before
-            equipped_items_dict["ring2"]["icon"] = self.ctx.get_equipment_icon(ring1_item_before["Name"])
+            equipped_items_dict["ring2"]["icon"] = self.ctx.get_equipment_icon(ring1_item_before.name)
             self.ctx.set_button_icon(equipped_items_dict["ring2"]["button"], equipped_items_dict["ring2"]["icon"])
             equipped_items_dict["ring2"]["button"].setToolTip(self.ctx.format_tooltip_stats(ring1_item_before))
-            scrollframe["ring2"].set_selected(ring1_item_before["Name2"])
+            scrollframe["ring2"].set_selected(ring1_item_before.name2)
 
         # Swap the earrings if selecting ear1/ear2 to be the item in ear2/ear1 slot.
-        if ((slot == "ear1" and (new_item == ear2_item_before)) or (slot == "ear2" and (new_item == ear1_item_before))) and (new_item["Name"] != "Empty"):
+        if ((slot == "ear1" and (new_item == ear2_item_before)) or (slot == "ear2" and (new_item == ear1_item_before))) and (new_item.name != "Empty"):
             equipped_items_dict["ear1"]["item"] = ear2_item_before
-            equipped_items_dict["ear1"]["icon"] = self.ctx.get_equipment_icon(ear2_item_before["Name"])
+            equipped_items_dict["ear1"]["icon"] = self.ctx.get_equipment_icon(ear2_item_before.name)
             self.ctx.set_button_icon(equipped_items_dict["ear1"]["button"], equipped_items_dict["ear1"]["icon"])
             equipped_items_dict["ear1"]["button"].setToolTip(self.ctx.format_tooltip_stats(ear2_item_before))
-            scrollframe["ear1"].set_selected(ear2_item_before["Name2"])
+            scrollframe["ear1"].set_selected(ear2_item_before.name2)
 
             equipped_items_dict["ear2"]["item"] = ear1_item_before
-            equipped_items_dict["ear2"]["icon"] = self.ctx.get_equipment_icon(ear1_item_before["Name"])
+            equipped_items_dict["ear2"]["icon"] = self.ctx.get_equipment_icon(ear1_item_before.name)
             self.ctx.set_button_icon(equipped_items_dict["ear2"]["button"], equipped_items_dict["ear2"]["icon"])
             equipped_items_dict["ear2"]["button"].setToolTip(self.ctx.format_tooltip_stats(ear1_item_before))
-            scrollframe["ear2"].set_selected(ear1_item_before["Name2"])
+            scrollframe["ear2"].set_selected(ear1_item_before.name2)
 
         # Can't equip a cloak with a hat
         if slot == "body":
             if ("cloak" in new_item_name.lower()):
                 equipped_items_dict["head"]["item"] = gear_pyfile.all_gear["Empty"]
-                equipped_items_dict["head"]["icon"] = self.ctx.get_equipment_icon(gear_pyfile.all_gear["Empty"]["Name"])
+                equipped_items_dict["head"]["icon"] = self.ctx.get_equipment_icon(gear_pyfile.all_gear["Empty"].name)
                 self.ctx.set_button_icon(equipped_items_dict["head"]["button"], equipped_items_dict["head"]["icon"])
                 equipped_items_dict["head"]["button"].setToolTip(self.ctx.format_tooltip_stats(gear_pyfile.all_gear["Empty"]))
                 scrollframe["head"].set_selected("Empty")
 
         if slot == "head":
-            if ("cloak" in equipped_items_dict["body"]["item"]["Name"].lower()):
+            if ("cloak" in equipped_items_dict["body"]["item"].name.lower()):
                 equipped_items_dict["body"]["item"] = gear_pyfile.all_gear["Empty"]
-                equipped_items_dict["body"]["icon"] = self.ctx.get_equipment_icon(gear_pyfile.all_gear["Empty"]["Name"])
+                equipped_items_dict["body"]["icon"] = self.ctx.get_equipment_icon(gear_pyfile.all_gear["Empty"].name)
                 self.ctx.set_button_icon(equipped_items_dict["body"]["button"], equipped_items_dict["body"]["icon"])
                 equipped_items_dict["body"]["button"].setToolTip(self.ctx.format_tooltip_stats(gear_pyfile.all_gear["Empty"]))
                 scrollframe["body"].set_selected("Empty")
@@ -1092,10 +1092,9 @@ class QuicklookTab(QtWidgets.QWidget):
         # Food buffs
         if self.food_selections_dict["combobox"].currentText() in gear_pyfile.all_food:
             active_food = gear_pyfile.all_food[self.food_selections_dict["combobox"].currentText()] # Dictionary of stats.
-            for stat in active_food:
-                if stat not in ["Name", "Name2", "Type"]:
-                    # Attack from food is added after Attack% from COR/Berserk/etc, so it needs a different name here.
-                    buffs["food"][stat] = buffs["food"].get(stat, 0) + active_food[stat]
+            for stat, val in active_food.stats.items():
+                # Attack from food is added after Attack% from COR/Berserk/etc, so it needs a different name here.
+                buffs["food"][stat] = buffs["food"].get(stat, 0) + val
         if "Attack" in buffs["food"]:
             buffs["food"]["Food Attack"] = buffs["food"].pop("Attack")
         if "Ranged Attack" in buffs["food"]:
@@ -1133,11 +1132,11 @@ class QuicklookTab(QtWidgets.QWidget):
         '''
         for slot in gearset:
             self.quicklook_equipped_dict[slot]["item"] = gearset[slot]
-            self.quicklook_equipped_dict[slot]["icon"] = self.ctx.get_equipment_icon(self.quicklook_equipped_dict[slot]["item"]["Name"])
+            self.quicklook_equipped_dict[slot]["icon"] = self.ctx.get_equipment_icon(self.quicklook_equipped_dict[slot]["item"].name)
             self.ctx.set_button_icon(self.quicklook_equipped_dict[slot]["button"], self.quicklook_equipped_dict[slot]["icon"])
             self.quicklook_equipped_dict[slot]["button"].setToolTip(self.ctx.format_tooltip_stats(self.quicklook_equipped_dict[slot]["item"]))
 
-            best_item_name = gearset[slot]["Name2"]
+            best_item_name = gearset[slot].name2
             self.quicklook_scrollframes[slot].set_selected(best_item_name)
 
             self.ctx.notebook.setCurrentIndex(0)

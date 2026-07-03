@@ -143,7 +143,7 @@ class OptimizeTab(QtWidgets.QWidget):
         opt_scrollframe_stack = QtWidgets.QStackedLayout(opt_scrollframe_relative_frame)
         self.optimize_scrollframes: dict[str, Any] = {}
         for slot in self.ctx.state.all_equipment_dict:
-            equipment_list = sorted([k["Name2" if "Name2" in k else "Name"] for k in self.ctx.state.all_equipment_dict[slot]])
+            equipment_list = sorted([k.name2 for k in self.ctx.state.all_equipment_dict[slot]])
             self.optimize_scrollframes[slot] = VirtualCheckboxFrame(opt_scrollframe_relative_frame,
                                                                     text=f"  Select {slot.capitalize()}  ",
                                                                     master_data=equipment_list,
@@ -374,13 +374,13 @@ class OptimizeTab(QtWidgets.QWidget):
                 item = gear_pyfile.all_gear[item_name]
 
                 if event == "select all file":
-                    if (item["Name"].lower() in input_items_full):
+                    if (item.name.lower() in input_items_full):
                         self.optimize_scrollframes[slot].select(item_name)
-                    elif (item["Name"].lower().split(" +")[0] in input_items_full):
+                    elif (item.name.lower().split(" +")[0] in input_items_full):
                         self.optimize_scrollframes[slot].select(item_name)
 
                 # Deselect if the item's Odyssey rank does not match the selected Odyssey Rank.
-                if str(item.get("Rank", self.ody_rank_combobox.currentText())) != self.ody_rank_combobox.currentText():
+                if str(item.rank if item.rank is not None else self.ody_rank_combobox.currentText()) != self.ody_rank_combobox.currentText():
                     self.optimize_scrollframes[slot].deselect(item_name)
 
                 # Swap Nyame R30B for R25B if the checkbox is enabled. Deselect Nyame Paths "not B".

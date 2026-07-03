@@ -38,7 +38,7 @@ def quickdraw(rng_dmg: float, ammo_dmg: float, element: str, gearset: Any, playe
 
     magic_accuracy += dstat_macc # Add on magic accuracy from dstat
 
-    if "Death Penalty" in gearset.gear["ranged"]["Name2"]:
+    if "Death Penalty" in gearset.gear["ranged"].name2:
         magic_accuracy += 60
 
     base_damage = ((rng_dmg+ammo_dmg)*2 + gearset.playerstats["Quick Draw"] + player_magic_damage)
@@ -52,7 +52,7 @@ def quickdraw(rng_dmg: float, ammo_dmg: float, element: str, gearset: Any, playe
     damage *= elemental_damage_bonus
 
     dayweather = 1.0
-    if gearset.gear["waist"]["Name"]=="Hachirin-no-Obi" and storm_element.lower()==element:
+    if gearset.gear["waist"].name=="Hachirin-no-Obi" and storm_element.lower()==element:
         dayweather = 1.25
 
     if storm_element!="None":
