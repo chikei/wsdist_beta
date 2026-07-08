@@ -403,7 +403,10 @@ Fomalhaut = GearPiece(name="Fomalhaut", name2="Fomalhaut R15", type="Gun", skill
 Fomalhaut0 = GearPiece(name="Fomalhaut", name2="Fomalhaut", type="Gun", skill_type="Marksmanship", dmg=167, delay=600, jobs=["rng", "cor"], stats={"Magic Accuracy": 40, "Magic Damage": 155, "Marksmanship Skill": 269, "Store TP": 10, "TP Bonus": 500})
 Death_Penalty = GearPiece(name="Death Penalty", name2="Death Penalty R15", type="Gun", skill_type="Marksmanship", dmg=101+6, delay=480, jobs=["cor"], stats={"Ranged Accuracy": 30, "Magic Accuracy": 30, "Magic Damage": 217, "Marksmanship Skill": 269, "Quick Draw Damage%": 60, "Quick Draw Magic Accuracy": 60})
 Death_Penalty0 = GearPiece(name="Death Penalty", name2="Death Penalty", type="Gun", skill_type="Marksmanship", dmg=101, delay=480, jobs=["cor"], stats={"Magic Damage": 217, "Marksmanship Skill": 269, "Quick Draw Damage%": 60, "Quick Draw Magic Accuracy": 60})
+DoomsdayAGI = GearPiece(name="Doomsday", name2="Doomsday (AGI)", type="Gun", skill_type="Marksmanship", dmg=120, delay=680, jobs=["cor","rng"], stats={"Magic Damage": 0, "Magic Attack": 0+25, "Marksmanship Skill": 242, "Weapon Skill Damage": 0+7, "AGI": 0+23})
+DoomsdayMagic = GearPiece(name="Doomsday", name2="Doomsday (Magic Dmg)", type="Gun", skill_type="Marksmanship", dmg=120, delay=680, jobs=["cor","rng"], stats={"Magic Damage": 0+15, "Magic Attack": 0+25, "Marksmanship Skill": 242, "Weapon Skill Damage": 0+7})
 Ataktos = GearPiece(name="Ataktos", type="Gun", skill_type="Marksmanship", dmg=53, delay=600, jobs=["cor", "rng"], stats={"TP Bonus": 1000})
+AnarchyP2 = GearPiece(name="Anarchy +2", type="Gun", skill_type="Marksmanship", dmg=49, delay=600, jobs=["cor", "rng"], stats={"TP Bonus": 1000})
 Molybdosis = GearPiece(name="Molybdosis", type="Gun", skill_type="Marksmanship", dmg=103, delay=480, jobs=["cor"], stats={"AGI": 25, "Ranged Attack": 45, "Magic Attack": 30, "Marksmanship Skill": 242, "Crit Damage": 10})
 Gandiva = GearPiece(name="Gandiva", name2="Gandiva R15", type="Bow", skill_type="Archery", dmg=286+7, delay=490, jobs=["rng"], stats={"STR": 0+20, "DEX": 50+20, "Archery Skill": 269})
 Gandiva0 = GearPiece(name="Gandiva", name2="Gandiva", type="Bow", skill_type="Archery", dmg=286, delay=490, jobs=["rng"], stats={"DEX": 50, "Archery Skill": 269})
@@ -431,7 +434,7 @@ Earp4 = GearPiece(name="Earp", name2="Earp IV", type="Gun", skill_type="Marksman
 Pinaka5 = GearPiece(name="Pinaka", name2="Pinaka V", type="Bow", skill_type="Archery", dmg=324, delay=524, jobs=["rng"], stats={"Archery Skill": 277, "STR": 35, "AGI": 35, "Store TP": 10, "Magic Accuracy Skill": 277, "Magic Accuracy": 35, "Ranged Accuracy": 35})
 Pinaka4 = GearPiece(name="Pinaka", name2="Pinaka IV", type="Bow", skill_type="Archery", dmg=309, delay=524, jobs=["rng"], stats={"Archery Skill": 269, "STR": 30, "AGI": 30, "Store TP": 7, "Magic Accuracy Skill": 269, "Magic Accuracy": 30, "Ranged Accuracy": 30})
 
-ranged: list[GearPiece] = [Pinaka5,Pinaka4,Earp5,Earp4,Exalted_Crossbow,Gastraphetes,Gastraphetes0,Annihilator,Annihilator0,Accipiter,Fail_not,Fail_not0,Gandiva,Gandiva0,Mpaca_Bow30,Mpaca_Bow25,Mpaca_Bow20,Mpaca_Bow15,Gleti_Crossbow30,Gleti_Crossbow25,Gleti_Crossbow20,Gleti_Crossbow15,Molybdosis,Ataktos,Death_Penalty,Death_Penalty0,Fomalhaut,Fomalhaut0,Yoichinoyumi,Yoichinoyumi0,Armageddon,Armageddon0,Empty,Donar_Gun,Ullr]
+ranged: list[GearPiece] = [Pinaka5,Pinaka4,Earp5,Earp4,Exalted_Crossbow,Gastraphetes,Gastraphetes0,Annihilator,Annihilator0,Accipiter,Fail_not,Fail_not0,Gandiva,Gandiva0,Mpaca_Bow30,Mpaca_Bow25,Mpaca_Bow20,Mpaca_Bow15,Gleti_Crossbow30,Gleti_Crossbow25,Gleti_Crossbow20,Gleti_Crossbow15,Molybdosis,Ataktos,AnarchyP2,Death_Penalty,Death_Penalty0,DoomsdayAGI,DoomsdayMagic,Fomalhaut,Fomalhaut0,Yoichinoyumi,Yoichinoyumi0,Armageddon,Armageddon0,Empty,Donar_Gun,Ullr]
 
 # Check all weapons for Skill+ stat (Katana Skill +269 for example)
 if False:
@@ -486,6 +489,8 @@ Raetic_Arrow = GearPiece(name="Raetic Arrow", type="Arrow", dmg=80, delay=90, jo
 Yoichi_Arrow = GearPiece(name="Yoichi's Arrow", type="Arrow", dmg=89, delay=90, jobs=["rng", "sam"], stats={"Ranged Accuracy": 35, "Ranged Attack": 25})
 Devastating_Bullet = GearPiece(name="Devastating Bullet", type="Bullet", dmg=277, delay=240, jobs=["cor", "rng"], stats={"Ranged Accuracy": 35, "Magic Accuracy": 35})
 Chrono_Bullet = GearPiece(name="Chrono Bullet", type="Bullet", dmg=300, delay=240, jobs=["cor", "rng"], stats={"Ranged Accuracy": 20, "Ranged Attack": 20})
+Eminent_Bullet = GearPiece(name="Eminent Bullet", type="Bullet", dmg=238, delay=240, jobs=["cor", "rng"])
+Orichalcum_Bullet = GearPiece(name="Orichalcum Bullet", type="Bullet", dmg=89, delay=240, jobs=["cor", "rng"], stats={"Magic Attack": 2})
 Hauksbok_Bullet = GearPiece(name="Hauksbok Bullet", type="Bullet", dmg=300, delay=240, jobs=["cor", "rng"], stats={"AGI": 10, "Magic Attack": 40})
 Hauksbok_Arrow = GearPiece(name="Hauksbok Arrow", type="Arrow", dmg=110, delay=90, jobs=["rng"], stats={"STR": 10, "Weapon Skill Damage": 20, "Ranged Accuracy": 20})
 Chrono_Arrow = GearPiece(name="Chrono Arrow", type="Arrow", dmg=110, delay=90, jobs=["rng"], stats={"Ranged Accuracy": 20, "Ranged Attack": 20})
@@ -496,7 +501,7 @@ Quelling_Bolt = GearPiece(name="Quelling Bolt", type="Bolt", dmg=145, delay=192,
 
 Bayeux_Arrow = GearPiece(name="Bayeux Arrow", type="Arrow", dmg=116, delay=90, jobs=["rng"], stats={"Ranged Accuracy": 30, "STR": 20, "AGI": 20})
 Bayeux_Bullet = GearPiece(name="Bayeux Bullet", type="Bullet", dmg=315, delay=240, jobs=["rng", "cor"], stats={"Ranged Accuracy": 30, "DEX": 20, "AGI": 20})
-ammos: list[GearPiece] = [Hoxne_Ampulla, Ginsen, Vanir_Battery, White_Tathlum, Seraphic_Ampulla,Bayeux_Bullet,Bayeux_Arrow,Antitail,Charis_Feather,Coiste_Bodhar0,Decimating_Bullet,Beryllium_Bolt,Hasty_Pinion,Neo_Animator,Eradicating_Bullet,Quelling_Bolt,Chrono_Arrow,Artemis_Arrow,Hauksbok_Arrow,Hauksbok_Bullet,Devastating_Bullet,Chrono_Bullet,Yoichi_Arrow,Sroda_Tathlum,Beryllium_Arrow,Living_Bullet,Floestone, Amar_Cluster,Voluspa_Tathlum,Date,Happo,Seki,Aurgelmir_Orb,Cath_Palug_Stone,Coiste_Bodhar15,Coiste_Bodhar20,Coiste_Bodhar25,Coiste_Bodhar30,Crepuscular_Pebble,Ghastly_Tathlum,Knobkierrie,Oshashas_Treatise,Pemphredo_Tathlum,Seething_Bomblet,Yetshila,Empty]
+ammos: list[GearPiece] = [Hoxne_Ampulla, Ginsen, Vanir_Battery, White_Tathlum, Seraphic_Ampulla,Bayeux_Bullet,Bayeux_Arrow,Antitail,Charis_Feather,Coiste_Bodhar0,Decimating_Bullet,Beryllium_Bolt,Hasty_Pinion,Neo_Animator,Eradicating_Bullet,Quelling_Bolt,Chrono_Arrow,Artemis_Arrow,Hauksbok_Arrow,Hauksbok_Bullet,Devastating_Bullet,Chrono_Bullet,Eminent_Bullet,Orichalcum_Bullet,Yoichi_Arrow,Sroda_Tathlum,Beryllium_Arrow,Living_Bullet,Floestone, Amar_Cluster,Voluspa_Tathlum,Date,Happo,Seki,Aurgelmir_Orb,Cath_Palug_Stone,Coiste_Bodhar15,Coiste_Bodhar20,Coiste_Bodhar25,Coiste_Bodhar30,Crepuscular_Pebble,Ghastly_Tathlum,Knobkierrie,Oshashas_Treatise,Pemphredo_Tathlum,Seething_Bomblet,Yetshila,Empty]
 # Raetic Arrow does not proc for weapon skills.
 
 # ['Name', 'Name2', 'STR', 'DEX', 'VIT', 'AGI', 'INT', 'MND', 'CHR', 'Accuracy', 'Attack', 'Ranged Accuracy', 'Ranged Attack', 'Magic Accuracy', 'Magic Attack', 'Magic Damage', 'Gear Haste', 'Evasion', 'Magic Evasion', 'Magic Defense', 'DA', 'TA, 'QA', 'PDT', 'MDT', 'DT', 'Jobs']
@@ -1207,7 +1212,7 @@ for job in cape_names:
             continue # Skip stats for jobs that don't use them. (For example: Don't consider ANY capes with CHR, MND, or VIT for NIN)
         for main_stat in ambu_stats[base_stat]:
             capes.append(GearPiece(name=f"{cape_names[job][0]}", name2=f"{cape_names[job][0]} {base_stat} {main_stat}", jobs=cape_names[job][1]["Jobs"], stats={"Accuracy":20, "Attack":20, "PDT":-10, f"{base_stat}":30, f"{main_stat}":10} | {i:cape_names[job][1][i] for i in cape_names[job][1] if i != "Jobs"}))
-        if job in ["NIN", "RDM", "WHM", "BLM", "SCH", "GEO", "DRK", "WAR", "SAM", "RNG", "THF"] and base_stat in ["INT", "MND", "STR", "DEX", "AGI"]: # List of jobs that use magic weapon skills
+        if job in ["NIN", "RDM", "COR", "WHM", "BLM", "SCH", "GEO", "DRK", "WAR", "SAM", "RNG", "THF"] and base_stat in ["INT", "MND", "STR", "DEX", "AGI"]: # List of jobs that use magic weapon skills
             if job=="SAM" and base_stat!="STR": # SAM only needs STR+WSD (probably)
                 continue
             # Add capes with Macc+Mdmg + WSD + STAT
