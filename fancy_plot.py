@@ -104,21 +104,21 @@ def plot_final(damage: Any, player: "create_player", tp1: float, WS_name: str,) 
     bbox = dict(boxstyle="round", fc="1.0",)
     ax.annotate(anno, xycoords="figure fraction", xy=(0.015,0.17), bbox=bbox, fontsize=10) # Print the stats in a specific format
 
-    ids = get_image_ids(player.gearset)
-    # ids = [20977,21925,21391,25614,25491,27544,27545,26528,27118,28471,26175,26258,28440,25892,27496]
-    gear_list = [player.gearset[k].name for k in player.gearset]
-    for i,id in enumerate(ids):
-        id = int(id)
-        try:
-            img = mpimg.imread(f"{icons_path}{id}.png") # Try to obtain the 32x32 pixel image if it exists. BG wiki usually has the 32x32 versions you can download.
-            gear_ax[i].imshow(img)
-        except:
-            item_ids, item_names = np.loadtxt(items_file, unpack=True, dtype=str, delimiter=';')
-            item_ids = np.array(item_ids, dtype=int)
-            item_names = np.array([k.lower() for k in item_names])
-            a = np.where(item_ids == id)
-            print(f"\nUnable to find image file: {icons_path}{id}.png ({item_names[a][0]})")
-            print(f"Download the 32x32.png image icon for this item as {icons_path}{id}.png and try again.\n")
+    # ids = get_image_ids(player.gearset)
+    # # ids = [20977,21925,21391,25614,25491,27544,27545,26528,27118,28471,26175,26258,28440,25892,27496]
+    # gear_list = [player.gearset[k].name for k in player.gearset]
+    # for i,id in enumerate(ids):
+    #     id = int(id)
+    #     try:
+    #         img = mpimg.imread(f"{icons_path}{id}.png") # Try to obtain the 32x32 pixel image if it exists. BG wiki usually has the 32x32 versions you can download.
+    #         gear_ax[i].imshow(img)
+    #     except:
+    #         item_ids, item_names = np.loadtxt(items_file, unpack=True, dtype=str, delimiter=';')
+    #         item_ids = np.array(item_ids, dtype=int)
+    #         item_names = np.array([k.lower() for k in item_names])
+    #         a = np.where(item_ids == id)
+    #         print(f"\nUnable to find image file: {icons_path}{id}.png ({item_names[a][0]})")
+    #         print(f"Download the 32x32.png image icon for this item as {icons_path}{id}.png and try again.\n")
 
     ax.hist(damage,bins=300,histtype='stepfilled',density=True,color='grey',alpha=0.25) # Filled-in distribution, grey
     ax.hist(damage,bins=300,histtype='step',density=True,color='black',alpha=1.0) # Solid black outline for the filled grey distribution.
