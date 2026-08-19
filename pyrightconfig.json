@@ -36,7 +36,8 @@
     "tabs/simulate_tab.py",
     "tabs/quicklook_tab.py",
     "gui_main.py",
-    "wsdist.py"
+    "wsdist.py",
+    "wsdist_parallel.py"
   ],
   "exclude": [
     ".venv",

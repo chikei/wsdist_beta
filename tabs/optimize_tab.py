@@ -265,7 +265,7 @@ class OptimizeTab(QtWidgets.QWidget):
         self.optimizer_iterations_entry.setToolTip("Number of optimization passes per restart. More iterations find better sets but take longer.")
 
         self.optimizer_swap_slots_combobox = make_combo(["4", "3", "2", "1"], "2", object_name="defaults_optimizer_swap_slots_combobox", width_chars=6)
-        self.optimizer_swap_slots_combobox.setToolTip("Maximum number of gear slots swapped at once each pass. 2 is slower but more thorough.")
+        self.optimizer_swap_slots_combobox.setToolTip("Maximum number of gear slots swapped at once each pass. Each extra slot multiplies the number of sets tested, so 3 and 4 need worker processes to stay usable.")
 
         self.optimizer_restart_count_entry = WheelIntLineEdit(value=1, lo=1, hi=100)
         self.optimizer_restart_count_entry.setObjectName("defaults_optimizer_restart_count_entry")
@@ -285,12 +285,18 @@ class OptimizeTab(QtWidgets.QWidget):
         self.optimizer_seed_entry.setPlaceholderText("random")
         self.optimizer_seed_entry.setToolTip("Random seed for reproducible runs. Leave blank for a random seed each run.")
 
+        self.optimizer_workers_entry = WheelIntLineEdit(value=0, lo=0, hi=256)
+        self.optimizer_workers_entry.setObjectName("defaults_optimizer_workers_entry")
+        self.optimizer_workers_entry.setFixedWidth(80)
+        self.optimizer_workers_entry.setToolTip("Worker processes used to test gear sets. 0 uses every CPU thread, 1 keeps the search in this process. Results do not depend on this setting.")
+
         for row, (text, widget) in enumerate([
             ("Iterations", self.optimizer_iterations_entry),
             ("Max swap slots", self.optimizer_swap_slots_combobox),
             ("Restarts", self.optimizer_restart_count_entry),
             ("DT search step %", self.optimizer_dt_step_entry),
             ("Random seed", self.optimizer_seed_entry),
+            ("Worker processes", self.optimizer_workers_entry),
         ]):
             label = QtWidgets.QLabel(text)
             label.setMinimumWidth(160)
@@ -307,6 +313,7 @@ class OptimizeTab(QtWidgets.QWidget):
             restart_count=self.optimizer_restart_count_entry.value(),
             seed=int(seed_text) if seed_text else None,
             dt_step=self.optimizer_dt_step_entry.value(),
+            workers=self.optimizer_workers_entry.value(),
         )
 
     def apply_slot_refilter(self, updates: dict[str, Any]) -> None:

@@ -19,6 +19,7 @@ from PySide6 import QtGui, QtWidgets
 
 import json
 import pickle
+import multiprocessing
 import random
 
 import importlib
@@ -547,6 +548,10 @@ class application(QtWidgets.QMainWindow):
         self.set_visible_frame(self.ws_quicklook_scrollframes["main"])
 
 if __name__ == "__main__":
+
+    # The optimizer scores gear sets in worker processes. Frozen builds re-exec
+    # this executable to start one, so this has to run before anything else.
+    multiprocessing.freeze_support()
 
     qt_app = QtWidgets.QApplication(sys.argv)
     window = application()
