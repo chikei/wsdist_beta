@@ -5,6 +5,10 @@ edition.workspace = true
 rust-version.workspace = true
 publish = false
 
+[[bin]]
+name = "wsdist-gui"
+path = "src/main.rs"
+
 [dependencies]
 wsdist-core = { path = "../wsdist-core" }
 serde.workspace = true

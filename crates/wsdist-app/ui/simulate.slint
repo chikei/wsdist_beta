@@ -1,0 +1,179 @@
+import { Button, GroupBox, Palette, ScrollView } from "std-widgets.slint";
+import { InputRow, GearSlotRow, GearChoiceRow } from "types.slint";
+import { InputGroup } from "controls.slint";
+import { GearPanel } from "gear.slint";
+
+export component Simulate inherits Rectangle {
+    in property <[InputRow]> controls;
+    in property <[GearSlotRow]> tp-slots;
+    in property <[GearSlotRow]> ws-slots;
+    in property <[GearChoiceRow]> tp-items;
+    in property <[GearChoiceRow]> ws-items;
+    in property <int> tp-active-slot;
+    in property <int> ws-active-slot;
+    in property <bool> inputs-enabled: true;
+
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+    callback slot-selected(string, int);
+    callback item-selected(string, int);
+    callback action(string);
+    callback copy(string, string);
+
+    ScrollView {
+        viewport-width: max(self.visible-width, 360px);
+        accessible-role: list;
+        accessible-label: "Simulate content";
+
+        VerticalLayout {
+            padding: 12px;
+            spacing: 12px;
+
+            Text {
+                text: "Simulate";
+                color: Palette.foreground;
+                font-size: 20px;
+                font-weight: 600;
+                wrap: word-wrap;
+                vertical-stretch: 0;
+            }
+
+            Text {
+                text: "TP and WS gear sets are independent. Player, enemy, buffs, selected weapon skill and TP threshold use the current Quicklook inputs.";
+                color: Palette.foreground;
+                wrap: word-wrap;
+                vertical-stretch: 0;
+            }
+
+            GroupBox {
+                title: "Equipped TP set";
+                vertical-stretch: 0;
+
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 8px;
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        Button {
+                            text: "Copy to Quicklook";
+                            accessible-label: "Copy TP set to Quicklook";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.copy("tp", "quicklook"); }
+                        }
+                        Button {
+                            text: "Copy to Clipboard";
+                            accessible-label: "Copy TP set to clipboard";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.action("export-tp"); }
+                        }
+                    }
+
+                    GearPanel {
+                        source-key: "tp";
+                        slots: root.tp-slots;
+                        items: root.tp-items;
+                        active-slot: root.tp-active-slot;
+                        inputs-enabled: root.inputs-enabled;
+                        preferred-height: 560px;
+                        vertical-stretch: 0;
+
+                        slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                        item-selected(source, id) => { root.item-selected(source, id); }
+                    }
+                }
+            }
+
+            GroupBox {
+                title: "Equipped WS set";
+                vertical-stretch: 0;
+
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 8px;
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        Button {
+                            text: "Copy to Quicklook";
+                            accessible-label: "Copy WS set to Quicklook";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.copy("ws", "quicklook"); }
+                        }
+                        Button {
+                            text: "Copy to Clipboard";
+                            accessible-label: "Copy WS set to clipboard";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.action("export-ws"); }
+                        }
+                    }
+
+                    GearPanel {
+                        source-key: "ws";
+                        slots: root.ws-slots;
+                        items: root.ws-items;
+                        active-slot: root.ws-active-slot;
+                        inputs-enabled: root.inputs-enabled;
+                        preferred-height: 560px;
+                        vertical-stretch: 0;
+
+                        slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                        item-selected(source, id) => { root.item-selected(source, id); }
+                    }
+                }
+            }
+
+            InputGroup {
+                title: "Simulation options";
+                rows: root.controls;
+                inputs-enabled: root.inputs-enabled;
+                preferred-height: 140px;
+                vertical-stretch: 0;
+
+                text-edited(key, text) => { root.text-edited(key, text); }
+                editing-finished(key, text) => { root.editing-finished(key, text); }
+                toggled(key, checked) => { root.toggled(key, checked); }
+                wheel(key, direction) => { root.wheel(key, direction); }
+                text-focus(focused) => { root.text-focus(focused); }
+            }
+
+            GroupBox {
+                title: "Simulation & comparison";
+                vertical-stretch: 0;
+
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 8px;
+
+                    Button {
+                        text: "Run DPS simulations";
+                        enabled: root.inputs-enabled;
+                        horizontal-stretch: 1;
+                        clicked => { root.action("dps"); }
+                    }
+                    Button {
+                        text: "Create WS damage distribution plot";
+                        enabled: root.inputs-enabled;
+                        horizontal-stretch: 1;
+                        clicked => { root.action("distribution"); }
+                    }
+                    Button {
+                        text: "Compare TP & WS stats";
+                        enabled: root.inputs-enabled;
+                        horizontal-stretch: 1;
+                        clicked => { root.action("compare"); }
+                    }
+                }
+            }
+        }
+    }
+}

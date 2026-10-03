@@ -1,0 +1,171 @@
+import { Button, GroupBox, Palette, ScrollView } from "std-widgets.slint";
+import { InputRow, GearSlotRow, GearChoiceRow } from "types.slint";
+import { InputGroup } from "controls.slint";
+import { GearPanel } from "gear.slint";
+
+export component Optimize inherits Rectangle {
+    in property <[InputRow]> controls;
+    in property <[GearSlotRow]> slots;
+    in property <[GearChoiceRow]> items;
+    in property <int> active-slot;
+    in property <bool> inputs-enabled: true;
+    in property <bool> can-equip-best: false;
+
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+    callback slot-selected(string, int);
+    callback item-toggled(int, bool);
+    callback action(string);
+
+    ScrollView {
+        viewport-width: max(self.visible-width, 360px);
+        accessible-role: list;
+        accessible-label: "Optimize content";
+
+        VerticalLayout {
+            padding: 12px;
+            spacing: 12px;
+
+            Text {
+                text: "Optimize";
+                color: Palette.foreground;
+                font-size: 20px;
+                font-weight: 600;
+                wrap: word-wrap;
+                vertical-stretch: 0;
+            }
+
+            Text {
+                text: "Choose a slot and check its candidate items. Checked items remain selected when hidden by job or equipment availability. Selection filters apply to bulk selection, not to manual checks.";
+                color: Palette.foreground;
+                wrap: word-wrap;
+                vertical-stretch: 0;
+            }
+
+            GroupBox {
+                title: "Candidate gear";
+                vertical-stretch: 0;
+
+                VerticalLayout {
+                    spacing: 8px;
+                    padding: 8px;
+
+                    GearPanel {
+                        source-key: "optimize";
+                        slots: root.slots;
+                        items: root.items;
+                        active-slot: root.active-slot;
+                        checkbox-mode: true;
+                        inputs-enabled: root.inputs-enabled;
+                        preferred-height: 560px;
+                        vertical-stretch: 0;
+
+                        slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                        item-toggled(id, checked) => { root.item-toggled(id, checked); }
+                    }
+
+                    GridLayout {
+                        spacing: 8px;
+
+                        Row {
+                            Button {
+                                text: "Select all";
+                                accessible-label: "Select all candidates in current slot";
+                                enabled: root.inputs-enabled;
+                                horizontal-stretch: 1;
+                                clicked => { root.action("bulk-slot"); }
+                            }
+                            Button {
+                                text: "Unselect all";
+                                accessible-label: "Unselect all candidates in current slot";
+                                enabled: root.inputs-enabled;
+                                horizontal-stretch: 1;
+                                clicked => { root.action("bulk-unselect"); }
+                            }
+                        }
+                        Row {
+                            Button {
+                                text: "Select ALL";
+                                accessible-label: "Select all candidates in all slots";
+                                enabled: root.inputs-enabled;
+                                horizontal-stretch: 1;
+                                clicked => { root.action("bulk-all"); }
+                            }
+                            Button {
+                                text: "Select all File";
+                                accessible-label: "Select candidates from Windower inventory file";
+                                enabled: root.inputs-enabled;
+                                horizontal-stretch: 1;
+                                clicked => { root.action("inventory-import"); }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "Select all File imports a Windower //gs export all file. An unchecked or empty candidate pool keeps that slot fixed during optimization.";
+                        color: Palette.foreground;
+                        wrap: word-wrap;
+                        vertical-stretch: 0;
+                    }
+                }
+            }
+
+            InputGroup {
+                title: "Selection filters, metrics & search options";
+                rows: root.controls;
+                inputs-enabled: root.inputs-enabled;
+                min-height: 420px;
+                preferred-height: 420px;
+                vertical-stretch: 0;
+
+                text-edited(key, text) => { root.text-edited(key, text); }
+                editing-finished(key, text) => { root.editing-finished(key, text); }
+                toggled(key, checked) => { root.toggled(key, checked); }
+                wheel(key, direction) => { root.wheel(key, direction); }
+                text-focus(focused) => { root.text-focus(focused); }
+            }
+
+            GroupBox {
+                title: "Optimize & equip";
+                vertical-stretch: 0;
+
+                GridLayout {
+                    padding: 8px;
+                    spacing: 8px;
+
+                    Row {
+                        Button {
+                            text: "Optimize WS";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.action("optimize-ws"); }
+                        }
+                        Button {
+                            text: "Optimize Spell";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.action("optimize-spell"); }
+                        }
+                    }
+                    Row {
+                        Button {
+                            text: "Optimize TP";
+                            enabled: root.inputs-enabled;
+                            horizontal-stretch: 1;
+                            clicked => { root.action("optimize-round"); }
+                        }
+                        Button {
+                            text: "Equip best set";
+                            enabled: root.inputs-enabled && root.can-equip-best;
+                            horizontal-stretch: 1;
+                            clicked => { root.action("equip-best"); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

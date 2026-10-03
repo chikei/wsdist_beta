@@ -1,0 +1,339 @@
+import { AboutSlint, Button, ListView, Palette, TabWidget, TextEdit } from "std-widgets.slint";
+import { Quicklook } from "quicklook.slint";
+import { Optimize } from "optimize.slint";
+import { Simulate } from "simulate.slint";
+import { Stats } from "stats.slint";
+import { InputRow, GearSlotRow, GearChoiceRow, StatDisplayRow } from "types.slint";
+export { InputWidgetKind, InputRow, GearSlotRow, GearChoiceRow, StatDisplayRow } from "types.slint";
+
+export component ResourceErrorWindow inherits Window {
+    in property <string> error-detail;
+    callback close-requested();
+
+    title: "wsdist — Startup Error";
+    preferred-width: 760px;
+    preferred-height: 440px;
+    min-width: 360px;
+    min-height: 260px;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 14px;
+
+        Text {
+            text: "Unable to load application data";
+            font-size: 20px;
+            font-weight: 600;
+            wrap: word-wrap;
+        }
+
+        Text {
+            text: "Check the resource path and the error below, then relaunch the application.";
+            wrap: word-wrap;
+        }
+
+        TextEdit {
+            text: root.error-detail;
+            read-only: true;
+            wrap: word-wrap;
+            vertical-stretch: 1;
+            accessible-label: "Resource error details";
+            accessible-value: self.text;
+        }
+
+        HorizontalLayout {
+            alignment: end;
+
+            Button {
+                text: "Close";
+                primary: true;
+                clicked => { root.close-requested(); }
+            }
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    in property <image> app-icon;
+    in-out property <int> active-tab: 0;
+    in property <bool> busy: false;
+    in property <bool> best-ready: false;
+    in property <string> status;
+    in property <string> error-message;
+    in-out property <bool> editing-text: false;
+    in-out property <bool> damage-limit: false;
+    in-out property <bool> verbose-swaps: false;
+    in property <string> sublevel;
+    in property <string> skill-label;
+    in property <string> damage: "Damage: --";
+    in property <string> tp-return: "TP return: --";
+    in property <string> time-to-ws: "Time to WS: --";
+    in property <[InputRow]> basic-controls;
+    in property <[InputRow]> ability-controls;
+    in property <[InputRow]> enemy-controls;
+    in property <[InputRow]> whm-controls;
+    in property <[InputRow]> food-controls;
+    in property <[InputRow]> brd-controls;
+    in property <[InputRow]> cor-controls;
+    in property <[InputRow]> geo-controls;
+    in property <[InputRow]> optimize-controls;
+    in property <[InputRow]> simulate-controls;
+    in property <[GearSlotRow]> quick-slots;
+    in property <[GearSlotRow]> optimize-slots;
+    in property <[GearSlotRow]> tp-slots;
+    in property <[GearSlotRow]> ws-slots;
+    in property <[GearChoiceRow]> quick-items;
+    in property <[GearChoiceRow]> optimize-items;
+    in property <[GearChoiceRow]> tp-items;
+    in property <[GearChoiceRow]> ws-items;
+    in property <int> quick-active-slot;
+    in property <int> optimize-active-slot;
+    in property <int> tp-active-slot;
+    in property <int> ws-active-slot;
+    in property <string> stats-source;
+    in property <[StatDisplayRow]> stats-base;
+    in property <[StatDisplayRow]> stats-physical;
+    in property <[StatDisplayRow]> stats-magical;
+    in property <[StatDisplayRow]> stats-multi;
+    in property <[StatDisplayRow]> stats-haste;
+    in property <[StatDisplayRow]> stats-defensive;
+    in property <[StatDisplayRow]> stats-other;
+
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback slot-selected(string, int);
+    callback item-selected(string, int);
+    callback item-toggled(int, bool);
+    callback copy(string, string);
+    callback action(string);
+    callback setting-changed(string, bool);
+    callback close-requested();
+
+    title: "Kastra FFXI Damage Simulator  (2026 May 21a)";
+    icon: root.app-icon;
+    preferred-width: 1152px;
+    preferred-height: 900px;
+    min-width: 720px;
+    min-height: 560px;
+    background: Palette.background;
+    forward-focus: keyboard;
+    changed active-tab => {
+        // Copies/equip-best also change tabs. Do not retain focus in a hidden
+        // editor; subsequent shortcuts must target the visible tab.
+        keyboard.focus();
+        root.editing-text = false;
+    }
+
+    MenuBar {
+        Menu {
+            title: "File";
+            MenuItem { title: "Save Defaults"; enabled: !root.busy; activated => { root.action("save-defaults"); } }
+            MenuItem { title: "Reload Data"; enabled: !root.busy; activated => { root.action("reload-data"); } }
+            MenuSeparator {}
+            MenuItem { title: "Close GUI (q)"; activated => { root.close-requested(); } }
+        }
+        Menu {
+            title: "Settings";
+            MenuItem {
+                title: "Damage Limit (DPS)";
+                enabled: !root.busy;
+                checkable: true;
+                checked <=> root.damage-limit;
+                activated => { root.setting-changed("damage-limit", self.checked); }
+            }
+            MenuItem {
+                title: "Verbose Swaps";
+                enabled: !root.busy;
+                checkable: true;
+                checked <=> root.verbose-swaps;
+                activated => { root.setting-changed("verbose-swaps", self.checked); }
+            }
+        }
+        Menu {
+            title: "Help";
+            MenuItem { title: "About Slint"; activated => { root.action("about-slint"); } }
+        }
+    }
+
+    keyboard := FocusScope {
+        KeyBinding { keys: @keys(Control + "1"); activated => { root.active-tab = 0; } }
+        KeyBinding { keys: @keys(Control + "2"); activated => { root.active-tab = 1; } }
+        KeyBinding { keys: @keys(Control + "3"); activated => { root.active-tab = 2; } }
+        KeyBinding { keys: @keys(Control + "4"); activated => { root.active-tab = 3; } }
+        key-pressed(event) => {
+            // Let text inputs consume printable keys before the quit shortcut.
+            if event.text == "q" && !root.editing-text {
+                root.close-requested();
+                return accept;
+            }
+            return reject;
+        }
+
+        VerticalLayout {
+            padding: 8px;
+            spacing: 6px;
+            tabs := TabWidget {
+                current-index <=> root.active-tab;
+                vertical-stretch: 1;
+                Tab {
+                    title: "Quicklook";
+                    Quicklook {
+                        inputs-enabled: !root.busy;
+                        basics: root.basic-controls; abilities: root.ability-controls;
+                        enemy: root.enemy-controls; whm: root.whm-controls;
+                        food: root.food-controls; brd: root.brd-controls;
+                        cor: root.cor-controls; geo: root.geo-controls;
+                        equipped: root.quick-slots; items: root.quick-items;
+                        active-slot: root.quick-active-slot;
+                        sublevel: root.sublevel; skill-label: root.skill-label;
+                        damage: root.damage; tp-return: root.tp-return; time-to-ws: root.time-to-ws;
+                        text-edited(key, value) => { root.text-edited(key, value); }
+                        editing-finished(key, value) => { root.editing-finished(key, value); }
+                        toggled(key, value) => { root.toggled(key, value); }
+                        wheel(key, direction) => { root.wheel(key, direction); }
+                        text-focus(focused) => { root.editing-text = focused; }
+                        slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                        item-selected(source, id) => { root.item-selected(source, id); }
+                        copy(source, destination) => { root.copy(source, destination); }
+                        action(name) => { root.action(name); }
+                    }
+                }
+                Tab {
+                    title: "Optimize";
+                    Optimize {
+                        inputs-enabled: !root.busy;
+                        can-equip-best: root.best-ready;
+                        controls: root.optimize-controls;
+                        slots: root.optimize-slots; items: root.optimize-items;
+                        active-slot: root.optimize-active-slot;
+                        text-edited(key, value) => { root.text-edited(key, value); }
+                        editing-finished(key, value) => { root.editing-finished(key, value); }
+                        toggled(key, value) => { root.toggled(key, value); }
+                        wheel(key, direction) => { root.wheel(key, direction); }
+                        text-focus(focused) => { root.editing-text = focused; }
+                        slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                        item-toggled(id, value) => { root.item-toggled(id, value); }
+                        action(name) => { root.action(name); }
+                    }
+                }
+                Tab {
+                    title: "Simulate";
+                    Simulate {
+                        inputs-enabled: !root.busy;
+                        controls: root.simulate-controls;
+                        tp-slots: root.tp-slots; ws-slots: root.ws-slots;
+                        tp-items: root.tp-items; ws-items: root.ws-items;
+                        tp-active-slot: root.tp-active-slot; ws-active-slot: root.ws-active-slot;
+                        text-edited(key, value) => { root.text-edited(key, value); }
+                        editing-finished(key, value) => { root.editing-finished(key, value); }
+                        toggled(key, value) => { root.toggled(key, value); }
+                        wheel(key, direction) => { root.wheel(key, direction); }
+                        text-focus(focused) => { root.editing-text = focused; }
+                        slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                        item-selected(source, id) => { root.item-selected(source, id); }
+                        copy(source, destination) => { root.copy(source, destination); }
+                        action(name) => { root.action(name); }
+                    }
+                }
+                Tab {
+                    title: "Player Stats";
+                    Stats {
+                        inputs-enabled: !root.busy;
+                        source-label: root.stats-source;
+                        base: root.stats-base; physical: root.stats-physical;
+                        magical: root.stats-magical; multi: root.stats-multi;
+                        haste: root.stats-haste; defensive: root.stats-defensive; other: root.stats-other;
+                        action(name) => { root.action(name); }
+                    }
+                }
+            }
+            if root.error-message != "": HorizontalLayout {
+                Text {
+                    text: root.error-message;
+                    color: #c0392b;
+                    wrap: word-wrap;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Button { text: "Error details"; clicked => { root.action("show-error"); } }
+            }
+            HorizontalLayout {
+                Text { text: root.status; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+                if root.busy: Button { text: "Cancel computation"; clicked => { root.action("cancel"); } }
+                Button { text: "Close"; clicked => { root.close-requested(); } }
+            }
+        }
+    }
+}
+
+export component ResultWindow inherits Window {
+    in property <string> report-title;
+    in property <string> report-text;
+    callback close-requested();
+    title: root.report-title;
+    preferred-width: 900px;
+    preferred-height: 680px;
+    min-width: 400px;
+    min-height: 280px;
+    VerticalLayout {
+        padding: 12px; spacing: 8px;
+        TextEdit {
+            text: root.report-text;
+            read-only: true;
+            font-family: "monospace";
+            wrap: word-wrap;
+            vertical-stretch: 1;
+            accessible-label: "Computation result";
+            accessible-value: self.text;
+        }
+        HorizontalLayout { alignment: end; Button { text: "Close result"; clicked => { root.close-requested(); } } }
+    }
+}
+
+export component ChartWindow inherits Window {
+    in property <string> chart-title;
+    in property <image> chart-image;
+    callback close-requested();
+    title: root.chart-title;
+    preferred-width: 1100px;
+    preferred-height: 760px;
+    min-width: 420px;
+    min-height: 320px;
+    VerticalLayout {
+        padding: 8px; spacing: 6px;
+        Image { source: root.chart-image; image-fit: contain; vertical-stretch: 1; }
+        HorizontalLayout { alignment: end; Button { text: "Close chart"; clicked => { root.close-requested(); } } }
+    }
+}
+
+export component AboutWindow inherits Window {
+    callback close-requested();
+    title: "About Slint";
+    preferred-width: 360px;
+    preferred-height: 200px;
+    VerticalLayout {
+        padding: 12px; spacing: 8px;
+        AboutSlint {}
+        Button { text: "Close"; clicked => { root.close-requested(); } }
+    }
+}
+
+export component ProgressWindow inherits Window {
+    in property <[string]> lines;
+    callback close-requested();
+    title: "Optimizer progress";
+    preferred-width: 900px;
+    preferred-height: 480px;
+    min-width: 400px;
+    min-height: 260px;
+    VerticalLayout {
+        padding: 12px; spacing: 8px;
+        ListView {
+            vertical-stretch: 1;
+            for line in root.lines: Text { text: line; wrap: word-wrap; font-family: "monospace"; }
+        }
+        Button { text: "Close progress"; clicked => { root.close-requested(); } }
+    }
+}

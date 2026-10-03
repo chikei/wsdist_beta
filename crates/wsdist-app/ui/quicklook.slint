@@ -1,0 +1,325 @@
+import { Button, GroupBox, Palette, ScrollView } from "std-widgets.slint";
+import { InputRow, GearChoiceRow, GearSlotRow } from "types.slint";
+import { InputGroup } from "controls.slint";
+import { GearPanel } from "gear.slint";
+
+export component Quicklook inherits Rectangle {
+    in property <[InputRow]> basics;
+    in property <[InputRow]> abilities;
+    in property <[InputRow]> enemy;
+    in property <[InputRow]> whm;
+    in property <[InputRow]> food;
+    in property <[InputRow]> brd;
+    in property <[InputRow]> cor;
+    in property <[InputRow]> geo;
+    in property <[GearSlotRow]> equipped;
+    in property <[GearChoiceRow]> items;
+    in property <int> active-slot;
+    in property <string> sublevel;
+    in property <string> skill-label;
+    in property <string> damage;
+    in property <string> tp-return;
+    in property <string> time-to-ws;
+    in property <bool> inputs-enabled: true;
+
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+    callback slot-selected(string, int);
+    callback item-selected(string, int);
+    callback action(string);
+    callback copy(string, string);
+
+    // Latch assigned geometry: intrinsic GridLayout sizing must not depend
+    // recursively on the width it is currently calculating.
+    private property <length> assigned-width: 1152px;
+    changed width => { root.assigned-width = self.width; }
+    private property <bool> wide-inputs: root.assigned-width >= 980px;
+    private property <bool> wide-actions: root.assigned-width >= 760px;
+    private property <int> focus-count: 0;
+    private property <bool> editing-focus: root.inputs-enabled && root.visible && root.focus-count > 0;
+    changed editing-focus => { root.text-focus(root.editing-focus); }
+
+    function focus-changed(focused: bool) {
+        root.focus-count = max(0, root.focus-count + (focused ? 1 : -1));
+    }
+
+    min-width: 320px;
+    min-height: 360px;
+    preferred-height: 800px;
+
+    VerticalLayout {
+        spacing: 8px;
+        padding: 8px;
+
+        GroupBox {
+            title: "Quicklook — explicit calculations";
+            vertical-stretch: 0;
+            VerticalLayout {
+                spacing: 6px;
+                Text {
+                    text: "Change inputs and equipment, then choose a calculation. Simulate WS writes a sampled hit trace to Results.";
+                    color: Palette.foreground;
+                    wrap: word-wrap;
+                }
+                GridLayout {
+                    spacing: 6px;
+                    Button {
+                        row: 0;
+                        col: 0;
+                        text: "Quicklook TP";
+                        enabled: root.inputs-enabled;
+                        clicked => { if root.inputs-enabled { root.action("quick-round"); } }
+                    }
+                    Button {
+                        row: 0;
+                        col: 1;
+                        text: "Quicklook WS";
+                        enabled: root.inputs-enabled;
+                        clicked => { if root.inputs-enabled { root.action("quick-ws"); } }
+                    }
+                    Button {
+                        row: root.wide-actions ? 0 : 1;
+                        col: root.wide-actions ? 2 : 0;
+                        text: "Quicklook Spell";
+                        enabled: root.inputs-enabled;
+                        clicked => { if root.inputs-enabled { root.action("quick-spell"); } }
+                    }
+                    Button {
+                        row: root.wide-actions ? 0 : 1;
+                        col: root.wide-actions ? 3 : 1;
+                        text: "Simulate WS";
+                        enabled: root.inputs-enabled;
+                        clicked => { if root.inputs-enabled { root.action("single-ws"); } }
+                    }
+                }
+                GridLayout {
+                    spacing: 6px;
+                    Text {
+                        row: 0;
+                        col: 0;
+                        text: "Average Damage =";
+                        color: Palette.foreground;
+                    }
+                    Text {
+                        row: 0;
+                        col: 1;
+                        text: root.damage;
+                        color: Palette.foreground;
+                        accessible-label: "Average damage";
+                        accessible-value: root.damage;
+                    }
+                    Text {
+                        row: 1;
+                        col: 0;
+                        text: "Average TP =";
+                        color: Palette.foreground;
+                    }
+                    Text {
+                        row: 1;
+                        col: 1;
+                        text: root.tp-return;
+                        color: Palette.foreground;
+                        accessible-label: "Average TP";
+                        accessible-value: root.tp-return;
+                    }
+                    Text {
+                        row: 2;
+                        col: 0;
+                        text: "Time per WS =";
+                        color: Palette.foreground;
+                    }
+                    Text {
+                        row: 2;
+                        col: 1;
+                        text: root.time-to-ws;
+                        color: Palette.foreground;
+                        accessible-label: "Time per WS";
+                        accessible-value: root.time-to-ws;
+                    }
+                }
+            }
+        }
+
+        input-scroll := ScrollView {
+            min-height: 160px;
+            viewport-width: self.visible-width;
+            accessible-role: list;
+            accessible-label: "Quicklook content";
+            GridLayout {
+                padding: 4px;
+                spacing: 8px;
+
+                GroupBox {
+                    row: 0;
+                    col: 0;
+                    title: "Basic Inputs";
+                    preferred-height: 360px;
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text {
+                            text: "Sub Job Level: " + root.sublevel;
+                            color: Palette.foreground;
+                            accessible-label: "Sub job level";
+                            accessible-value: root.sublevel;
+                        }
+                        InputGroup {
+                            title: "Job, spell, weapon skill & TP";
+                            rows: root.basics;
+                            inputs-enabled: root.inputs-enabled;
+                            text-edited(key, value) => { root.text-edited(key, value); }
+                            editing-finished(key, value) => { root.editing-finished(key, value); }
+                            toggled(key, value) => { root.toggled(key, value); }
+                            wheel(key, direction) => { root.wheel(key, direction); }
+                            text-focus(focused) => { root.focus-changed(focused); }
+                        }
+                    }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 0 : 1;
+                    col: root.wide-inputs ? 1 : 0;
+                    title: "Special Toggles";
+                    rows: root.abilities;
+                    preferred-height: 360px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 0 : 2;
+                    col: root.wide-inputs ? 2 : 0;
+                    title: "Enemy Inputs";
+                    rows: root.enemy;
+                    preferred-height: 400px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 1 : 3;
+                    col: 0;
+                    title: "White Magic — " + root.skill-label;
+                    rows: root.whm;
+                    preferred-height: 360px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 2 : 4;
+                    col: 0;
+                    title: "Active Food";
+                    rows: root.food;
+                    preferred-height: 140px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 1 : 5;
+                    col: root.wide-inputs ? 1 : 0;
+                    title: "Bard Songs";
+                    rows: root.brd;
+                    preferred-height: 400px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 1 : 6;
+                    col: root.wide-inputs ? 2 : 0;
+                    title: "Corsair Rolls";
+                    rows: root.cor;
+                    preferred-height: 440px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                InputGroup {
+                    row: root.wide-inputs ? 2 : 7;
+                    col: root.wide-inputs ? 1 : 0;
+                    title: "Geomancy Bubbles";
+                    rows: root.geo;
+                    preferred-height: 360px;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
+                }
+
+                GroupBox {
+                    row: root.wide-inputs ? 3 : 8;
+                    col: 0;
+                    colspan: root.wide-inputs ? 3 : 1;
+                    title: "Quicklook Equipment";
+                    VerticalLayout {
+                        spacing: 8px;
+                        GridLayout {
+                            spacing: 6px;
+                            Button {
+                                row: 0;
+                                col: 0;
+                                text: "Copy to TP Set";
+                                enabled: root.inputs-enabled;
+                                clicked => { if root.inputs-enabled { root.copy("quicklook", "tp"); } }
+                            }
+                            Button {
+                                row: 0;
+                                col: 1;
+                                text: "Copy to WS Set";
+                                enabled: root.inputs-enabled;
+                                clicked => { if root.inputs-enabled { root.copy("quicklook", "ws"); } }
+                            }
+                            Button {
+                                row: 1;
+                                col: 0;
+                                colspan: 2;
+                                text: "Copy Quicklook to Clipboard";
+                                enabled: root.inputs-enabled;
+                                clicked => { if root.inputs-enabled { root.action("export-quicklook"); } }
+                            }
+                        }
+                        GearPanel {
+                            source-key: "quicklook";
+                            slots: root.equipped;
+                            items: root.items;
+                            active-slot: root.active-slot;
+                            inputs-enabled: root.inputs-enabled;
+                            slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                            item-selected(source, id) => { root.item-selected(source, id); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

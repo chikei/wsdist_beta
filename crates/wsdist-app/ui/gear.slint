@@ -1,0 +1,383 @@
+import { Button, CheckBox, GroupBox, ListView, Palette, ScrollView } from "std-widgets.slint";
+import { GearChoiceRow, GearSlotRow } from "types.slint";
+
+component GearCard inherits Rectangle {
+    in property <GearSlotRow> item;
+    in property <bool> active;
+    in property <bool> inputs-enabled: true;
+    callback selected(int);
+    callback inspected;
+    private property <bool> inspecting: hover-area.has-hover || button.has-focus;
+
+    min-width: 64px;
+    min-height: 72px;
+    vertical-stretch: 0;
+    border-width: root.active ? 2px : 1px;
+    border-color: root.active ? Palette.accent-background : Palette.border;
+    border-radius: 4px;
+
+    changed inspecting => {
+        if root.inspecting { root.inspected(); }
+    }
+
+    button := Button {
+        x: 3px;
+        y: 3px;
+        width: parent.width - 6px;
+        height: parent.height - 6px;
+        enabled: root.inputs-enabled;
+        accessible-label: root.item.label + ": " + root.item.name;
+        accessible-description: root.item.tooltip;
+        clicked => {
+            if root.inputs-enabled { root.selected(root.item.slot); }
+        }
+
+    }
+        hover-area := TouchArea {
+            x: button.x;
+            y: button.y;
+            width: button.width;
+            height: button.height;
+            clicked => {
+                if root.inputs-enabled {
+                    button.focus();
+                    button.clicked();
+                }
+            }
+            VerticalLayout {
+                padding: 3px;
+                spacing: 1px;
+                Text {
+                    text: root.item.label;
+                    font-size: 11px;
+                    color: Palette.foreground;
+                    horizontal-alignment: center;
+                    overflow: elide;
+                    accessible-role: none;
+                }
+                Image {
+                    source: root.item.icon;
+                    height: 28px;
+                    image-fit: contain;
+                    accessible-role: none;
+                }
+                Text {
+                    text: root.item.name;
+                    font-size: 11px;
+                    color: Palette.foreground;
+                    horizontal-alignment: center;
+                    overflow: elide;
+                    accessible-role: none;
+                }
+            }
+        }
+}
+
+component GearRadioRow inherits Rectangle {
+    in property <GearChoiceRow> item;
+    in property <bool> inputs-enabled: true;
+    in property <bool> focused;
+    callback selected;
+    callback inspected;
+
+    background: root.item.checked ? Palette.selection-background : root.focused || area.has-hover ? Palette.alternate-background : Palette.background;
+    accessible-role: radio-button;
+    accessible-label: root.item.name;
+    accessible-description: root.item.tooltip;
+    accessible-enabled: root.inputs-enabled;
+    accessible-checkable: true;
+    accessible-checked: root.item.checked;
+    accessible-action-default => {
+        if root.inputs-enabled { root.selected(); }
+    }
+
+    area := TouchArea {
+        changed has-hover => {
+            if self.has-hover { root.inspected(); }
+        }
+        clicked => {
+            if root.inputs-enabled { root.selected(); }
+        }
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            spacing: 8px;
+            Rectangle {
+                width: 16px;
+                height: 16px;
+                y: (parent.height - self.height) / 2;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: root.item.checked ? Palette.selection-foreground : Palette.foreground;
+                if root.item.checked : Rectangle {
+                    x: 4px;
+                    y: 4px;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 4px;
+                    background: Palette.selection-foreground;
+                }
+            }
+            Text {
+                text: root.item.name;
+                color: root.item.checked ? Palette.selection-foreground : Palette.foreground;
+                vertical-alignment: center;
+                overflow: elide;
+                accessible-role: none;
+            }
+        }
+    }
+    if root.focused : Rectangle {
+        border-width: 1px;
+        border-color: Palette.accent-background;
+        background: transparent;
+    }
+}
+
+component GearCheckRow inherits Rectangle {
+    in property <GearChoiceRow> item;
+    in property <bool> inputs-enabled: true;
+    in property <bool> focused;
+    callback toggled(bool);
+    callback inspected;
+
+    background: root.focused || area.has-hover ? Palette.alternate-background : Palette.background;
+    changed item => { check.checked = root.item.checked; }
+
+    area := TouchArea {
+        changed has-hover => {
+            if self.has-hover { root.inspected(); }
+        }
+        clicked => {
+            if root.inputs-enabled { root.toggled(!root.item.checked); }
+        }
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            spacing: 8px;
+            check := CheckBox {
+                checked: root.item.checked;
+                enabled: root.inputs-enabled;
+                width: 20px;
+                accessible-label: root.item.name;
+                accessible-description: root.item.tooltip;
+                toggled => {
+                    if root.inputs-enabled { root.toggled(self.checked); }
+                }
+            }
+            Text {
+                text: root.item.name;
+                color: Palette.foreground;
+                vertical-alignment: center;
+                overflow: elide;
+                accessible-role: none;
+            }
+        }
+    }
+    if root.focused : Rectangle {
+        border-width: 1px;
+        border-color: Palette.accent-background;
+        background: transparent;
+    }
+}
+
+export component GearPanel inherits Rectangle {
+    in property <string> source-key;
+    in property <[GearSlotRow]> slots;
+    in property <[GearChoiceRow]> items;
+    in property <int> active-slot;
+    in property <bool> checkbox-mode: false;
+    in property <bool> inputs-enabled: true;
+    callback slot-selected(string, int);
+    callback item-selected(string, int);
+    callback item-toggled(int, bool);
+
+    private property <length> assigned-width: 1152px;
+    changed width => { root.assigned-width = self.width; }
+    private property <bool> wide: root.assigned-width >= 640px;
+    private property <length> choice-height: 40px;
+    private property <int> focus-index: -1;
+    private property <int> inspection-slot: root.active-slot;
+    private property <int> inspection-item: -1;
+    private property <string> inspected-name: root.inspection-item >= 0 && root.inspection-item < root.items.length
+        ? root.items[root.inspection-item].name : root.slots[root.inspection-slot].name;
+    private property <string> inspected-tooltip: root.inspection-item >= 0 && root.inspection-item < root.items.length
+        ? root.items[root.inspection-item].tooltip : root.slots[root.inspection-slot].tooltip;
+
+    min-width: 300px;
+    min-height: root.wide ? 380px : 620px;
+    preferred-height: root.wide ? 480px : 680px;
+
+    changed active-slot => {
+        root.focus-index = -1;
+        choices.viewport-y = 0px;
+        root.inspection-slot = root.active-slot;
+        root.inspection-item = -1;
+    }
+    changed slots => {
+        root.inspection-slot = root.active-slot;
+        root.inspection-item = -1;
+    }
+    changed items => {
+        root.focus-index = min(root.focus-index, root.items.length - 1);
+        root.inspection-item = -1;
+    }
+
+    function inspect(index: int) {
+        root.inspection-item = index;
+    }
+
+    function move-focus(index: int) {
+        if root.items.length == 0 { return; }
+        root.focus-index = max(0, min(root.items.length - 1, index));
+        if choices.viewport-y + root.focus-index * root.choice-height < 0px {
+            choices.viewport-y = -root.focus-index * root.choice-height;
+        }
+        if choices.viewport-y + (root.focus-index + 1) * root.choice-height > choices.visible-height {
+            choices.viewport-y = choices.visible-height - (root.focus-index + 1) * root.choice-height;
+        }
+        root.inspect(root.focus-index);
+    }
+
+    function activate(index: int) {
+        if !root.inputs-enabled || index < 0 || index >= root.items.length { return; }
+        root.move-focus(index);
+        list-focus.focus();
+        if root.checkbox-mode {
+            root.item-toggled(root.items[index].id, !root.items[index].checked);
+        } else {
+            root.item-selected(root.source-key, root.items[index].id);
+        }
+    }
+
+    GridLayout {
+        spacing: 8px;
+
+        GroupBox {
+            row: 0;
+            col: 0;
+            title: root.checkbox-mode ? "Current equipment slots" : "Equipped items";
+            horizontal-stretch: 1;
+            vertical-stretch: 0;
+            GridLayout {
+                spacing: 4px;
+                for slot[index] in root.slots : GearCard {
+                    row: floor(index / 4);
+                    col: mod(index, 4);
+                    item: slot;
+                    active: root.active-slot == slot.slot;
+                    inputs-enabled: root.inputs-enabled;
+                    selected(slot-id) => {
+                        if root.inputs-enabled { root.slot-selected(root.source-key, slot-id); }
+                    }
+                    inspected => {
+                        root.inspection-slot = index;
+                        root.inspection-item = -1;
+                    }
+                }
+            }
+        }
+
+        GroupBox {
+            row: root.wide ? 0 : 1;
+            col: root.wide ? 1 : 0;
+            title: (root.checkbox-mode ? "Candidates: " : "Select: ") + root.slots[root.active-slot].label;
+            horizontal-stretch: 2;
+            VerticalLayout {
+                spacing: 6px;
+                list-focus := FocusScope {
+                    enabled: root.inputs-enabled;
+                    min-height: 140px;
+                    accessible-role: list;
+                    accessible-label: root.checkbox-mode ? "Gear candidates" : "Available equipment";
+                    accessible-item-count: root.items.length;
+                    accessible-delegate-focus: root.focus-index;
+                    focus-changed-event => {
+                        if self.has-focus && root.focus-index < 0 && root.items.length > 0 {
+                            root.move-focus(0);
+                        }
+                    }
+                    key-pressed(event) => {
+                        if !root.inputs-enabled || root.items.length == 0 { return reject; }
+                        if event.text == Key.UpArrow || event.text == Key.DownArrow ||
+                           event.text == Key.PageUp || event.text == Key.PageDown ||
+                           event.text == Key.Home || event.text == Key.End {
+                            if event.text == Key.UpArrow { root.move-focus(root.focus-index - 1); }
+                            if event.text == Key.DownArrow { root.move-focus(root.focus-index + 1); }
+                            if event.text == Key.PageUp { root.move-focus(root.focus-index - max(1, floor(choices.visible-height / root.choice-height))); }
+                            if event.text == Key.PageDown { root.move-focus(root.focus-index + max(1, floor(choices.visible-height / root.choice-height))); }
+                            if event.text == Key.Home { root.move-focus(0); }
+                            if event.text == Key.End { root.move-focus(root.items.length - 1); }
+                            if !root.checkbox-mode { root.activate(root.focus-index); }
+                            return accept;
+                        }
+                        if event.text == Key.Space || event.text == Key.Return {
+                            root.activate(root.focus-index);
+                            return accept;
+                        }
+                        return reject;
+                    }
+
+                    choices := ListView {
+                        width: parent.width;
+                        height: parent.height;
+                        viewport-width: self.visible-width;
+                        for item[index] in root.items : Rectangle {
+                            width: choices.visible-width;
+                            height: root.choice-height;
+                            if root.checkbox-mode : GearCheckRow {
+                                item: item;
+                                inputs-enabled: root.inputs-enabled;
+                                focused: list-focus.has-focus && root.focus-index == index;
+                                toggled(checked) => {
+                                    if root.inputs-enabled {
+                                        root.move-focus(index);
+                                        list-focus.focus();
+                                        root.item-toggled(item.id, checked);
+                                    }
+                                }
+                                inspected => { root.inspect(index); }
+                            }
+                            if !root.checkbox-mode : GearRadioRow {
+                                item: item;
+                                inputs-enabled: root.inputs-enabled;
+                                focused: list-focus.has-focus && root.focus-index == index;
+                                selected => { root.activate(index); }
+                                inspected => { root.inspect(index); }
+                            }
+                        }
+                    }
+                        if root.items.length == 0 : Text {
+                            text: "No equipment is available for this slot and job.";
+                            width: choices.visible-width;
+                            color: Palette.foreground;
+                            wrap: word-wrap;
+                        }
+                }
+                GroupBox {
+                    title: "Item details — hover or focus";
+                    min-height: 100px;
+                    preferred-height: 130px;
+                    vertical-stretch: 0;
+                    ScrollView {
+                        viewport-width: self.visible-width;
+                        VerticalLayout {
+                            padding: 4px;
+                            Text {
+                                text: root.inspected-name;
+                                color: Palette.foreground;
+                                font-weight: 600;
+                                wrap: word-wrap;
+                            }
+                            Text {
+                                text: root.inspected-tooltip;
+                                color: Palette.foreground;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

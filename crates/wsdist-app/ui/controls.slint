@@ -1,0 +1,234 @@
+import { CheckBox, ComboBox, GroupBox, LineEdit, Palette, ScrollView } from "std-widgets.slint";
+import { InputRow, InputWidgetKind } from "types.slint";
+
+export component ControlEditor inherits Rectangle {
+    in property <InputRow> control;
+    in property <bool> inputs-enabled: true;
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+
+    private property <bool> editable: root.inputs-enabled && root.control.enabled && root.control.visible;
+    private property <bool> stacked: root.width < 380px && root.control.control-kind != InputWidgetKind.checkbox;
+    private property <length> label-width: root.stacked ? root.width : min(144px, root.width * 0.38);
+    private property <length> editor-height: max(32px, entry.min-height, combo.min-height, toggle.min-height);
+    private property <bool> entry-dirty: false;
+    private property <bool> editing-focus: root.editable && (
+        (root.control.control-kind == InputWidgetKind.entry && entry.has-focus) ||
+        (root.control.control-kind == InputWidgetKind.combo && combo.has-focus));
+    private property <bool> control-focus: root.editing-focus ||
+        (root.control.control-kind == InputWidgetKind.checkbox && toggle.has-focus && root.editable);
+    private property <bool> show-tooltip: root.control.tooltip != "" && root.control.visible &&
+        (hover-area.has-hover || root.control-focus);
+    out property <length> row-height: root.control.visible ? root.editor-height + (root.stacked ? 28px : 0px) + 6px + (root.show-tooltip ? 140px : 0px) : 0px;
+
+    visible: root.control.visible;
+    min-width: 260px;
+    min-height: root.row-height;
+    preferred-height: root.row-height;
+    vertical-stretch: 0;
+
+    changed editing-focus => { root.text-focus(root.editing-focus); }
+
+    // The model is authoritative, including profile restores and filtered updates.
+    changed control => {
+        entry.text = root.control.text;
+        combo.current-index = root.control.selection;
+        combo.current-value = root.control.text;
+        toggle.checked = root.control.checked;
+    }
+
+    hover-area := TouchArea {
+        width: root.width;
+        height: root.height;
+        enabled: root.control.visible;
+        scroll-event(event) => {
+            if root.editable && root.control.control-kind == InputWidgetKind.entry {
+                if event.delta-y > 0px {
+                    root.wheel(root.control.key, 1);
+                    return accept;
+                }
+                if event.delta-y < 0px {
+                    root.wheel(root.control.key, -1);
+                    return accept;
+                }
+            }
+            return reject;
+        }
+
+        content := VerticalLayout {
+            width: parent.width;
+            spacing: 4px;
+            padding-top: 3px;
+            padding-bottom: 3px;
+
+            form := GridLayout {
+                min-height: root.editor-height + (root.stacked ? 28px : 0px);
+                vertical-stretch: 0;
+                spacing: 4px;
+
+                Text {
+                    col: 0; row: 0;
+                    colspan: root.stacked ? 2 : 1;
+                    visible: root.control.control-kind != InputWidgetKind.checkbox;
+                    text: root.control.label;
+                    min-width: root.stacked ? 0px : root.label-width;
+                    max-width: root.label-width;
+                    preferred-height: root.stacked ? 24px : root.editor-height;
+                    color: root.editable || root.control.control-kind == InputWidgetKind.label ? Palette.foreground : Palette.foreground.with-alpha(0.55);
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                    accessible-role: none;
+                }
+
+                entry := LineEdit {
+                    col: root.stacked ? 0 : 1; row: root.stacked ? 1 : 0;
+                    colspan: root.stacked ? 2 : 1;
+                    visible: root.control.control-kind == InputWidgetKind.entry;
+                    enabled: root.editable && self.visible;
+                    height: root.editor-height;
+                    text: root.control.text;
+                    accessible-label: root.control.label;
+                    accessible-description: root.control.tooltip;
+                    accessible-id: root.control.key;
+                    edited(value) => {
+                        if root.editable {
+                            root.entry-dirty = true;
+                            root.text-edited(root.control.key, value);
+                        }
+                    }
+                    accepted(value) => {
+                        if root.editable {
+                            root.entry-dirty = false;
+                            root.editing-finished(root.control.key, value);
+                        }
+                    }
+                    changed has-focus => {
+                        if !self.has-focus && root.entry-dirty {
+                            root.entry-dirty = false;
+                            if root.editable { root.editing-finished(root.control.key, self.text); }
+                        }
+                    }
+                }
+                combo := ComboBox {
+                    col: root.stacked ? 0 : 1; row: root.stacked ? 1 : 0;
+                    colspan: root.stacked ? 2 : 1;
+                    visible: root.control.control-kind == InputWidgetKind.combo;
+                    enabled: root.editable && self.visible;
+                    height: root.editor-height;
+                    model: root.control.choices;
+                    current-index: root.control.selection;
+                    current-value: root.control.text;
+                    accessible-label: root.control.label;
+                    accessible-description: root.control.tooltip;
+                    accessible-value: root.control.text;
+                    accessible-id: root.control.key;
+                    // Native model resets must not erase an unlisted restored value.
+                    changed current-value => {
+                        if root.control.selection < 0 && self.current-value != root.control.text {
+                            self.current-value = root.control.text;
+                        }
+                    }
+                    selected(value) => {
+                        if root.editable { root.text-edited(root.control.key, value); }
+                    }
+                }
+                toggle := CheckBox {
+                    col: 0; row: 0; colspan: 2;
+                    visible: root.control.control-kind == InputWidgetKind.checkbox;
+                    enabled: root.editable && self.visible;
+                    height: root.editor-height;
+                    text: root.control.label;
+                    checked: root.control.checked;
+                    accessible-description: root.control.tooltip;
+                    accessible-id: root.control.key;
+                    toggled => {
+                        if root.editable { root.toggled(root.control.key, self.checked); }
+                    }
+                }
+                Text {
+                    col: root.stacked ? 0 : 1; row: root.stacked ? 1 : 0;
+                    colspan: root.stacked ? 2 : 1;
+                    visible: root.control.control-kind == InputWidgetKind.label;
+                    height: root.editor-height;
+                    text: root.control.text;
+                    color: Palette.foreground;
+                    wrap: word-wrap;
+                    vertical-alignment: center;
+                    accessible-label: root.control.label;
+                }
+            }
+
+            if root.show-tooltip : Rectangle {
+                background: Palette.alternate-background;
+                border-color: Palette.foreground.with-alpha(0.2);
+                border-width: 1px;
+                border-radius: 3px;
+                vertical-stretch: 0;
+                min-height: 140px;
+                preferred-height: 140px;
+                ScrollView {
+                    viewport-width: self.visible-width;
+                    Text {
+                        text: root.control.tooltip;
+                        color: Palette.foreground;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component InputGroup inherits GroupBox {
+    in property <[InputRow]> rows;
+    in property <bool> inputs-enabled: true;
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+
+    min-width: 280px;
+    min-height: min(320px, self.preferred-height);
+    preferred-height: 320px;
+    vertical-stretch: 1;
+
+    private property <int> focus-count: 0;
+    private property <bool> editing-focus: root.inputs-enabled && root.visible && root.focus-count > 0;
+    changed editing-focus => { root.text-focus(root.editing-focus); }
+
+    rows-view := ScrollView {
+        min-height: 100px;
+        viewport-width: self.visible-width;
+        accessible-role: list;
+        accessible-label: root.title + " inputs";
+        // Scalar groups are small and contain variable-height/hidden controls.
+        // A real column gives the scrollbar an exact end; gear lists stay virtual.
+        VerticalLayout {
+            spacing: 0px;
+            width: rows-view.visible-width;
+            for row in root.rows : Rectangle {
+                min-height: editor.row-height;
+                max-height: editor.row-height;
+                preferred-height: editor.row-height;
+                vertical-stretch: 0;
+                editor := ControlEditor {
+                    width: parent.width;
+                    height: parent.height;
+                    control: row;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => {
+                        root.focus-count = max(0, root.focus-count + (focused ? 1 : -1));
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,169 @@
+import { Button, GroupBox, ListView, Palette, ScrollView } from "std-widgets.slint";
+import { StatDisplayRow } from "types.slint";
+
+component StatGroup inherits GroupBox {
+    in property <[StatDisplayRow]> rows;
+
+    min-width: 300px;
+    preferred-height: 48px + root.rows.length * 34px;
+    vertical-stretch: 0;
+
+    stat-list := ListView {
+        viewport-width: self.visible-width;
+        min-height: max(34px, root.rows.length * 34px);
+
+        for row in root.rows: Rectangle {
+            width: stat-list.visible-width;
+            height: 34px;
+            accessible-role: list-item;
+            accessible-label: row.label + ": " + row.value;
+
+            HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 12px;
+
+                Text {
+                    text: row.label;
+                    color: Palette.foreground;
+                    font-size: 13px;
+                    wrap: word-wrap;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+                Text {
+                    text: row.value;
+                    color: Palette.foreground;
+                    font-size: 13px;
+                    font-weight: 500;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                    horizontal-stretch: 0;
+                    accessible-label: row.label;
+                    accessible-value: row.value;
+                }
+            }
+        }
+    }
+}
+
+export component Stats inherits Rectangle {
+    in property <[StatDisplayRow]> base;
+    in property <[StatDisplayRow]> physical;
+    in property <[StatDisplayRow]> magical;
+    in property <[StatDisplayRow]> multi;
+    in property <[StatDisplayRow]> haste;
+    in property <[StatDisplayRow]> defensive;
+    in property <[StatDisplayRow]> other;
+    in property <string> source-label;
+    in property <bool> inputs-enabled: true;
+
+    callback action(string);
+
+    ScrollView {
+        viewport-width: max(self.visible-width, 360px);
+        accessible-role: list;
+        accessible-label: "Stats content";
+
+        VerticalLayout {
+            padding: 12px;
+            spacing: 12px;
+
+            Text {
+                text: "Player Stats";
+                color: Palette.foreground;
+                font-size: 20px;
+                font-weight: 600;
+                wrap: word-wrap;
+                vertical-stretch: 0;
+            }
+
+            Text {
+                text: "Displayed source: " + root.source-label;
+                color: Palette.foreground;
+                wrap: word-wrap;
+                vertical-stretch: 0;
+                accessible-label: "Displayed player stats source";
+                accessible-value: root.source-label;
+            }
+
+            if root.width >= 600px: HorizontalLayout {
+                spacing: 8px;
+
+                Button {
+                    text: "Quicklook Gear Stats";
+                    enabled: root.inputs-enabled;
+                    horizontal-stretch: 1;
+                    clicked => { root.action("stats-quicklook"); }
+                }
+                Button {
+                    text: "TP Gear Stats";
+                    enabled: root.inputs-enabled;
+                    horizontal-stretch: 1;
+                    clicked => { root.action("stats-tp"); }
+                }
+                Button {
+                    text: "WS Gear Stats";
+                    enabled: root.inputs-enabled;
+                    horizontal-stretch: 1;
+                    clicked => { root.action("stats-ws"); }
+                }
+            }
+
+            if root.width < 600px: VerticalLayout {
+                spacing: 8px;
+
+                Button {
+                    text: "Quicklook Gear Stats";
+                    enabled: root.inputs-enabled;
+                    horizontal-stretch: 1;
+                    clicked => { root.action("stats-quicklook"); }
+                }
+                Button {
+                    text: "TP Gear Stats";
+                    enabled: root.inputs-enabled;
+                    horizontal-stretch: 1;
+                    clicked => { root.action("stats-tp"); }
+                }
+                Button {
+                    text: "WS Gear Stats";
+                    enabled: root.inputs-enabled;
+                    horizontal-stretch: 1;
+                    clicked => { root.action("stats-ws"); }
+                }
+            }
+
+            if root.width >= 980px: GridLayout {
+                spacing: 12px;
+
+                Row {
+                    StatGroup { title: "Base Parameters"; rows: root.base; }
+                    StatGroup { title: "Physical"; rows: root.physical; }
+                    StatGroup { title: "Magical"; rows: root.magical; }
+                }
+                Row {
+                    StatGroup { title: "Multi-Attack"; rows: root.multi; }
+                    StatGroup { title: "Attack Speed"; rows: root.haste; }
+                    Rectangle { }
+                }
+                Row {
+                    StatGroup { title: "Defensive"; rows: root.defensive; }
+                    StatGroup { title: "Other Stats"; rows: root.other; }
+                    Rectangle { }
+                }
+            }
+
+            if root.width < 980px: VerticalLayout {
+                spacing: 12px;
+
+                StatGroup { title: "Base Parameters"; rows: root.base; }
+                StatGroup { title: "Physical"; rows: root.physical; }
+                StatGroup { title: "Magical"; rows: root.magical; }
+                StatGroup { title: "Multi-Attack"; rows: root.multi; }
+                StatGroup { title: "Attack Speed"; rows: root.haste; }
+                StatGroup { title: "Defensive"; rows: root.defensive; }
+                StatGroup { title: "Other Stats"; rows: root.other; }
+            }
+        }
+    }
+}
