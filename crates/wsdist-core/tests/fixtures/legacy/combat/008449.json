@@ -1,0 +1,1 @@
+{"id":"combat.008449.bonus.Drepanum.Spiral_Hell.ranged","operation":"combat.weapon_bonus","input":{"main_name2":"Empty","ranged_name2":"Drepanum","ws_name":"Spiral Hell"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":1.0}},"stdout":""}

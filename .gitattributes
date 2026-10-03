@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Multipart fixture hashes cover exact bytes, including checkout line endings.
+*.part -text

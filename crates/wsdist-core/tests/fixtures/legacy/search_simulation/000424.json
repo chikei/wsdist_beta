@@ -1,0 +1,23 @@
+{
+  "fixture_format": "byte-parts-v1",
+  "sha256": "59db070b9f0f17efdb42f80a6b638990c58101fb96f954e70f1e6200b9a20336",
+  "byte_length": 59282632,
+  "parts": [
+    {
+      "path": "000424.parts/000000.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000424.parts/000001.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000424.parts/000002.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000424.parts/000003.part",
+      "byte_length": 8950984
+    }
+  ]
+}

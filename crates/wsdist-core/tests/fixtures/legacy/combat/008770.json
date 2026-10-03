@@ -1,0 +1,1 @@
+{"id":"combat.008770.bonus.Liberator.Insurgency.both","operation":"combat.weapon_bonus","input":{"main_name2":"Liberator","ranged_name2":"Liberator","ws_name":"Insurgency"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.6}},"stdout":""}

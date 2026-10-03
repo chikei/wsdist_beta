@@ -1,0 +1,2597 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "search-simulation/seed11-exact-sweep-batch1-1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000000.json",
+      "sha256": "f694a28ae1b489e9cafa10bbcbf09e2340338b15aee20fb2361b1eae612aa6a8"
+    },
+    {
+      "id": "search-simulation/seed11-exact-sweep-batch8-64",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000001.json",
+      "sha256": "8adb28634115bc32200545110bf17ac46045d7016db462b5c68cd6b0c3ebe763"
+    },
+    {
+      "id": "search-simulation/seed11-exact-sweep-batch256-4096",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000002.json",
+      "sha256": "f2bf5c04fe5c4426d100c88fde24ce3a736684a1e0dcf412aa493838acc119cb"
+    },
+    {
+      "id": "search-simulation/seed11-exact-sweep-batch100000-100000",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000003.json",
+      "sha256": "54947b5e5730d466808f20b6166edea103f812b07200e3a1273a5721bffef161"
+    },
+    {
+      "id": "search-simulation/seed11-complete-build-workers1",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000004.json",
+      "sha256": "485d7a6cb963124bccd5ccc9e2628d37f45d5e90d021c924e9f2b755fe1b52a3"
+    },
+    {
+      "id": "search-simulation/seed11-complete-build-workers2",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000005.json",
+      "sha256": "b69a8d05130022bb90befbdff582721579559316b5f8aca75c3ae4f09ba00102"
+    },
+    {
+      "id": "search-simulation/seed11-complete-build-workers0",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000006.json",
+      "sha256": "1d2d08621b646f42ac2e1d6d671e87eb9502e8b0b12be0ecd2545de42ffe3e63"
+    },
+    {
+      "id": "search-simulation/seed11-real-pool-two-workers-repeated-pools",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000007.json",
+      "sha256": "ef38e3c11392531259d8fea539bd6a5105fdf426966a8ec2e25ad15805022dbe"
+    },
+    {
+      "id": "search-simulation/mapper-candidate-threshold-19999",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000008.json",
+      "sha256": "136d6af0e840cc7170ea822cf52cd5fb33ef231b350d00ddc18c86630dfb289e"
+    },
+    {
+      "id": "search-simulation/mapper-candidate-threshold-20000",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000009.json",
+      "sha256": "19e94cfc7316f6f2cce185a1769a86dc0c2e49b236e7564fe1c58f46afcb1b02"
+    },
+    {
+      "id": "search-simulation/mapper-candidate-threshold-20001",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000010.json",
+      "sha256": "8acdebfbf87645d9135c8de56b631c99331af1d555d13c4fe1a867dfaa587c83"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-0",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000011.json",
+      "sha256": "a8b125445bd292620de3edfe89939d4a4ada7acc2a8e3ef8b21fbdf93c7add8d"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-1",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000012.json",
+      "sha256": "ef7077fdea3da2f13aab47e881b3a0da70287490d6be3e3c89fa2bf17665140c"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-191",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000013.json",
+      "sha256": "8689fdf5cebe170018c791c80f3ade5a0f1444cf726d2dc6614ed59ec1e34a3e"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-192",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000014.json",
+      "sha256": "f0e23a59536f328af6dbb282ac148e374063f1252980106882adfbee1953d8d5"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-193",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000015.json",
+      "sha256": "ce2136f217fc19c82e84187ab805ac5c86d2e0f1c73db193688fb45232b2b429"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-256",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000016.json",
+      "sha256": "b2ef52c6f078b38dc7057eb06b43ae0199a709960293bfaea7058e6088166ab2"
+    },
+    {
+      "id": "search-simulation/real-pool-local-dispatch-boundary-512",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000017.json",
+      "sha256": "42cf2841243a617ad648682cd1a222938d0eeebba488bc19ffa31a5cab7ef2b4"
+    },
+    {
+      "id": "search-simulation/real-pool-auto-worker-dispatch",
+      "operation": "optimizer_dispatch",
+      "path": "search_simulation/000018.json",
+      "sha256": "bc86377266ed893cb84328eafb84b75374726acd3bc103bfdf4ffd76155fb7ce"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-1-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000019.json",
+      "sha256": "540e5e78c34cb43bee6f24cef9ac1442a70d3b108c47d7c97439868d3e196d65"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-1-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000020.json",
+      "sha256": "d7737617295ba5fd6047941e039da9bb121ce6d5182167c2f2d5def4a85254a0"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-1-3",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000021.json",
+      "sha256": "ce8b8b383fa1b0a76601165f3bea0e045db7feefebf1f7f938a8cdccedcccff7"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-1-4",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000022.json",
+      "sha256": "38a2b3ed793222dbf95c2a293df84b91b90c2a5f7824e503fdd70c006750c09b"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-2-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000023.json",
+      "sha256": "53ba1927740fc61ffebc01b71e3029928c6a4f82f767f87cd58644bfcedf876c"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-2-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000024.json",
+      "sha256": "4e3437b533588144cc66eaf6c6472b93a72430ce8c5b333bedcdc769f9aa2f67"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-2-3",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000025.json",
+      "sha256": "23a7d2f5e9ce6952d631e3dc9868b028f0268582188a87f8005dbe9ec6a8dc45"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-2-4",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000026.json",
+      "sha256": "853e6b885f55e9c7e69c3475840498e04119ed12b66ac64108a878a250ddac51"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-3-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000027.json",
+      "sha256": "2f94d3670728d17e4fa940baab17652e260ac3808ee59b9815760e63d916089f"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-3-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000028.json",
+      "sha256": "a839a4b8707f0239c0131084c3dc68d6dac484f6fc87bd2ea115e72201bbb010"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-3-3",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000029.json",
+      "sha256": "14ccb71a041afb08b52813bcb0dc84cb78f2eb19c9ceb6b14fd3ba1a2a6d434d"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-3-4",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000030.json",
+      "sha256": "de31b431fbef69fff2c8c761a6cf85f8a3fbdd5f0d997173405f07c1db32b6b9"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-4-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000031.json",
+      "sha256": "cfeff56a29ce854205b0ab3c2b04689fb9b5442b77132a6edca3e8c527e8ecbd"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-4-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000032.json",
+      "sha256": "f556cf7f488ba28fb913bd245d74041bb09c0e4289ff118a2ad7bebd70b8a162"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-4-3",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000033.json",
+      "sha256": "78bf9b08b798d76c8a83fe416ed927cebc72525d781468d57bbf8eeee089f91b"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-4-4",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000034.json",
+      "sha256": "db7fcf59edf8eab62a51d23ee4578834f48292b1c66b4f4483b528ee50eb93ad"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-5-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000035.json",
+      "sha256": "f153351ced881ecf54965fcbbb697688179c8b6a07e6f55da1b2945a924b15c6"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-5-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000036.json",
+      "sha256": "d50b73e7b603bd2181898935cbea567efc5b6225e514324313e5a80c84ffbf0e"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-5-3",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000037.json",
+      "sha256": "07f7ea3af8c0bdf51fd93e948d606c5de51ad2d2c9c2494766b403b4c2307bdc"
+    },
+    {
+      "id": "search-simulation/slot-combination-order-5-4",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000038.json",
+      "sha256": "a1b41ca6bf61d5af5b81a083a8d44d39180e0661c40f09fe2dcfcb2d2d1f3ff6"
+    },
+    {
+      "id": "search-simulation/options-normalization-0",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000039.json",
+      "sha256": "d0164845633eaf1d6ec6d20a9161771ff600769734722dcb6c2404e672fb0bb0"
+    },
+    {
+      "id": "search-simulation/options-normalization-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000040.json",
+      "sha256": "a6d44e087acf61ebd54d33511d166e04f404aff54fc4c32736246f88f5918a1c"
+    },
+    {
+      "id": "search-simulation/options-normalization-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000041.json",
+      "sha256": "f8bde8ea71cd2430d74593fc8590d285265c7a26e92393890d193f2fc599bc0b"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch1",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000042.json",
+      "sha256": "2bc856ba5f438de3ce481748b2b6c1696ebe35aa83ef2a67dcdf21680daea4d4"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch2",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000043.json",
+      "sha256": "2aa899957a8f708b5d7243012adbee0c1f623fbcc20b39e39f29591a49dbfb45"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch3",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000044.json",
+      "sha256": "3e6d0d7aa6fa5a1f2369c5567ec2c4e99d72b5b8b266f9d0a7ed041390655d56"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch4",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000045.json",
+      "sha256": "b2dce12e0f9d2d79c192eac0080946d6b5e610560d0a05c83fb43bdaceb6844a"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch5",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000046.json",
+      "sha256": "7b50616946f66a19ee9cfa8b677033eaf5890b3f981a72a6c735cc9f3a0e8749"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch8",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000047.json",
+      "sha256": "b35b92bc41feda6aa780843a86a5775cfe9ac6d4ccb27b4969c8d67ddb334042"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch17",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000048.json",
+      "sha256": "891be4aa944f359e290850285498d1e0b25b8f9ef480e42fd9a50032f5aba87d"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch64",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000049.json",
+      "sha256": "c66b3653cb02870458c85d16c12d3b3def8d0f8fed4a3594955a76525d7fafd1"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch256",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000050.json",
+      "sha256": "bb5ef0c3221a4a81d6969a4e8381c0a5a5672029b89c066bbfead1b9af531006"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch4096",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000051.json",
+      "sha256": "9a03fc2bdf16c25af01e1a77a0f2dc49eeb3e6af2133afd0f88c40020aa04439"
+    },
+    {
+      "id": "search-simulation/neighborhood-0-batch100000",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000052.json",
+      "sha256": "a9bdbfdf19158875335d87ab88d6edf0174cbb916f208266151c5ad7ec92981e"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch1",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000053.json",
+      "sha256": "0f94979044ac62d61e9eced55d55c609896f65ae03957e0450d5cbad4a12eb5b"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch2",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000054.json",
+      "sha256": "2bbdb6cba19e922e3f65294835afcade50dbd803ca0e1aefa270a6304842c7ac"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch3",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000055.json",
+      "sha256": "38d11a5d988431553836f6d63a4e2691bae9c20d611e9d0a3f0eaebdc7f87a4b"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch4",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000056.json",
+      "sha256": "2e3d795a28095971b0673d12e87552816145f8331e8383c18eed57f34f3b5786"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch5",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000057.json",
+      "sha256": "d55ca759c27ce8d8cd1307d5d84ae16f377d569a4538d5fc4e0afcba335f37cc"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch8",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000058.json",
+      "sha256": "149ee106d21048808a599acd126ecaaead73d362e9c0969576869ff0cf4aaa2a"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch17",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000059.json",
+      "sha256": "2c1a2593745bbb99695c1f656e777fbedc83998289a0fbb122f78199d9472620"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch64",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000060.json",
+      "sha256": "cc69b4d04bc205623ef0547b82cf711fdfa86f00b9f6b9f2f1bb0d70f92c2839"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch256",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000061.json",
+      "sha256": "3a0277f8495e40091c10b11c7a9bf2c5501c1c4126d9a32394b08c9237c92912"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch4096",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000062.json",
+      "sha256": "e7dbbcb09506db2589ba07339df8fb8700962e6b635669310d72e01b0b40cce8"
+    },
+    {
+      "id": "search-simulation/neighborhood-1-batch100000",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000063.json",
+      "sha256": "2b212f2c985db53be23154046c46f026c4fe44d02605ab5ca47d51e68c8d367d"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch1",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000064.json",
+      "sha256": "c3601a5bea4c9e0920250c3033eeeac268da51c4a314fcbe7b2b3e6a8f5d4dd2"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch2",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000065.json",
+      "sha256": "30e2b1c2503677703372cf850827bd236baeb5e1f45c3d94be9e469e0b47023b"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch3",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000066.json",
+      "sha256": "86feb06055e877880fc1102a63e7cd645d3433c616f7a49ce06eacac26a89b20"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch4",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000067.json",
+      "sha256": "2226e5811328fb82225077d1c7f324d3cf9794e643e7203edf91f3a49e34ce9f"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch5",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000068.json",
+      "sha256": "b930f78e2fcdb8897f2c6e0bd27e838ad55d5cc238b2e109d1db128ca1d2a284"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch8",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000069.json",
+      "sha256": "95314d174f43fcfb63932d8a92c1eceb266d9e3359be4b37cdd6ad9da7448ad3"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch17",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000070.json",
+      "sha256": "4f934f954448d76af1c2ea670d25a2ca9652a55c63e4a435b9dc163a427be655"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch64",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000071.json",
+      "sha256": "90a493148e18811d12a4685f114f2b30790c0220050d3745ccbc0c0f8a4ac5d3"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch256",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000072.json",
+      "sha256": "9b3d77b5fedf0b030165757fc51ef5f087b817406657db01716ad00442781fcc"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch4096",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000073.json",
+      "sha256": "36e2a668f69118452cf4531d85b7fb3f8dcb33cdc7ee1bbd32071afe1f44478f"
+    },
+    {
+      "id": "search-simulation/neighborhood-2-batch100000",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000074.json",
+      "sha256": "f5bc963dee885d91f27f8b6fff621892a527307549c47f104b5943f7872233f0"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch1",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000075.json",
+      "sha256": "aee1f50f82d733dc3d78b6343cfb8a6dcba2491fee54038bce30eaa2f37168c8"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch2",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000076.json",
+      "sha256": "87a254234812ee6e74f41ad8a028e32f811defef78040b90eac60ce6a9369a4a"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch3",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000077.json",
+      "sha256": "34961820266e6cb5e78ae5d0a48d4240f1b4f969bec3d24b5caa5f01d3248d03"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch4",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000078.json",
+      "sha256": "67e69bb4da579694a5c37835861919d18f603f414c73ebb81267f9aa70b0833c"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch5",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000079.json",
+      "sha256": "1c18f68d33e41170b79d9ca55e2b188f3688a1271036a9c63a4abaa1d3801e5e"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch8",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000080.json",
+      "sha256": "94c039f6cfb1c6a5367af4b85cab317390c780d9b0e3170ff9a7dcf21b3eb815"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch17",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000081.json",
+      "sha256": "bd3d8eaf0eec9ead19d702df0f75bb1139b870e0486b32e05c2bb34c8dc04895"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch64",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000082.json",
+      "sha256": "1a7d54bcd55707256acfbc3539b3c87d0aeef1617cf15017148d7e5f40bde1ff"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch256",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000083.json",
+      "sha256": "23bf677094a26bf1bd3b11d4062c0a20745a57af43a982b65362e3c8068e25d5"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch4096",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000084.json",
+      "sha256": "2fe16236a88bf2a270289e96d87d5d551154990a1be38e136e4a9fd4c9ded9b4"
+    },
+    {
+      "id": "search-simulation/neighborhood-3-batch100000",
+      "operation": "optimizer_neighborhood",
+      "path": "search_simulation/000085.json",
+      "sha256": "d4189f843c665913cb589b73a42285a586f3425235dedabfc1f67e712c37bdd4"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-0-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000086.json",
+      "sha256": "12a1e21b16af0735f977a4e5de4c22fd6498730c82e3c57c4e96ee259e03d99b"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-0-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000087.json",
+      "sha256": "51ce460252a8086f9a46f6398ea9c1f4969f8cb6b1d3c139cb4f233075de112b"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-0-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000088.json",
+      "sha256": "a5c656ef111d407a6018f5fde9d828219def32bab3c2f7e22078d34c1e6c0b18"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-1-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000089.json",
+      "sha256": "16257734e0c4558c2e58f1242e83cffc4b541bfe51fff96fe579e2594ab8f63c"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-1-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000090.json",
+      "sha256": "f7be3c665278be9013f93a09167da5b440835d3bef70765d28c89a8bbe8e9144"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-1-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000091.json",
+      "sha256": "2c5f1e0a92e58da5340feff34ddafb6d1d9dd2b1c627f68f3d9161cb4c13a7b1"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-8-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000092.json",
+      "sha256": "415ec446178fc7edb510fe00fbcd42e0908f099b5154f0ad025ac0e5ef1cd3f2"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-8-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000093.json",
+      "sha256": "a1f5b952655ab39c0380f435e64a3ba952b499da53fd2edd568d81cd09ea9c5e"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-8-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000094.json",
+      "sha256": "81d22362d2c5b4e17785198c89a452448f7e2bfd515d5f39a652555904c12d3d"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-191-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000095.json",
+      "sha256": "b76a298412c9ecb29a29dd9a6808535ccf4067b1dc8629f08c856a9951db67d3"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-191-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000096.json",
+      "sha256": "d14eeacdb345bfb2b436825bb24cebf163c7e5787bbea27170f21dd93b2a42d7"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-191-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000097.json",
+      "sha256": "adccd894e99d002a2754352d96dfa2869dea8cb61ec62b81f17691547ab23ac2"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-192-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000098.json",
+      "sha256": "1766f6647d42acdb9a8031a6ff39ee163d756000fa11dc132e111fb4441fbdb0"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-192-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000099.json",
+      "sha256": "d03365e55bb0e8ae3dd4bbdbee5a689922f79a260f4dd67e197025b0078465df"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-192-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000100.json",
+      "sha256": "7a88ee1cf5924183689a92cbc232dabc1b78b660c1fea57c12da326223a6b821"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-193-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000101.json",
+      "sha256": "9461a4049cd0b0af75c3817f9c25888d578e0510b9a1d0a04e6f81c1034295cb"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-193-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000102.json",
+      "sha256": "8cb18c6ae77d51585f763ff2b36b0b56b255abd8c669da38ea734e3454477e00"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-193-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000103.json",
+      "sha256": "7c0e3942bf45fa3abc77f7b7e4c9acc31a0c8981abefbca529a4e3f492ac5d53"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-256-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000104.json",
+      "sha256": "1d123e9f66eefb35daf7f21e64b3409067c2238232ce83a8738d3fb04ad1a478"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-256-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000105.json",
+      "sha256": "b588bb0f423cd8c8400aab5bca464245978559f473bd5ee8f13f2355b5d2dd32"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-256-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000106.json",
+      "sha256": "f522a900e737db5240dcee9782256d7c47bb0d07328ef529c73e42f9f6de5a20"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-4096-1",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000107.json",
+      "sha256": "b61f86c49eb163d1f71def5ee53049f7103e02bfb6b5af7e7aa9234ad28cda0a"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-4096-2",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000108.json",
+      "sha256": "abe3629732512714dd5ae73228bfdafd134021b55f3dfb8ec18314e4f4479250"
+    },
+    {
+      "id": "search-simulation/ordered-group-split-4096-8",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000109.json",
+      "sha256": "9f880724296b97836cb2b3d76fd6d65f1fefd14e8c4a0f21ec007990f9bf8dab"
+    },
+    {
+      "id": "search-simulation/record-equality-and-interning",
+      "operation": "optimizer_helpers",
+      "path": "search_simulation/000110.json",
+      "sha256": "d8913ab336885f2a054b093a7ddb5cd7763cd69b58a348b35123171744b43f1d"
+    },
+    {
+      "id": "search-simulation/empty-frozen-neighborhood",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000111.json",
+      "sha256": "9434200117b74271bb54daafd0034ff042727a0cb7759880dc3ceda23597685d"
+    },
+    {
+      "id": "search-simulation/all-invalid-duplicate-rings",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000112.json",
+      "sha256": "7bc0977e31c9f3e45109ef15c5b5982beaffe7991ad748967bb4fd8bba80a5e2"
+    },
+    {
+      "id": "search-simulation/strict-incumbent-ties",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000113.json",
+      "sha256": "f0d86826c20fbe392ada01198d7fdd4b7a602c81b1a07886ec1c889d1385b7ad"
+    },
+    {
+      "id": "search-simulation/no-winner-above-all-scores",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000114.json",
+      "sha256": "3ff403f81d6bf4fadb1e16ea2466dfc61882538e2d0291a977800eb87891f8bf"
+    },
+    {
+      "id": "search-simulation/similar-swaps-modulo",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000115.json",
+      "sha256": "751d050cdbaa7b68e16bd7b6c2811cd3acfa782b60deaf4d1bf9777985caf58f"
+    },
+    {
+      "id": "search-simulation/complete-empty-frozen-build",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000116.json",
+      "sha256": "4553b4cf070e9f0392108de7921e64e22ac8da9057e8b2fef138439d73db8ba6"
+    },
+    {
+      "id": "search-simulation/complete-all-invalid-build",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000117.json",
+      "sha256": "2bf2c70326976ffa7bea6f1b48f57e619b6d77de5f18e19303539674c1e15b43"
+    },
+    {
+      "id": "search-simulation/unsatisfied-dt-three-unchanged-stages",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000118.json",
+      "sha256": "ae90564097c6e907212aacab49030bea1a4a6a93ab71782a46fbe59e69b34338"
+    },
+    {
+      "id": "search-simulation/zero-stage-default-output",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000119.json",
+      "sha256": "804916ee3fc50da9a4d631b8e4796af52dedd908fb31129ed34c2e636bb72347"
+    },
+    {
+      "id": "search-simulation/restart-earliest-score-tie",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000120.json",
+      "sha256": "0301629896751cc2957a1cb7c674145fb1e90a2a5fa464653a607f7844d6bd09"
+    },
+    {
+      "id": "search-simulation/final-jse-reorder-without-output-rescore",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000121.json",
+      "sha256": "2caf09f1a3967dded7103a7c174c804b6ceb2b9d780157e74b0217e4164622c8"
+    },
+    {
+      "id": "search-simulation/unwearable-frozen-start-is-emptied",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000122.json",
+      "sha256": "471ac314aa24fc6e13cae57de3bebfadc08f7489dc35785326ae6ce26231d99d"
+    },
+    {
+      "id": "search-simulation/melee-candidate-and-job-prefilters",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000123.json",
+      "sha256": "433ef278cfb8a77fea6dea6ba0c25e083abf077b455bfc4d2942644a9a168ca6"
+    },
+    {
+      "id": "search-simulation/actual-sweep-swap-limit-1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000124.json",
+      "sha256": "ff5995169c314572d56e8856e92cae479817579f5e598f92145f4af9a0ea084d"
+    },
+    {
+      "id": "search-simulation/actual-sweep-swap-limit-2",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000125.json",
+      "sha256": "a3bdf83d8a17ac33b696972d2c2c18306436d9363ec6a48f92b673d8500c5dc0"
+    },
+    {
+      "id": "search-simulation/actual-sweep-swap-limit-3",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000126.json",
+      "sha256": "5da39e884214706abd0d069d676a794d3525cdb1ecc688a98151d4659bab6c7c"
+    },
+    {
+      "id": "search-simulation/actual-sweep-swap-limit-4",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000127.json",
+      "sha256": "41b4129a1bef67beae5903e8f943604a1271be9f7438846a89e8d88dd2d4c1f4"
+    },
+    {
+      "id": "search-simulation/independent-host-seed-0",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000128.json",
+      "sha256": "3fc26c454f677ea14655322627e22b6b38edc91526a1008f784ea55dd5dffaf7"
+    },
+    {
+      "id": "search-simulation/independent-host-seed-1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000129.json",
+      "sha256": "66f83049e4b5f5856655fd75d64184949ba445d74645f5ebb96731d4beb9098b"
+    },
+    {
+      "id": "search-simulation/metric-attack-Damage dealt",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000130.json",
+      "sha256": "b315c69e2072926b779e3aafebdd42ab9ab2bb9d89669dd44f53f9f3d149ca4b"
+    },
+    {
+      "id": "search-simulation/metric-attack-TP return",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000131.json",
+      "sha256": "dc03eecbd309e21c0496f6ffbaa7c9c5cbce4fd86479f6dbda3b18a6ef4e3784"
+    },
+    {
+      "id": "search-simulation/metric-attack-DPS",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000132.json",
+      "sha256": "b6b0d94bceda0d2dda785286fba38f44ab168436366521685569f410227f34f0"
+    },
+    {
+      "id": "search-simulation/metric-attack-TP > Damage",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000133.json",
+      "sha256": "74a176a1fabf64bf3e773736982bc9733e409eeb31a117ad4b80b6b48d2fbd55"
+    },
+    {
+      "id": "search-simulation/metric-attack-Damage > TP",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000134.json",
+      "sha256": "52ec5dd0a26ead703ade4d9563d791ab90ecc57942cce52a078f30359a4d789d"
+    },
+    {
+      "id": "search-simulation/metric-attack-Time to WS",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000135.json",
+      "sha256": "351157eb0b469ed491768c82f4a1f27f0717f4d37e0b95edb6d71a6fb43bcd49"
+    },
+    {
+      "id": "search-simulation/metric-attack-Damage Dealt",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000136.json",
+      "sha256": "a57eb2af880a72d2e4913a05a840b69fc7e12feb582068c799d6e64fc44a4561"
+    },
+    {
+      "id": "search-simulation/metric-ws-Damage dealt",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000137.json",
+      "sha256": "8113dd1514f92f215208c3896b9ae5d12df9366ea87dad529ad9976aad337e24"
+    },
+    {
+      "id": "search-simulation/metric-spell-Damage dealt",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000138.json",
+      "sha256": "f2d6d8b8c583f2ec9ad976abd3a90ab2aeebed9637b8dbc72bf425ffb679af33"
+    },
+    {
+      "id": "search-simulation/metric-ws-Damage Dealt",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000139.json",
+      "sha256": "0113ca34a983cf73ee11083fd44c0648bcf35b4934462e0ed941154cb39a65e8"
+    },
+    {
+      "id": "search-simulation/metric-spell-Damage Dealt",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000140.json",
+      "sha256": "101b8a7c77201c105f5bdd3ad10a0c9dc144a2db4c1dbe852998def0bd3a7ea7"
+    },
+    {
+      "id": "search-simulation/metric-ws-TP return",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000141.json",
+      "sha256": "3acb9590ddc755a2c2e43e15cd8d4c9a7f033d40c5f538e28627297b7f274f38"
+    },
+    {
+      "id": "search-simulation/metric-spell-TP return",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000142.json",
+      "sha256": "7703da03ac4f2ff2101a8ebc5d52ab9c1fa4a93c7b85c8527cc42f15fbade6ba"
+    },
+    {
+      "id": "search-simulation/metric-ws-Magic accuracy",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000143.json",
+      "sha256": "fe96d0c12c4fcecfc66deb9db4581725ee1f2a6195aa17573516c74177d2d5fd"
+    },
+    {
+      "id": "search-simulation/metric-spell-Magic accuracy",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000144.json",
+      "sha256": "95758cba96f6ddab43f49cd53ffb2ed5d2e6f75e1c8c87584194f22aec6bea84"
+    },
+    {
+      "id": "search-simulation/metric-ws-Magic Accuracy",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000145.json",
+      "sha256": "c0b4484558bc08bb77180d8a888d906cb56bea092803a5df7f53ea938f697c7a"
+    },
+    {
+      "id": "search-simulation/metric-spell-Magic Accuracy",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000146.json",
+      "sha256": "599426115b73482595759f34af4e50c2cfdb8b82b9ba11c6ce744f3de91bddfb"
+    },
+    {
+      "id": "search-simulation/zero-tp-sentinel-TP return",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000147.json",
+      "sha256": "cdd6c73f750492ac542b6fe1727dd6a14095466133bc983409c6e96f6bef86f6"
+    },
+    {
+      "id": "search-simulation/zero-tp-sentinel-Time to WS",
+      "operation": "optimizer_build",
+      "path": "search_simulation/000148.json",
+      "sha256": "0372507c0f256b1e6e3443dd860fa558d39652df1d7dfe56dfebfc7ab6ad5e82"
+    },
+    {
+      "id": "search-simulation/legality/empty-jewelry-allowed",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000149.json",
+      "sha256": "96b8a0dd93ba1f05abfbc9e0b5435d63d2d00d6f0aa2b8d5c50799c5864c59c5"
+    },
+    {
+      "id": "search-simulation/legality/ring1-duplicate-rejected",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000150.json",
+      "sha256": "c1a72ecc0fde3ffd42b38b4ba68a3338ecaa0f53950ca64569b1461b033affa5"
+    },
+    {
+      "id": "search-simulation/legality/ring1-same-name-different-full-record",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000151.json",
+      "sha256": "1b84c755a64a5fec3739726ffa189529d7a88a9c525ce080c8c4b47dcb4ad746"
+    },
+    {
+      "id": "search-simulation/legality/ear1-duplicate-rejected",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000152.json",
+      "sha256": "35300d89ec79c7c0ef1d881e2f1c95c494509d44bdf8ff747c285eaba94e76bb"
+    },
+    {
+      "id": "search-simulation/legality/ear1-same-name-different-full-record",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000153.json",
+      "sha256": "219b66b52ffb2b8b6933580261ab026df682adb009d28c3f13c514b42799a514"
+    },
+    {
+      "id": "search-simulation/legality/main-duplicate-rejected",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000154.json",
+      "sha256": "369faf0f72dc9bb8022a8ee6a67fe50fbe25ad4cb8213a9c6dcecabdba8008a1"
+    },
+    {
+      "id": "search-simulation/legality/main-same-name-different-full-record",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000155.json",
+      "sha256": "a79bf6f7cd49e79197305238b853220913db90f5fc51ebbd0fb19b4ac86e2186"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-grip-rejected-Axe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000156.json",
+      "sha256": "a3f9238b9b6faa4481002988be43acaf503438afbe25869ca8312aa971e83825"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-shield-allowed-Axe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000157.json",
+      "sha256": "cb3f3dcb20f7c9453330a808e7861be15cf90d424e7329e50a68a3fe44f43f8f"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-grip-rejected-Club",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000158.json",
+      "sha256": "e72d08513447a59574b21465fec643d3292ed0466596343bd6cab0cdd109e48d"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-shield-allowed-Club",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000159.json",
+      "sha256": "33dd8db33fd9653a5f44975c702b4d0a6072e1e9745302033aad441bd29a6980"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-grip-rejected-Dagger",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000160.json",
+      "sha256": "b81855d2c7d76adc092774b736862e702deda3e13f0277c6ab521ac9c13b60e0"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-shield-allowed-Dagger",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000161.json",
+      "sha256": "f76519610d47b397b3dfffc8fd69442f09d5138f48403892c547c2ab26c9c078"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-grip-rejected-Sword",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000162.json",
+      "sha256": "3eecc3879976bce09b38128d641df054baf276e860472eea6ba8a1d2480ad8b0"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-shield-allowed-Sword",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000163.json",
+      "sha256": "6c33b59b02bbc6e98389750bf28cc742bfa4cbd7055943c955ec63dbed1b0deb"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-grip-rejected-Katana",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000164.json",
+      "sha256": "a48fd809e6aca2e0b957d5a3c3cad8bf348482a49bc36ce485288d8bd37e60b6"
+    },
+    {
+      "id": "search-simulation/legality/one-handed-shield-allowed-Katana",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000165.json",
+      "sha256": "e9c1eb38bd56bbea4f302cf31c572f68b7abe670053de6fe92f269792f731cf0"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-weapon-Great Sword",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000166.json",
+      "sha256": "919486644f2057544879bb4509055286fe5c8bcfe0e3b1df146f016e329eebe7"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-shield-Great Sword",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000167.json",
+      "sha256": "c6a714ceaa54d7a405f22b651bee8416cbbad969e9cd58f280d1a26caa4c1d69"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-grip-Great Sword",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000168.json",
+      "sha256": "c78e9243cecac186c5c870aec0f49cacaa71aabd1e09267bb58bc62cc4feca6b"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-empty-Great Sword",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000169.json",
+      "sha256": "384f069ebe4cbab508519356c885eb223c89101db214ecdc0f662df27bb5e98a"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-weapon-Great Katana",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000170.json",
+      "sha256": "945b47bb1130fd340d9e8a060c60c5af35edb168ad7e0c6331d6933987597b84"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-shield-Great Katana",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000171.json",
+      "sha256": "c428c3627ffd49e5bbc50a457682f3cedd24eb21fbbb9e508552d023def2ed33"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-grip-Great Katana",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000172.json",
+      "sha256": "a85ceccb2331e02fbc06641172e8bec5fd8afaf11e4e78aef16011133fd63a15"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-empty-Great Katana",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000173.json",
+      "sha256": "a5c43383b70bc8bc28ec21d0e06769371b6b05e47fe91e374c4fa81a280e7a7c"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-weapon-Great Axe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000174.json",
+      "sha256": "5aad86d3d437764494873e20f9fe47dcadd0eaaf09831f54dc4e560aeffc3916"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-shield-Great Axe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000175.json",
+      "sha256": "d8f28724c33ce5af4ed4d47813b91521398568401c40ad1d8e243ab406dd7285"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-grip-Great Axe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000176.json",
+      "sha256": "518c70975b99af5fd2044850ad505aef766d5c865322635375686ea7801e0b5f"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-empty-Great Axe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000177.json",
+      "sha256": "5965a32bf080660009554e886dc7720d3dd0f0d4f629e2d1955d145a82c7d150"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-weapon-Polearm",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000178.json",
+      "sha256": "af9860cebea356038818eceadf86dc396ea301f2543face08589909a53e4f922"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-shield-Polearm",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000179.json",
+      "sha256": "22ee60fa6f1ed629092e4456da75e5a8926f9d72adba165e2e2484ff4a0355b5"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-grip-Polearm",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000180.json",
+      "sha256": "b442dc30feda4bdd7b87a49407fb90c3c2ec1f166c7fb5173444b627821f68bf"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-empty-Polearm",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000181.json",
+      "sha256": "7cd871aa99462d9330b1162ce9a0d16e60246dd4fae81ae4fa6a02e99a5c5cbf"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-weapon-Scythe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000182.json",
+      "sha256": "83325564c0d6825ffce04546fff0b6fcceb0e1c276e4e85ca3c1f45e9b859303"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-shield-Scythe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000183.json",
+      "sha256": "c7ca85b23ea108e63d747252e5042b823c50746769f92d1cf9397a474102ef0a"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-grip-Scythe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000184.json",
+      "sha256": "3360f635b18f2f1daa65fe5337e4500e0ef14faf65d97cc415bac7d6f039cfb9"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-empty-Scythe",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000185.json",
+      "sha256": "ffa8389576fb4e872e52359e0907a1834bdb5434c9d627d2ced6d8196cfa2c1a"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-weapon-Staff",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000186.json",
+      "sha256": "d36ac5b8bd2c140cf93ac3762884f2909eecd6d042dbdb552adb76d6ab0a2328"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-shield-Staff",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000187.json",
+      "sha256": "4c5b7e836ca3a1735cfe9df7fce9a9864594000acfaeaae5792b63605d8a2a07"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-grip-Staff",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000188.json",
+      "sha256": "f832197a7877248f8eab25f686c10f0dfe78efc2fb8db04d5387fd60d0991b97"
+    },
+    {
+      "id": "search-simulation/legality/two-handed-empty-Staff",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000189.json",
+      "sha256": "254522211ea7f120fab1c9534c7237eec99ad13de2719442b227166ca23bab96"
+    },
+    {
+      "id": "search-simulation/legality/h2h-sub-weapon",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000190.json",
+      "sha256": "0a27ab3b75b114e3f73ad5bcd0e8b5822e556c9f4111494db34ead25abd217fe"
+    },
+    {
+      "id": "search-simulation/legality/h2h-sub-shield",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000191.json",
+      "sha256": "5839ea1d74ec2d9da23e076556c94f36a78449d58ff1feb8d318b9f529366c41"
+    },
+    {
+      "id": "search-simulation/legality/h2h-sub-grip",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000192.json",
+      "sha256": "2fbff5608ae4c5e61e36cc529d831460736ae6b4547f29715e1cca46ad55d1b6"
+    },
+    {
+      "id": "search-simulation/legality/h2h-sub-empty",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000193.json",
+      "sha256": "a7ea14725308202be06314a028c53dd3904db412103325bff7c292e9c634c748"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-war-drg",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000194.json",
+      "sha256": "bedbbc480e423c0b627a0e63cc3bea441d34829e6607280b0918556bad22c6a7"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-nin-war",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000195.json",
+      "sha256": "1ae0a8334e3a261b33d9d734dffbd8b5013b1b81de12afaacd3c78533cda873d"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-dnc-war",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000196.json",
+      "sha256": "8d4f3f7fcf0b69c560dffc632372a42dad1732cd04a5251ac5c38f11e72a3441"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-thf-war",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000197.json",
+      "sha256": "822d7f09afb579d49aacb8c267b15d1cb7140e02f47ce45f68eb2bc2fe63f80b"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-blu-war",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000198.json",
+      "sha256": "360c1ab54700dfd66807ae6bdda01f08b3536b33bf64e44839ade9310c6b7c22"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-war-nin",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000199.json",
+      "sha256": "17f04d64e610538d971b4a8e24fce9ef5d0863674799cffd81112bb1026c2faf"
+    },
+    {
+      "id": "search-simulation/legality/offhand-availability-war-dnc",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000200.json",
+      "sha256": "e870655cd79df70df99b0083b9864a058026b497a9cb6091e46acd771b8fd59f"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Gun-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000201.json",
+      "sha256": "a0e60c9acd0003116e276742c83dc3c735d156695ac0ec8c17b4590fc951145e"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Gun-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000202.json",
+      "sha256": "b47004027381f17c15f8c60cb4a6ef8bab9c2f91928fc41b17e5554d51b5cc6e"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Gun-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000203.json",
+      "sha256": "b04800cf59c796232de7af582dafb27dc467d6c0aabf62d54c170ef8c319d0f3"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Gun-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000204.json",
+      "sha256": "3b0bb70a35d73245436e3c87496de04d2342193ce62915a2f3b4c17ec4e50f8a"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Gun-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000205.json",
+      "sha256": "a1789ff7c56fd0748c45abb6e70a44e7f5e81a57a85c0d6ea2acdef4fd26dfa5"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Bow-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000206.json",
+      "sha256": "4c4f0d15681445f1be02bd6ae17995da1240447e71914f55d27233b98a4a551a"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Bow-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000207.json",
+      "sha256": "9972b2ec72591d02e2f8fe4c84f8787f2a9786f3d2de2e77ed08b6915c86799c"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Bow-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000208.json",
+      "sha256": "cfce768a35ab7d5657f808b8f44d175050ff2694e1ea74b23128f52f0e0e0bf9"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Bow-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000209.json",
+      "sha256": "24d4e81bae446bb46713ffd75dbe8738cb2da996048661d566c2a510739d7d42"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Bow-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000210.json",
+      "sha256": "c63096c0bcc21d0d7510173d1b0355b33bb8b0b5ead7a637a7c1763340068d5f"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Crossbow-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000211.json",
+      "sha256": "24b42a30d3f403a3c56b22212d7f8187ee62287378c9774f46b8175893f8595e"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Crossbow-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000212.json",
+      "sha256": "43fc80d07dcf05d3eae3363d9b4db04fcced433cb2efb1327435d47aa58d0f72"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Crossbow-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000213.json",
+      "sha256": "ccbecaa7b164b09a2c1a0414659fae41797a3018cbf6639adffab5b1962348fa"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Crossbow-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000214.json",
+      "sha256": "11e4a73d6d3974b631bf06cd0c84a6b2e0e5df42a03c29bd32230c6b5e08cdba"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Crossbow-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000215.json",
+      "sha256": "e40e794d7013142b55c1d2705a2a56ce85275f6f1b64db8a446dfba19a5aa7c4"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Instrument-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000216.json",
+      "sha256": "77682384023d8ae46eb90fc5fc12391d21cf8055731f15dc908f76530f931635"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Instrument-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000217.json",
+      "sha256": "f53072ffd25784745513a0737b4941bed31386ddb120c06ee6311b5123720768"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Instrument-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000218.json",
+      "sha256": "058f1e234b27a8b6985254ed8c2a80e0bc82d2db61e4b3341e36376ff9cb5ed1"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Instrument-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000219.json",
+      "sha256": "2241430fd42ce19e081dcea45e8a16c3de1b32fe8140ceedab296516517c3465"
+    },
+    {
+      "id": "search-simulation/legality/ranged-Instrument-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000220.json",
+      "sha256": "20d24e248c2f465ba720ef33f434a7ddd9b0d6f0029b5ffa84b8424c5ee65437"
+    },
+    {
+      "id": "search-simulation/legality/projectile-with-no-ranged-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000221.json",
+      "sha256": "06766d1e54c0b463b9c9b0d7c6510649f95cd399da322c547e53bb54b4e813b7"
+    },
+    {
+      "id": "search-simulation/legality/projectile-with-no-ranged-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000222.json",
+      "sha256": "33daf37b2179dff0c025735ced84efab7235d211aa51bed4b57d07a32c8508bf"
+    },
+    {
+      "id": "search-simulation/legality/projectile-with-no-ranged-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000223.json",
+      "sha256": "c22ba79ef43d4f089503ad406b9a4924746932cb804a620796a2f0d541671b50"
+    },
+    {
+      "id": "search-simulation/legality/projectile-with-no-ranged-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000224.json",
+      "sha256": "b9857f81a7d892f112ef816c4fb2fe1993cd07644b292a1c09c34d8433d5a41d"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Bow-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000225.json",
+      "sha256": "9ecb96a8abc34b5d0596b6278106c1dbdec339b79711654c0fa754276f401aa2"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Bow-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000226.json",
+      "sha256": "f9519ba8cb38c466db3e83bfca902dcf2fbdc51ddc927e966824e1850da7e8f9"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Bow-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000227.json",
+      "sha256": "448197b2d755bdc48fcfde1b0e70c92892c594742608cf6647a8dc42348ecf3f"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Bow-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000228.json",
+      "sha256": "3c2b4ea86749b39e760c9b6c70e6c2aba85de0ea4129c142155d0be2c4595165"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Bow-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000229.json",
+      "sha256": "e790010a39da3b1a92b2c17714007e9249e7d83835e584c4c9ea88c8094acb7b"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-wrong-skill-Bow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000230.json",
+      "sha256": "38162b0efca971179053dda31c86f2069a7f3d8ea4d119f011457f9420a7df3b"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Gun-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000231.json",
+      "sha256": "f5891a4e458a7547a5c43a283dbf6799a83938c20af9465966a2183bac63f6bf"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Gun-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000232.json",
+      "sha256": "5524de43761be13a263bf68a76772a25911157d3687e5c3a80f50e0a0b0753f2"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Gun-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000233.json",
+      "sha256": "69ca078379afa33e243a3e6675047c41c37038848a7414019e261aba06646f2f"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Gun-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000234.json",
+      "sha256": "e8dfee40c4458ae3fcba60d15493d5ee5ae7e62e01d8d747c3579f60f05b2379"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Gun-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000235.json",
+      "sha256": "97acf14c9aa7ad3e07839108a9ab247edfe3a9aa0e9f970c2c59bcaa74ed3731"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-wrong-skill-Gun",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000236.json",
+      "sha256": "245d3feb1742f9e87ea0cdd9de90df4258c08cc315fb15a97c186aaf24df63da"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Crossbow-Bullet",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000237.json",
+      "sha256": "b62dea1d06d2bdde0c77a49cb1943e39871361194045a2161fb550a949b3eddf"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Crossbow-Arrow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000238.json",
+      "sha256": "fb0fb614c019384d7d3b9237d791e9dae79af7b4bafbecac7b787d4afae3eba5"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Crossbow-Bolt",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000239.json",
+      "sha256": "12fc201f063012fdcb3e232540dab3f9c69250757b99fd9129348b99e9ca74f3"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Crossbow-Shuriken",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000240.json",
+      "sha256": "da5cd8b67aa1c365740b64dbe58c6db4314d0cf14dcc7afb87c4074aef222ba9"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-Crossbow-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000241.json",
+      "sha256": "993deb5fec7a0d9495c4f7a5a55a0bf57401f527374a7ca71112501bf03a1b81"
+    },
+    {
+      "id": "search-simulation/legality/ranged-ws-wrong-skill-Crossbow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000242.json",
+      "sha256": "f7904d7a422c407e854216c7c8672cc628d3fe4dd57f860e137a54e1e3205ee1"
+    },
+    {
+      "id": "search-simulation/legality/ranged-spell-Gun",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000243.json",
+      "sha256": "00a1d94671bddb9eea6e672bb3b346cdc7b6975b4e7b7c37a83a9de2d75e3e07"
+    },
+    {
+      "id": "search-simulation/legality/ranged-spell-Bow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000244.json",
+      "sha256": "671d72697bd073d79a9d4b52d808dcd4019c150e5de23c206fd62399ad81b02c"
+    },
+    {
+      "id": "search-simulation/legality/ranged-spell-Crossbow",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000245.json",
+      "sha256": "124bef2acd41224ddca63aeacb67052049750503f2d17fd3418c3238a6f37ef0"
+    },
+    {
+      "id": "search-simulation/legality/ranged-spell-Instrument",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000246.json",
+      "sha256": "5bcba973051585a7f3b1f1ae471bfbccafec3aa8ef10448dc009a99687fc6aca"
+    },
+    {
+      "id": "search-simulation/legality/ranged-spell-None",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000247.json",
+      "sha256": "be2f7d2c314bec52b7ebfa68ffe4a9fe00c388e0179b81697db31e3b551ad374"
+    },
+    {
+      "id": "search-simulation/legality/jse-balder-664-639",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000248.json",
+      "sha256": "8a8d15a378dc1207ab2893e9fcad42d239102fff64fa0d8589c8899cf346b929"
+    },
+    {
+      "id": "search-simulation/legality/jse-balder-639-664",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000249.json",
+      "sha256": "6c212d4d2db3ac145028be75fc5269a0984d04e14cbdf21f6039046e6af2bdbf"
+    },
+    {
+      "id": "search-simulation/legality/jse-balder-664-0",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000250.json",
+      "sha256": "514b5310daf7f5707512954fd7c1c437dd9aa1e3e7ac691a024223313f448191"
+    },
+    {
+      "id": "search-simulation/legality/jse-balder-0-664",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000251.json",
+      "sha256": "70f8cd3df6c944cbed5e370511d1cd0efd6071f7557d90cf3e389f167100d84c"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Cohort Cloak-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000252.json",
+      "sha256": "6c021fae17030ffba08debb8d0c24a29f17b097a3520af5e74f257bf7c703e6e"
+    },
+    {
+      "id": "search-simulation/legality/impact-Cohort Cloak-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000253.json",
+      "sha256": "e80158233760d6b044fa1b806742f999c2895df0347b56c1eda0f174db208641"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Cohort Cloak-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000254.json",
+      "sha256": "16f8529bff690662292672a1bb081dc1f6f97771504a34fcf9a5aa28456eda16"
+    },
+    {
+      "id": "search-simulation/legality/impact-Cohort Cloak-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000255.json",
+      "sha256": "d1b48ebf3079a04cc4127da9af555bbad64397517396e896ef29737ceb33f72d"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Cohort Cloak +1-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000256.json",
+      "sha256": "e2edbad6774ecdcf47400dd366de8954f251ce8e9cf7b107c1491389d66f72d5"
+    },
+    {
+      "id": "search-simulation/legality/impact-Cohort Cloak +1-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000257.json",
+      "sha256": "dd3ef74ae82996603c192e9c88315b37e575dd78663b90891649395630feb2ff"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Cohort Cloak +1-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000258.json",
+      "sha256": "1f6afa968cf0aadc3b14e7daf01c380856d4788ab9f4f6f3e08158c0f83259b5"
+    },
+    {
+      "id": "search-simulation/legality/impact-Cohort Cloak +1-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000259.json",
+      "sha256": "abdad686e276acf274da0198eeaf31cb6c141cf647279bf749eb412dbdc36dea"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Crepuscular Cloak-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000260.json",
+      "sha256": "b22b67a09a736c83f6b7d416170626ce47072b2c6b970d2c0ee8930d4895eb3e"
+    },
+    {
+      "id": "search-simulation/legality/impact-Crepuscular Cloak-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000261.json",
+      "sha256": "dc8b1e917e24693cf03ebbf5b2c48c1913b6e095f6c5a8e1ab02660d891a79ed"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Crepuscular Cloak-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000262.json",
+      "sha256": "236fb1a82a9c3fe4de0002347f65b5b23ea110facd7b1854252fbd9ef5dc5e3c"
+    },
+    {
+      "id": "search-simulation/legality/impact-Crepuscular Cloak-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000263.json",
+      "sha256": "9a1abd464f6f293693f8aa925b8e0611426b9854d8d07701095cd624c30ad007"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Twilight Cloak-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000264.json",
+      "sha256": "089e00b547d4ee611f3017a959b1a0c118a8c100c053388c00befa80d107a0cf"
+    },
+    {
+      "id": "search-simulation/legality/impact-Twilight Cloak-empty-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000265.json",
+      "sha256": "9ffa3d18827f930a77a9ed2bcd80c8cff316d989d226400c9118a6608b9ede5c"
+    },
+    {
+      "id": "search-simulation/legality/cloak-Twilight Cloak-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000266.json",
+      "sha256": "d5721a549c4d4d22b0abf21738cda6a5e18b45655e80a7cb8c598a57e2c4a747"
+    },
+    {
+      "id": "search-simulation/legality/impact-Twilight Cloak-occupied-head",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000267.json",
+      "sha256": "54cf1bc7badf278bb3980a63be4f5a0419f753c3a335ce479e361b3b55d8d33b"
+    },
+    {
+      "id": "search-simulation/legality/impact-missing-cloak",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000268.json",
+      "sha256": "63a68135328b49611a61533c75100491239c6dd8ec3b7ad650dc8889dfd67b0c"
+    },
+    {
+      "id": "search-simulation/legality/ws-unsupported-skill",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000269.json",
+      "sha256": "731415d98563453686ddbd3cb8cfcfd0a471c398d2edd111badab0c29a25eaef"
+    },
+    {
+      "id": "search-simulation/legality/ws-supported-main",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000270.json",
+      "sha256": "727e254e9dd2c823553a631e404f15e262e792112efc19a166f0746ab45b640d"
+    },
+    {
+      "id": "search-simulation/legality/restricted-0-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000271.json",
+      "sha256": "78bca3eaffa8dd4b115c9a2da28cbd8bde6b08fd1c96dbe07ebf1255e5a6b6dc"
+    },
+    {
+      "id": "search-simulation/legality/restricted-0-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000272.json",
+      "sha256": "4c4aabb976b50312a17c89900953edd7733f83939839bf7c78374c603678804d"
+    },
+    {
+      "id": "search-simulation/legality/restricted-1-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000273.json",
+      "sha256": "3c3a435220e74fb28cc0ae586c469b4b822a057d96f912de93a6f55f50d2fc4f"
+    },
+    {
+      "id": "search-simulation/legality/restricted-1-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000274.json",
+      "sha256": "c24eaf0f9fed9effd579b9ff0c26f9a960a433347f043fc998d259af8a8bdba2"
+    },
+    {
+      "id": "search-simulation/legality/restricted-2-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000275.json",
+      "sha256": "af18aae718dec7a86257d385c7f46ffdc3531dab3458ad055e9364005362ff19"
+    },
+    {
+      "id": "search-simulation/legality/restricted-2-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000276.json",
+      "sha256": "cd1230acc106683d2a838856ba412fdefe1f8c6baea8682efa2961f6951078de"
+    },
+    {
+      "id": "search-simulation/legality/restricted-3-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000277.json",
+      "sha256": "63b74a2242d73e4da0fc3f56ee206c3a34ec1e5252495db5d2ea928c7828d978"
+    },
+    {
+      "id": "search-simulation/legality/restricted-3-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000278.json",
+      "sha256": "8d3b88ec58e1449b8316d0db81f8399867970418a7b82ac24384f8e42ba4567e"
+    },
+    {
+      "id": "search-simulation/legality/restricted-4-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000279.json",
+      "sha256": "d4e1832fd6b8fa69f8cde1d8176836d124943271c0129dc6d546c8fdbac4ab66"
+    },
+    {
+      "id": "search-simulation/legality/restricted-4-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000280.json",
+      "sha256": "c847b0d4ec37d5caa9befec35b43af42a8d8ca03bb158ce6a01b2bd71fa686d3"
+    },
+    {
+      "id": "search-simulation/legality/restricted-5-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000281.json",
+      "sha256": "07a2a99ee9638d71dc507ac9451a749f1cc9ce4b74df66cc35cdd9b180194786"
+    },
+    {
+      "id": "search-simulation/legality/restricted-5-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000282.json",
+      "sha256": "3cefd80b68c5c313342eeeec5a22bf6d11243e193a3833d69fa3e5f343879ede"
+    },
+    {
+      "id": "search-simulation/legality/restricted-6-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000283.json",
+      "sha256": "05612e40017f89b68a506f6d65d404b97904e11b6bb15b5d5394e5ea9e6bbafd"
+    },
+    {
+      "id": "search-simulation/legality/restricted-6-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000284.json",
+      "sha256": "df081ab436aa15c9e9b307136acca6b6cc9b734fc9ca5568e9032c34967a8372"
+    },
+    {
+      "id": "search-simulation/legality/restricted-7-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000285.json",
+      "sha256": "7d492038a17acc0dd16c2bac59bf4a72e5dec9239733e06525456db3d7afaf55"
+    },
+    {
+      "id": "search-simulation/legality/restricted-7-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000286.json",
+      "sha256": "0053795ae1f8419ae9c3badae774fb20ca7fd2535016a58777ab0da378267d41"
+    },
+    {
+      "id": "search-simulation/legality/restricted-8-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000287.json",
+      "sha256": "059643719eb9f68bf7d888da6d262f3845f92c9055a7fcf5b65ea7b46bfae61b"
+    },
+    {
+      "id": "search-simulation/legality/restricted-8-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000288.json",
+      "sha256": "7bf2c1b041f93692fc414343989b494d190f76fb13fe50dac5f4763dc03a75ae"
+    },
+    {
+      "id": "search-simulation/legality/restricted-9-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000289.json",
+      "sha256": "19f49e2a3b9e2226fafb5189c88374c8be4d191cdee7352a799e2c1aac673f3e"
+    },
+    {
+      "id": "search-simulation/legality/restricted-9-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000290.json",
+      "sha256": "158b15cec5ca752ee8f3314d6703512de1b4e17a655700cca115090b2cb0a2db"
+    },
+    {
+      "id": "search-simulation/legality/restricted-10-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000291.json",
+      "sha256": "f33deacc1d7ec220012ec51f1c98752b56462723dea4a9b228ed40742c7db61f"
+    },
+    {
+      "id": "search-simulation/legality/restricted-10-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000292.json",
+      "sha256": "1d7b792550d5537b32bd71f335dd34d1472d8a3f7cefe82748f5eb81633c869b"
+    },
+    {
+      "id": "search-simulation/legality/restricted-11-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000293.json",
+      "sha256": "d6a2156febd977a06f389799f551d3eb66f1186e2262d92db2a1b898e5c246b7"
+    },
+    {
+      "id": "search-simulation/legality/restricted-11-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000294.json",
+      "sha256": "ae4b9f09ae15d22bd77935b1f78ee13ff9e600cf297588481621b5f4be0b3072"
+    },
+    {
+      "id": "search-simulation/legality/restricted-12-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000295.json",
+      "sha256": "5b55b782b6feb86908cd87720858313d417b808c5fc084824a35ff23a7615086"
+    },
+    {
+      "id": "search-simulation/legality/restricted-12-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000296.json",
+      "sha256": "e573bfb735bfab0182420f750c6347464b6c46f759dc52f01013da9a941cdf8c"
+    },
+    {
+      "id": "search-simulation/legality/restricted-13-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000297.json",
+      "sha256": "a9d2afcf3ccd68b1921f423b19f529756550bbce8545ad2b942234c9975167cb"
+    },
+    {
+      "id": "search-simulation/legality/restricted-13-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000298.json",
+      "sha256": "4216eb5b08512011ea2b7a77a0bf1d5ac146a8325ce034df283b45a65465276e"
+    },
+    {
+      "id": "search-simulation/legality/restricted-14-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000299.json",
+      "sha256": "960c767dfab9b24aa3e558f33139a2cc46a4c9dbc28141e9452bb0652e15b9af"
+    },
+    {
+      "id": "search-simulation/legality/restricted-14-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000300.json",
+      "sha256": "27af93686d1e69004d82bfa426bf1e2f68ee062f4f8c45a5e3251c8e510fd8c6"
+    },
+    {
+      "id": "search-simulation/legality/restricted-15-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000301.json",
+      "sha256": "c237ed399e01538e52f287f4262bb6d4275501a15c5ead389d480067f319fce6"
+    },
+    {
+      "id": "search-simulation/legality/restricted-15-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000302.json",
+      "sha256": "8df1834afcb603d005e6c27600d6ac7a6fe2fcee4f3a64e13d79864ead2ed11f"
+    },
+    {
+      "id": "search-simulation/legality/restricted-16-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000303.json",
+      "sha256": "4c9be661ba2e58f6b6051d9f387845927fe82febc5f574d2e1de65f36899cf21"
+    },
+    {
+      "id": "search-simulation/legality/restricted-16-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000304.json",
+      "sha256": "00f88d65328af1816da2deca667c9f0610a294e47ec6e91d4c86e3db407e4fe1"
+    },
+    {
+      "id": "search-simulation/legality/restricted-17-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000305.json",
+      "sha256": "3c3b4a946ca7e716d7a97100f7378dabf7b60ae3f939be5cffc2e999641e5681"
+    },
+    {
+      "id": "search-simulation/legality/restricted-17-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000306.json",
+      "sha256": "8c8a85629a838f7801b7a5a0f0928f28e9fada9bb109195a98883e31110ddf72"
+    },
+    {
+      "id": "search-simulation/legality/restricted-18-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000307.json",
+      "sha256": "10ad829395328438bdf5719329f20dafed5a0dbfa41eecaea1d22a32c592b766"
+    },
+    {
+      "id": "search-simulation/legality/restricted-18-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000308.json",
+      "sha256": "118cc33468dccab4c35a41399d0515430b3713661af45038b301f8c68ef398c4"
+    },
+    {
+      "id": "search-simulation/legality/restricted-19-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000309.json",
+      "sha256": "52d49bb38cfeb7361da60428b0d1b81f0371b4109b4f9a356b8dce636e32a86f"
+    },
+    {
+      "id": "search-simulation/legality/restricted-19-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000310.json",
+      "sha256": "282f4e5bc6b3e6f01c560e5bb1c65f5bd5e92050bdc5dfd374bde48939442536"
+    },
+    {
+      "id": "search-simulation/legality/restricted-20-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000311.json",
+      "sha256": "b6c39faaa571ece759e25f30438a57261ebc0fdc4232af440baee8e656740709"
+    },
+    {
+      "id": "search-simulation/legality/restricted-20-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000312.json",
+      "sha256": "d7cfdf8b58d43a4fcd89426aab4ec63b9a1298aab70d4cc477392f0879712f42"
+    },
+    {
+      "id": "search-simulation/legality/restricted-21-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000313.json",
+      "sha256": "82f8bca87cfff57cbba8f2630416bd5f007f388df6e9f58173f95594b3726cad"
+    },
+    {
+      "id": "search-simulation/legality/restricted-21-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000314.json",
+      "sha256": "9df3497217494e3da55bcf458a7b00c6d1c2449e65f0a9e1bacfa7703105783e"
+    },
+    {
+      "id": "search-simulation/legality/restricted-22-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000315.json",
+      "sha256": "2649ec600011dd7280058750423a9e45bb73f0c8ce6c6b78a320664e1ba72d4a"
+    },
+    {
+      "id": "search-simulation/legality/restricted-22-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000316.json",
+      "sha256": "f8fe55e28657d5b9bf82f07a6a2c37b15c2ae2cbf9ee2a5999fd110772ff33c4"
+    },
+    {
+      "id": "search-simulation/legality/restricted-23-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000317.json",
+      "sha256": "50a4c2be9bb0ef09b843559e9acd5efe518da4705d10738391e75325b58ed0c3"
+    },
+    {
+      "id": "search-simulation/legality/restricted-23-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000318.json",
+      "sha256": "187e2a11ec5a0cc5115d6af5967bceb535a5a3b73e3bffbcbe8b179b7100afea"
+    },
+    {
+      "id": "search-simulation/legality/restricted-24-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000319.json",
+      "sha256": "d17f9a2fd78ae0330e1dbad0869089c60b597e88778e135b5c8cf524911391a9"
+    },
+    {
+      "id": "search-simulation/legality/restricted-24-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000320.json",
+      "sha256": "77878114208d202420bc468b4ffb8a263eb70e12c5df816c3e5caa750f43e374"
+    },
+    {
+      "id": "search-simulation/legality/restricted-25-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000321.json",
+      "sha256": "6e4702784461c490787965d9adbfd29b0e10e3f9321b5e5336667600ecb650db"
+    },
+    {
+      "id": "search-simulation/legality/restricted-25-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000322.json",
+      "sha256": "9ea04306f55eb705d00ef7a91fbae4569ebc68f861b4b4f556aea768ef4a10dd"
+    },
+    {
+      "id": "search-simulation/legality/restricted-26-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000323.json",
+      "sha256": "1776c79d4b8b6ce1cfbf16ed0561078c69fbed09f3736bf59f69b479321476bc"
+    },
+    {
+      "id": "search-simulation/legality/restricted-26-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000324.json",
+      "sha256": "aceefd0c225c2e88ac9baf11bbb56949e133708b77035e4d80cc33dfa70de7c0"
+    },
+    {
+      "id": "search-simulation/legality/restricted-27-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000325.json",
+      "sha256": "a6cd62438e669422c8472cfe2cd409c5046c54688e58936a7a69e3e737fce5f7"
+    },
+    {
+      "id": "search-simulation/legality/restricted-27-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000326.json",
+      "sha256": "b8882f6c5e64462cc18f1956b364e122b4842fad56e8c9da3e25e1f35e5017da"
+    },
+    {
+      "id": "search-simulation/legality/restricted-28-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000327.json",
+      "sha256": "2139109c801b0f88304dd57a34bded327edab451cda4418be00c0726615f5fed"
+    },
+    {
+      "id": "search-simulation/legality/restricted-28-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000328.json",
+      "sha256": "fe4edc6648b0de68842617dc3b0585b6fc0b9a8d955df3ed4c1ee3751a7c6f89"
+    },
+    {
+      "id": "search-simulation/legality/restricted-29-required",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000329.json",
+      "sha256": "33ca29f65b7af3e1cf18d85d37dc2759bac468e9c59a2d854805ea50cc548284"
+    },
+    {
+      "id": "search-simulation/legality/restricted-29-missing",
+      "operation": "optimizer_legality",
+      "path": "search_simulation/000330.json",
+      "sha256": "d0c8cdd5e6fba6bd1240dc4f3f95715f5414f7cd193c4b92f35b31774055851c"
+    },
+    {
+      "id": "search-simulation/dt-regression--30--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000331.json",
+      "sha256": "20d6d5b212e5f31ac30835f49fd5f36a651ad05155ed80be0c47ee166e86a17d"
+    },
+    {
+      "id": "search-simulation/dt-regression--30--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000332.json",
+      "sha256": "e95b8a10aad7835729b5f976a3744c05071c7942b6b8430b60df10dcfcb722d3"
+    },
+    {
+      "id": "search-simulation/dt-regression--30-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000333.json",
+      "sha256": "616caceea084f0d79269f69d863f80dbb17f713f93a64ab152cb5750cf87c07f"
+    },
+    {
+      "id": "search-simulation/dt-regression--30-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000334.json",
+      "sha256": "dec67dc402165deeaf0968e146a779f0d067b68a797a1d0c8b97dc56963aa90b"
+    },
+    {
+      "id": "search-simulation/dt-regression--30-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000335.json",
+      "sha256": "c3ed2f03c728dc4d366fe802bde5336373b16df8a7ff1a2f81fcb6fb5d293d1f"
+    },
+    {
+      "id": "search-simulation/dt-regression--30-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000336.json",
+      "sha256": "ead202911f2014a86afe15e7809577ecb3ccb9e3b49b1e6f6b2077971be6f209"
+    },
+    {
+      "id": "search-simulation/dt-regression--25--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000337.json",
+      "sha256": "296e32937b13d4d5ecc66ec8b26386b3caef7fe37b7f1678707b4dc68be1fe1f"
+    },
+    {
+      "id": "search-simulation/dt-regression--25--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000338.json",
+      "sha256": "0e0ee8882a40dfbdb42115b6c21ef83934e8ce783616be01070fa94df22fcfe9"
+    },
+    {
+      "id": "search-simulation/dt-regression--25-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000339.json",
+      "sha256": "2926b67a7818aa41f700440e5c503c13bddc0bb63ab9a0611776d2801634a2a5"
+    },
+    {
+      "id": "search-simulation/dt-regression--25-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000340.json",
+      "sha256": "bc619a8db765d06b147ade3765c83500e5ddfa6ee27d9a1b35ae288e7b02974b"
+    },
+    {
+      "id": "search-simulation/dt-regression--25-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000341.json",
+      "sha256": "5be89fe625259e16dde6892bfea4920e915fb54dc13d485ce495099bdf826568"
+    },
+    {
+      "id": "search-simulation/dt-regression--25-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000342.json",
+      "sha256": "d3c7281148c0aa00d72ac8aa857867fa7568cc75e3c09a972b712f0ca4bc6b10"
+    },
+    {
+      "id": "search-simulation/dt-regression--20--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000343.json",
+      "sha256": "0eec730e0db5a1796429cea04420a50bdf5ed2d3135b984763a27772dac82269"
+    },
+    {
+      "id": "search-simulation/dt-regression--20--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000344.json",
+      "sha256": "c094ab99979b60fe589567497388238a6e4a66c098f037dc1fe928aa8779c1ba"
+    },
+    {
+      "id": "search-simulation/dt-regression--20-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000345.json",
+      "sha256": "8fece716cbe4a7fb63dffe08767d70d700d20b78a48c5fc93c3dbbb84db31793"
+    },
+    {
+      "id": "search-simulation/dt-regression--20-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000346.json",
+      "sha256": "e2bf9d4e84bb366c13749adc66dba02d57e9269f25fd08c53eadfb37857638a5"
+    },
+    {
+      "id": "search-simulation/dt-regression--20-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000347.json",
+      "sha256": "9b2d9689a574b199c3606081c8eaaab44550e93f91f929aad6bafdb72a629ef9"
+    },
+    {
+      "id": "search-simulation/dt-regression--20-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000348.json",
+      "sha256": "2cfd90c5f5f947bcf839b2ae2accfed9a2f918daa43f8ddaf4549743845b4410"
+    },
+    {
+      "id": "search-simulation/dt-regression--15--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000349.json",
+      "sha256": "99ed22539f34cd2688a2be6400e58632f81e25e758e366bd0bed63d753f5f79c"
+    },
+    {
+      "id": "search-simulation/dt-regression--15--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000350.json",
+      "sha256": "aaf8c8007caf8716198d9d49bb2ddc488c6a297cb3078e0704bbd067857c5dcd"
+    },
+    {
+      "id": "search-simulation/dt-regression--15-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000351.json",
+      "sha256": "9aa0a97fc5abed7fb8526db1b04077d3350016d6241fe48b7ad3f747cfaa7d17"
+    },
+    {
+      "id": "search-simulation/dt-regression--15-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000352.json",
+      "sha256": "61913394f1903ba0c430cb8aefe22981cb387a667233016ec59e91cbc93f376a"
+    },
+    {
+      "id": "search-simulation/dt-regression--15-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000353.json",
+      "sha256": "83af3e2dfededfc30c3609cb00e87f5a34ac96393e72f52e952dafd87a0d4c78"
+    },
+    {
+      "id": "search-simulation/dt-regression--15-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000354.json",
+      "sha256": "7dd9ad3dc912d0f6aa72b023004741b1f6d75a59543d1d9019cee4b90274dc4a"
+    },
+    {
+      "id": "search-simulation/dt-regression--10--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000355.json",
+      "sha256": "58a0406d5150c61c3be3c1374d8ccf3b8b32e026973b68d8bf1bd564654d8229"
+    },
+    {
+      "id": "search-simulation/dt-regression--10--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000356.json",
+      "sha256": "6472bd48a489c578feb61a7880376d9b6d0a234e825bdc068eaa96d0c53573e8"
+    },
+    {
+      "id": "search-simulation/dt-regression--10-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000357.json",
+      "sha256": "9a01771f16bae82bfbc76ecec36677aef8a8224b5739b5d8dbcad6041a1c781e"
+    },
+    {
+      "id": "search-simulation/dt-regression--10-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000358.json",
+      "sha256": "a8f97a09a8ad82937a2a95ae17006c2c8dc71f14c5d2bc7e898cbc18cefc1b2b"
+    },
+    {
+      "id": "search-simulation/dt-regression--10-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000359.json",
+      "sha256": "1573f02d6b4ccfc1a04bf78379eef4d03ded6ad6851f2f2da9d8ae4471dd84fe"
+    },
+    {
+      "id": "search-simulation/dt-regression--10-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000360.json",
+      "sha256": "5cb06d26a207a89067a9bf807bd501fb9ccf7c220994952ce02d4cab97738e40"
+    },
+    {
+      "id": "search-simulation/dt-regression--5--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000361.json",
+      "sha256": "ead6faea58ea844f1608ce3af1328bc275f582c8dcd06a2c3b1af97d6339482f"
+    },
+    {
+      "id": "search-simulation/dt-regression--5--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000362.json",
+      "sha256": "30d98dfabd7df0be7883d7405e89557bd14c14acaa78429906d32ba786378061"
+    },
+    {
+      "id": "search-simulation/dt-regression--5-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000363.json",
+      "sha256": "321138c7ad7d4a07e2760ced87a5e25218b84cf7b287b5fa6a15ee51ddbb0b47"
+    },
+    {
+      "id": "search-simulation/dt-regression--5-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000364.json",
+      "sha256": "28e341461ef78cfdf694d839d86220d6eb05a147a46211393f7f4ad52d9c0f7f"
+    },
+    {
+      "id": "search-simulation/dt-regression--5-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000365.json",
+      "sha256": "8e0829ad87a40dbb4900f6e6673852760b9c33a7dc3b9b9a69cb544e1612f7c3"
+    },
+    {
+      "id": "search-simulation/dt-regression--5-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000366.json",
+      "sha256": "07ff608352f6a2cda3e75f1cc04f627b5c85ccdd7ad57744e8e11e3d255c96fc"
+    },
+    {
+      "id": "search-simulation/dt-regression-0--20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000367.json",
+      "sha256": "5a21b5f216234d64cf71424c52d24566bad75a0b5ffb232dfff9618a725f8b8b"
+    },
+    {
+      "id": "search-simulation/dt-regression-0--20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000368.json",
+      "sha256": "9a42a2251117cfb38f4cf2aa2539526191a21784c433f34b1767d20445fa1282"
+    },
+    {
+      "id": "search-simulation/dt-regression-0-0-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000369.json",
+      "sha256": "5da2f17060cd0e0afe685f0fa383115873b327fccffbc67562e6b3e8050cf4b3"
+    },
+    {
+      "id": "search-simulation/dt-regression-0-0-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000370.json",
+      "sha256": "faa7689bcc74c6a9aa02b2d70406559d06b6d923f3bed2bdec9e0601dd55440c"
+    },
+    {
+      "id": "search-simulation/dt-regression-0-20-fast0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000371.json",
+      "sha256": "66720e31f65c882d3407d094b74f3fbc1b89c604a5fce424ee214ccdff212347"
+    },
+    {
+      "id": "search-simulation/dt-regression-0-20-fast1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000372.json",
+      "sha256": "8acf449c1689f91b105ef14dd4dbb7f8f555b5baa6102df8601ffd6e95385dd8"
+    },
+    {
+      "id": "search-simulation/dt-typeII-pdt-below-am0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000373.json",
+      "sha256": "6ea65d4c31b6c16b9f4ba7f42a107d8879bccae3282580da32a4be52ab836eed"
+    },
+    {
+      "id": "search-simulation/dt-typeII-pdt-equal-am0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000374.json",
+      "sha256": "7cd62b9745c35a0c55d4d1b80419472fd01216783e92d1f9ee9855560f7983f3"
+    },
+    {
+      "id": "search-simulation/dt-typeII-pdt-above-am0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000375.json",
+      "sha256": "bc267dd682349b2d5f34c2830d47989a23a2e54cb6a0e1b0320a29719e77d7c2"
+    },
+    {
+      "id": "search-simulation/dt-typeII-mdt-below-am0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000376.json",
+      "sha256": "6c1c85a4f8d6a7d38234f33c0ea1c7ce258bd04857f45f52a5021f35cee98af6"
+    },
+    {
+      "id": "search-simulation/dt-typeII-mdt-equal-am0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000377.json",
+      "sha256": "0a61e3178346f753b2661666db9c692e4a466aed8af1e647e3b674d94fabc4f2"
+    },
+    {
+      "id": "search-simulation/dt-typeII-mdt-above-am0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000378.json",
+      "sha256": "f8bfd3459b71c331da4e3872c65fc7e503aba6386d132b1414c3a751b94ec632"
+    },
+    {
+      "id": "search-simulation/dt-typeII-pdt-below-am1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000379.json",
+      "sha256": "d941a391420bcf8d2965ef38f36208444fde61ebca3f7340d5db261a7c1e8bb2"
+    },
+    {
+      "id": "search-simulation/dt-typeII-pdt-equal-am1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000380.json",
+      "sha256": "08cbada530dc71f51aafc1bfcc185e88f8c91a1ce4a793a8e5d8b120d714e4f1"
+    },
+    {
+      "id": "search-simulation/dt-typeII-pdt-above-am1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000381.json",
+      "sha256": "908fa12a5be947d5316ac96d59ea79f2bf9b209d4e150a564651eee7337ae697"
+    },
+    {
+      "id": "search-simulation/dt-typeII-mdt-below-am1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000382.json",
+      "sha256": "b7479d1ffa4a461e133bf3e6c3c1070c21abd5fcf5f6aa339815d7f484e36f5b"
+    },
+    {
+      "id": "search-simulation/dt-typeII-mdt-equal-am1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000383.json",
+      "sha256": "cdfbdc11ce7931c095176de8b2b62eeb610e4fd05a7570f71adb08d4cefad1c4"
+    },
+    {
+      "id": "search-simulation/dt-typeII-mdt-above-am1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000384.json",
+      "sha256": "51eba118ff2d0bc4abebdaf21e5a20ed03ce12e94da59b767371ddcf53ab51ab"
+    },
+    {
+      "id": "search-simulation/dt-relic-aftermath-full-verification-0",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000385.json",
+      "sha256": "9e83fe43cf841e843baef64280237eeb92202aa96f8a7096022bdec33b9b7e2c"
+    },
+    {
+      "id": "search-simulation/dt-relic-aftermath-full-verification-1",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000386.json",
+      "sha256": "4b77e5fa51182d8ced3d03f4eb4ac3e52514f12592b0945ff2572179e2856ea6"
+    },
+    {
+      "id": "search-simulation/dt-relic-aftermath-full-verification-2",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000387.json",
+      "sha256": "664b79127d8d9c1ed62af4713c5e47b07f7f19b73f1954137a495abbe9241c8b"
+    },
+    {
+      "id": "search-simulation/dt-relic-aftermath-full-verification-3",
+      "operation": "optimizer_score",
+      "path": "search_simulation/000388.json",
+      "sha256": "c0991779abc74c601048e44acf8822a4f97f66e81bfc5dbe8e0d047f725ec75c"
+    },
+    {
+      "id": "search-simulation/stateful-enspell-pool0",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000389.json",
+      "sha256": "b29a8992d637873b8d8d800fa3a8ccce0359d306df8e3d0164a7903641d9a4b8"
+    },
+    {
+      "id": "search-simulation/stateful-enspell-pool1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000390.json",
+      "sha256": "49973c3ba7178dcfca98ecffccc7ca34f191b93acacd83e24b246b56f5202ae5"
+    },
+    {
+      "id": "search-simulation/stateful-magical-pool0",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000391.json",
+      "sha256": "d4000ddf63dc64f8923a083d72af0f5787ec32d93c7f4595712bbab6aa3c8e9f"
+    },
+    {
+      "id": "search-simulation/stateful-magical-pool1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000392.json",
+      "sha256": "55f85aa3dda452a2e7dcd2537c4b4c72319b4506563cea7025349b88a5107e06"
+    },
+    {
+      "id": "search-simulation/stateful-hybrid-pool0",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000393.json",
+      "sha256": "cdfc93d374757d35daa64754288a268200afb402daf3f127ffe524427671ba20"
+    },
+    {
+      "id": "search-simulation/stateful-hybrid-pool1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000394.json",
+      "sha256": "65c78473015427bbf44ea0bd7205b55996d1e83e3b185372ded1511c44e903df"
+    },
+    {
+      "id": "search-simulation/stateful-h2h-isolated-pool0",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000395.json",
+      "sha256": "c7565899bfd315c86a53517aa6ebeefc86ab1202536e85b46762d087f3e2e008"
+    },
+    {
+      "id": "search-simulation/stateful-h2h-isolated-pool1",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000396.json",
+      "sha256": "729c30baa52fad914ed3b0ac3d20990c5ac10495b434ff0b1549566d56f4277b"
+    },
+    {
+      "id": "search-simulation/h2h-then-nin-shared-empty-sequence",
+      "operation": "optimizer_sequence",
+      "path": "search_simulation/000397.json",
+      "sha256": "7483ada3e0d4da7e93344b443e980a043b046cd8bf2a001a38df071159cf449a"
+    },
+    {
+      "id": "search-simulation/nin-isolated-state-control",
+      "operation": "optimizer_pass",
+      "path": "search_simulation/000398.json",
+      "sha256": "d409a992abb57d18dcb7677991d2e7c4023a6e695e7cc2aa8fa7573357f0a747"
+    },
+    {
+      "id": "search-simulation/full7200-single-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000399.json",
+      "sha256": "c9d054e3b7764fec3e77648373eb0e4da76433ea83f65be5adf5dea6fd92c624"
+    },
+    {
+      "id": "search-simulation/full7200-single-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000400.json",
+      "sha256": "63b6f02126d680ce6459f8ca8c050e4779304ffa979fc753718aed9f1196e251"
+    },
+    {
+      "id": "search-simulation/full7200-dual-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000401.json",
+      "sha256": "ada299dbcf174edf2bbf2e2d48958f122c2fbad43331bdc62f2bc34e656db2e9"
+    },
+    {
+      "id": "search-simulation/full7200-dual-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000402.json",
+      "sha256": "b4a79f5e5d309d8c2798716c5d342a601014d739fe6f156ac824301a08c407f0"
+    },
+    {
+      "id": "search-simulation/full7200-h2h-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000403.json",
+      "sha256": "50cc0920967f80dc92eede969c669e70d6bb7a2b2e44f0506a6275123ff42d74"
+    },
+    {
+      "id": "search-simulation/full7200-h2h-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000404.json",
+      "sha256": "a8391055ca8a1eaf58f33741c969b837c7f6635fed40bf45e99088aa4085c170"
+    },
+    {
+      "id": "search-simulation/full7200-dual-tp-single-ws-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000405.json",
+      "sha256": "ecaecdd3ed5a2d3a2246bb2714a69a34191a1f26952c094f6d18a8a922ff2916"
+    },
+    {
+      "id": "search-simulation/full7200-dual-tp-single-ws-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000406.json",
+      "sha256": "8805b975276ac58d247cb18d87ae9c9ca67f05c66dc7e476e315168eed8b3c9b"
+    },
+    {
+      "id": "search-simulation/full7200-two-handed-tp-dual-ws-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000407.json",
+      "sha256": "28e0ea9a3b55a727c498afabe79aa053b9e90544fc8cba8779f6af432a3586ae"
+    },
+    {
+      "id": "search-simulation/full7200-two-handed-tp-dual-ws-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000408.json",
+      "sha256": "fd1212ec939bcbc66c4aa2fdded2f2299a7862c27f53cb6203f29007a285352b"
+    },
+    {
+      "id": "search-simulation/full7200-h2h-tp-sword-ws-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000409.json",
+      "sha256": "1317873bd4f92331c74458f7920acdcabdf51c581467589f51f6d58bb9f48f35"
+    },
+    {
+      "id": "search-simulation/full7200-h2h-tp-sword-ws-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000410.json",
+      "sha256": "94f95000314d0ba53206c3fc818f52e59c4b6612cb5f113f5496d43253401b5c"
+    },
+    {
+      "id": "search-simulation/full7200-sword-tp-h2h-ws-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000411.json",
+      "sha256": "2d1280df543fbcfa6aaaf7a84492bbf88c73150d9ad05377bd23d1aa215c74a3"
+    },
+    {
+      "id": "search-simulation/full7200-sword-tp-h2h-ws-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000412.json",
+      "sha256": "605e4cb5c99e841b8a49e2c03802cc43903b74461aba87f8670b1a8689eb7fa3"
+    },
+    {
+      "id": "search-simulation/full7200-gokotai-tp-heishi-ws-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000413.json",
+      "sha256": "997b94ae155f4ecf2f795404a63b49396e681d6ce213f730162f2ccdfb7490d2"
+    },
+    {
+      "id": "search-simulation/full7200-gokotai-tp-heishi-ws-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000414.json",
+      "sha256": "04f12fde1a78e61840966a9fb2b3276baaa639a47323b1b68028f17a51d6ea4e"
+    },
+    {
+      "id": "search-simulation/full7200-footwork-dragon-fangs-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000415.json",
+      "sha256": "ca3c8b30ceca19100fc3f5408e56be4c015bcf11c1134362f158ea048592e1b2"
+    },
+    {
+      "id": "search-simulation/full7200-footwork-dragon-fangs-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000416.json",
+      "sha256": "7df294d7acc4746fe528951aa6531929c9bdd60602f8d19daecc4d93aa36f32d"
+    },
+    {
+      "id": "search-simulation/full7200-enspell-dual-magical-ws-host11-compiled20240101",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000417.json",
+      "sha256": "f6ae72e978e96b3243c8fb80dc5c6e6cffbbca2d0167aa819d6185236783fdb2"
+    },
+    {
+      "id": "search-simulation/full7200-enspell-dual-magical-ws-host20240101-compiled11",
+      "operation": "simulation_dps",
+      "path": "search_simulation/000418.json",
+      "sha256": "e266aecf90e3ea11b32137495ac65fdb16aa69f7419661a71308ea78cf1eb6d5"
+    },
+    {
+      "id": "search-simulation/provable-nonprogress-negative-stp",
+      "operation": "simulation_nonprogress",
+      "path": "search_simulation/000419.json",
+      "sha256": "fa8d0b2f61779ab8f123ac293bca73fd678637a45bf4c7a04754f613a1ecdc15"
+    },
+    {
+      "id": "search-simulation/distribution20000-physical-host11-compiled20240101",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000420.json",
+      "sha256": "388a73a4f7876aff21940586c5f95226ba38c9320f9f4406b0e6f830fc72fa0c"
+    },
+    {
+      "id": "search-simulation/distribution20000-physical-host20240101-compiled11",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000421.json",
+      "sha256": "7a037c3c5bcc7ac6e256e97de8ab1868252691cbfcef5b05f2c2c3ccbdaa5d5b"
+    },
+    {
+      "id": "search-simulation/distribution20000-magical-constant-host11-compiled20240101",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000422.json",
+      "sha256": "1bd3dd2079c423b83a6ea935527c905bba06bb3ddad4882e64adfcaf1a54a0a1"
+    },
+    {
+      "id": "search-simulation/distribution20000-magical-constant-host20240101-compiled11",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000423.json",
+      "sha256": "eea23498a2e46cdb93ee28435af00355a789ebc4ba86a96dfa7681c4f0a70cd0"
+    },
+    {
+      "id": "search-simulation/distribution20000-hybrid-host11-compiled20240101",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000424.json",
+      "sha256": "59db070b9f0f17efdb42f80a6b638990c58101fb96f954e70f1e6200b9a20336"
+    },
+    {
+      "id": "search-simulation/distribution20000-hybrid-host20240101-compiled11",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000425.json",
+      "sha256": "650b27a04a5b9b688c3c2f6a7237e207f8d50a22b0d8344e633fb4351458aafe"
+    },
+    {
+      "id": "search-simulation/distribution20000-single-first-hit-fotia-conserve-host11-compiled20240101",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000426.json",
+      "sha256": "08318d6c34a0ef12278eb6e091d0aba36a401fefdd1768f2c0ff16c4eaa50706"
+    },
+    {
+      "id": "search-simulation/distribution20000-single-first-hit-fotia-conserve-host20240101-compiled11",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000427.json",
+      "sha256": "638dc3f9577ad072f343ca57d823515ec2e1a48ec28c4ce6d291b4f0d9238dd1"
+    },
+    {
+      "id": "search-simulation/distribution20000-simulation-cap-host11-compiled20240101",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000428.json",
+      "sha256": "824dba3e42444c3f6a77225739bb72f82cbfc5c40b6fb2e7b79847ff97d55297"
+    },
+    {
+      "id": "search-simulation/distribution20000-simulation-cap-host20240101-compiled11",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000429.json",
+      "sha256": "a99b20c9490836312d19b96ef07c9fe9c1539fc2d82a601e5c0c613b48066aab"
+    },
+    {
+      "id": "search-simulation/distribution20000-magical-resists-positive-mdt-host11-compiled20240101",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000430.json",
+      "sha256": "55f714b040785cd86949447d535192383413ac4482076769e9d04b7bcaf2f293"
+    },
+    {
+      "id": "search-simulation/distribution20000-magical-resists-positive-mdt-host20240101-compiled11",
+      "operation": "simulation_distribution",
+      "path": "search_simulation/000431.json",
+      "sha256": "b82c13766ef75d5f317f016c673cb88ce4c56faca931fd925cbc04ab0afee661"
+    }
+  ]
+}

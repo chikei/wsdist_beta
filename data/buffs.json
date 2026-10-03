@@ -1,0 +1,824 @@
+{
+  "schema_version": 1,
+  "cor": {
+    "Chaos": {
+      "Attack%": {
+        "potency": {
+          "I": 0.0625,
+          "II": 0.0781,
+          "III": 0.0937,
+          "IV": 0.25,
+          "V": 0.1093,
+          "VI": 0.125,
+          "VII": 0.1562,
+          "VIII": 0.0312,
+          "IX": 0.1718,
+          "X": 0.1875,
+          "XI": 0.3125
+        },
+        "per_roll_bonus": 0.03125,
+        "job_bonus": 0.09765625
+      },
+      "Ranged Attack%": {
+        "potency": {
+          "I": 0.0625,
+          "II": 0.0781,
+          "III": 0.0937,
+          "IV": 0.25,
+          "V": 0.1093,
+          "VI": 0.125,
+          "VII": 0.1562,
+          "VIII": 0.0312,
+          "IX": 0.1718,
+          "X": 0.1875,
+          "XI": 0.3125
+        },
+        "per_roll_bonus": 0.03125,
+        "job_bonus": 0.09765625
+      }
+    },
+    "Samurai": {
+      "Store TP": {
+        "potency": {
+          "I": 8,
+          "II": 32,
+          "III": 10,
+          "IV": 12,
+          "V": 14,
+          "VI": 4,
+          "VII": 16,
+          "VIII": 20,
+          "IX": 22,
+          "X": 24,
+          "XI": 40
+        },
+        "per_roll_bonus": 4,
+        "job_bonus": 10
+      }
+    },
+    "Rogue's": {
+      "Crit Rate": {
+        "potency": {
+          "I": 1,
+          "II": 2,
+          "III": 3,
+          "IV": 4,
+          "V": 10,
+          "VI": 5,
+          "VII": 6,
+          "VIII": 7,
+          "IX": 1,
+          "X": 8,
+          "XI": 14
+        },
+        "per_roll_bonus": 1,
+        "job_bonus": 5
+      }
+    },
+    "Monk's": {
+      "Subtle Blow": {
+        "potency": {
+          "I": 8,
+          "II": 10,
+          "III": 32,
+          "IV": 12,
+          "V": 14,
+          "VI": 16,
+          "VII": 4,
+          "VIII": 20,
+          "IX": 22,
+          "X": 24,
+          "XI": 40
+        },
+        "per_roll_bonus": 4,
+        "job_bonus": 10
+      }
+    },
+    "Fighter's": {
+      "DA": {
+        "potency": {
+          "I": 1,
+          "II": 2,
+          "III": 3,
+          "IV": 4,
+          "V": 10,
+          "VI": 5,
+          "VII": 6,
+          "VIII": 6,
+          "IX": 1,
+          "X": 7,
+          "XI": 15
+        },
+        "per_roll_bonus": 1,
+        "job_bonus": 5
+      }
+    },
+    "Hunter's": {
+      "Accuracy": {
+        "potency": {
+          "I": 10,
+          "II": 13,
+          "III": 15,
+          "IV": 40,
+          "V": 18,
+          "VI": 20,
+          "VII": 25,
+          "VIII": 5,
+          "IX": 28,
+          "X": 30,
+          "XI": 50
+        },
+        "per_roll_bonus": 5,
+        "job_bonus": 15
+      },
+      "Ranged Accuracy": {
+        "potency": {
+          "I": 10,
+          "II": 13,
+          "III": 15,
+          "IV": 40,
+          "V": 18,
+          "VI": 20,
+          "VII": 25,
+          "VIII": 5,
+          "IX": 28,
+          "X": 30,
+          "XI": 50
+        },
+        "per_roll_bonus": 5,
+        "job_bonus": 15
+      }
+    },
+    "Wizard's": {
+      "Magic Attack": {
+        "potency": {
+          "I": 4,
+          "II": 6,
+          "III": 8,
+          "IV": 10,
+          "V": 25,
+          "VI": 12,
+          "VII": 14,
+          "VIII": 17,
+          "IX": 2,
+          "X": 20,
+          "XI": 30
+        },
+        "per_roll_bonus": 2,
+        "job_bonus": 10
+      }
+    },
+    "Warlock's": {
+      "Magic Accuracy": {
+        "potency": {
+          "I": 10,
+          "II": 13,
+          "III": 15,
+          "IV": 40,
+          "V": 18,
+          "VI": 20,
+          "VII": 25,
+          "VIII": 5,
+          "IX": 28,
+          "X": 30,
+          "XI": 50
+        },
+        "per_roll_bonus": 5,
+        "job_bonus": 15
+      }
+    },
+    "Tactician's": {
+      "Regain": {
+        "potency": {
+          "I": 10,
+          "II": 10,
+          "III": 10,
+          "IV": 10,
+          "V": 30,
+          "VI": 10,
+          "VII": 10,
+          "VIII": 0,
+          "IX": 20,
+          "X": 20,
+          "XI": 40
+        },
+        "per_roll_bonus": 2,
+        "job_bonus": 10
+      }
+    }
+  },
+  "brd": {
+    "Honor March": {
+      "Magic Haste": {
+        "base": 0.123046875,
+        "per_point": 0.01171875
+      },
+      "Attack": {
+        "base": 168,
+        "per_point": 16
+      },
+      "Ranged Attack": {
+        "base": 168,
+        "per_point": 16
+      },
+      "Accuracy": {
+        "base": 42,
+        "per_point": 4
+      },
+      "Ranged Accuracy": {
+        "base": 42,
+        "per_point": 4
+      }
+    },
+    "Victory March": {
+      "Magic Haste": {
+        "base": 0.1591796875,
+        "per_point": 0.015869140625
+      }
+    },
+    "Advancing March": {
+      "Magic Haste": {
+        "base": 0.10546875,
+        "per_point": 0.0115234375
+      }
+    },
+    "Minuet V": {
+      "Attack": {
+        "base": 149,
+        "per_point": 12.375
+      },
+      "Ranged Attack": {
+        "base": 149,
+        "per_point": 12.375
+      }
+    },
+    "Minuet IV": {
+      "Attack": {
+        "base": 137,
+        "per_point": 11.2
+      },
+      "Ranged Attack": {
+        "base": 137,
+        "per_point": 11.2
+      }
+    },
+    "Minuet III": {
+      "Attack": {
+        "base": 121,
+        "per_point": 9.5
+      },
+      "Ranged Attack": {
+        "base": 121,
+        "per_point": 9.5
+      }
+    },
+    "Minuet II": {
+      "Attack": {
+        "base": 89,
+        "per_point": 6.2
+      },
+      "Ranged Attack": {
+        "base": 89,
+        "per_point": 6.2
+      }
+    },
+    "Minuet": {
+      "Attack": {
+        "base": 57,
+        "per_point": 3.2
+      },
+      "Ranged Attack": {
+        "base": 57,
+        "per_point": 3.2
+      }
+    },
+    "Blade Madrigal": {
+      "Accuracy": {
+        "base": 60,
+        "per_point": 6
+      }
+    },
+    "Sword Madrigal": {
+      "Accuracy": {
+        "base": 45,
+        "per_point": 4.5
+      }
+    },
+    "Herculean Etude": {
+      "STR": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Sinewy Etude": {
+      "STR": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Uncanny Etude": {
+      "DEX": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Dextrous Etude": {
+      "DEX": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Vital Etude": {
+      "VIT": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Vivacious Etude": {
+      "VIT": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Swift Etude": {
+      "AGI": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Quick Etude": {
+      "AGI": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Sage Etude": {
+      "INT": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Learned Etude": {
+      "INT": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Logical Etude": {
+      "MND": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Spirited Etude": {
+      "MND": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Bewitching Etude": {
+      "CHR": {
+        "base": 15,
+        "per_point": 1
+      }
+    },
+    "Enchanting Etude": {
+      "CHR": {
+        "base": 9,
+        "per_point": 1
+      }
+    },
+    "Hunter's Prelude": {
+      "Ranged Accuracy": {
+        "base": 45,
+        "per_point": 4.5
+      }
+    },
+    "Archer's Prelude": {
+      "Ranged Accuracy": {
+        "base": 60,
+        "per_point": 6
+      }
+    },
+    "Aria of Passion": {
+      "PDL": {
+        "base": 12,
+        "per_point": 1.333
+      }
+    }
+  },
+  "brd_song_limits": {
+    "Minuet V": 8,
+    "Minuet IV": 8,
+    "Minuet III": 8,
+    "Minuet II": 8,
+    "Minuet": 8,
+    "Blade Madrigal": 9,
+    "Sword Madrigal": 9,
+    "Victory March": 8,
+    "Advancing March": 8,
+    "Honor March": 4,
+    "Sinewy Etude": 9,
+    "Herculean Etude": 9,
+    "Dextrous Etude": 9,
+    "Uncanny Etude": 9,
+    "Vivacious Etude": 9,
+    "Vital Etude": 9,
+    "Quick Etude": 9,
+    "Swift Etude": 9,
+    "Learned Etude": 9,
+    "Sage Etude": 9,
+    "Spirited Etude": 9,
+    "Logical Etude": 9,
+    "Enchanting Etude": 9,
+    "Bewitching Etude": 9,
+    "Hunter's Prelude": 8,
+    "Archer's Prelude": 8,
+    "Aria of Passion": 7
+  },
+  "geo": {
+    "Fury": {
+      "Attack%": {
+        "base": 0.347,
+        "per_point": 0.027
+      },
+      "Ranged Attack%": {
+        "base": 0.347,
+        "per_point": 0.027
+      }
+    },
+    "Acumen": {
+      "Magic Attack": {
+        "base": 15,
+        "per_point": 3
+      }
+    },
+    "Focus": {
+      "Magic Accuracy": {
+        "base": 50,
+        "per_point": 5
+      }
+    },
+    "Haste": {
+      "Magic Haste": {
+        "base": 0.299,
+        "per_point": 0.011000000000000001
+      }
+    },
+    "Precision": {
+      "Accuracy": {
+        "base": 50,
+        "per_point": 5
+      },
+      "Ranged Accuracy": {
+        "base": 50,
+        "per_point": 5
+      }
+    },
+    "STR": {
+      "STR": {
+        "base": 25,
+        "per_point": 2
+      }
+    },
+    "DEX": {
+      "DEX": {
+        "base": 25,
+        "per_point": 2
+      }
+    },
+    "VIT": {
+      "VIT": {
+        "base": 25,
+        "per_point": 2
+      }
+    },
+    "AGI": {
+      "AGI": {
+        "base": 25,
+        "per_point": 2
+      }
+    },
+    "INT": {
+      "INT": {
+        "base": 25,
+        "per_point": 2
+      }
+    },
+    "MND": {
+      "MND": {
+        "base": 25,
+        "per_point": 2
+      }
+    },
+    "CHR": {
+      "CHR": {
+        "base": 25,
+        "per_point": 2
+      }
+    }
+  },
+  "whm": {
+    "Haste": {
+      "Magic Haste": 0.146484375
+    },
+    "Haste II": {
+      "Magic Haste": 0.2998046875
+    },
+    "Aurorastorm II": {
+      "CHR": 7
+    },
+    "Voidstorm II": {
+      "STR": 3,
+      "DEX": 3,
+      "VIT": 3,
+      "AGI": 3,
+      "MND": 3,
+      "INT": 3,
+      "CHR": 3
+    },
+    "Firestorm II": {
+      "STR": 7
+    },
+    "Sandstorm II": {
+      "VIT": 7
+    },
+    "Rainstorm II": {
+      "MND": 7
+    },
+    "Windstorm II": {
+      "AGI": 7
+    },
+    "Hailstorm II": {
+      "INT": 7
+    },
+    "Thunderstorm II": {
+      "DEX": 7
+    },
+    "Boost-STR": {
+      "STR": 25
+    },
+    "Boost-DEX": {
+      "DEX": 25
+    },
+    "Boost-VIT": {
+      "VIT": 25
+    },
+    "Boost-AGI": {
+      "AGI": 25
+    },
+    "Boost-MND": {
+      "MND": 25
+    },
+    "Boost-INT": {
+      "INT": 25
+    },
+    "Boost-CHR": {
+      "CHR": 25
+    },
+    "Gain-STR": {
+      "STR": 55
+    },
+    "Gain-DEX": {
+      "DEX": 55
+    },
+    "Gain-VIT": {
+      "VIT": 55
+    },
+    "Gain-AGI": {
+      "AGI": 55
+    },
+    "Gain-MND": {
+      "MND": 55
+    },
+    "Gain-INT": {
+      "INT": 55
+    },
+    "Gain-CHR": {
+      "CHR": 55
+    },
+    "Shell V": {
+      "MDT": -29
+    }
+  },
+  "cor_debuffs": {
+    "Light Shot": {
+      "Defense": 0.02734375
+    }
+  },
+  "geo_debuffs": {
+    "Frailty": {
+      "Defense": {
+        "base": 0.148,
+        "per_point": 0.027
+      }
+    },
+    "Torpor": {
+      "Evasion": {
+        "base": 50,
+        "per_point": 5
+      }
+    },
+    "Malaise": {
+      "Magic Defense": {
+        "base": 15,
+        "per_point": 3
+      }
+    },
+    "Languor": {
+      "Magic Evasion": {
+        "base": 50,
+        "per_point": 5
+      }
+    }
+  },
+  "whm_debuffs": {
+    "Dia": {
+      "Defense": 0.1015625
+    },
+    "Dia II": {
+      "Defense": 0.15234375
+    },
+    "Dia III": {
+      "Defense": 0.203125
+    }
+  },
+  "misc_debuffs": {
+    "Angon": {
+      "Defense": 0.2,
+      "level requirement": 0,
+      "job requirement": [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run"
+      ]
+    },
+    "Armor Break": {
+      "Defense": 0.25,
+      "level requirement": 0,
+      "job requirement": [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run"
+      ]
+    },
+    "Corrosive Ooze": {
+      "Defense": 0.33,
+      "level requirement": 0,
+      "job requirement": [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run"
+      ]
+    },
+    "Box Step (sub)": {
+      "Defense": 0.13,
+      "level requirement": 30,
+      "job requirement": [
+        "dnc"
+      ]
+    },
+    "Box Step": {
+      "Defense": 0.23,
+      "level requirement": 0,
+      "job requirement": [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run"
+      ]
+    },
+    "Swooping Frenzy": {
+      "Defense": 0.25,
+      "Magic Defense": 25,
+      "level requirement": 0,
+      "job requirement": [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run"
+      ]
+    },
+    "Distract III": {
+      "Evasion": 280,
+      "level requirement": 0,
+      "job requirement": [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run"
+      ]
+    }
+  }
+}

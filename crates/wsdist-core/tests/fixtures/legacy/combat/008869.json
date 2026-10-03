@@ -1,0 +1,1 @@
+{"id":"combat.008869.bonus.Trishula_R15.Stardiver.ranged","operation":"combat.weapon_bonus","input":{"main_name2":"Empty","ranged_name2":"Trishula R15","ws_name":"Stardiver"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.1}},"stdout":""}

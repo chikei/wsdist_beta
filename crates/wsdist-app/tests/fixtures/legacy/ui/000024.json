@@ -1,0 +1,39 @@
+{
+  "fixture_format": "byte-parts-v1",
+  "sha256": "c4743eb0d1a7d875d403da48b41741a623e11a086210363fa220326aa14571de",
+  "byte_length": 124796776,
+  "parts": [
+    {
+      "path": "000024.parts/000000.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000001.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000002.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000003.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000004.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000005.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000006.part",
+      "byte_length": 16777216
+    },
+    {
+      "path": "000024.parts/000007.part",
+      "byte_length": 7356264
+    }
+  ]
+}

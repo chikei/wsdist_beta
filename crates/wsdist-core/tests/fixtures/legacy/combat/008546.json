@@ -1,0 +1,1 @@
+{"id":"combat.008546.bonus.Yoichinoyumi.Namas_Arrow.both","operation":"combat.weapon_bonus","input":{"main_name2":"Yoichinoyumi","ranged_name2":"Yoichinoyumi","ws_name":"Namas Arrow"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.8}},"stdout":""}

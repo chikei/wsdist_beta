@@ -1,0 +1,1 @@
+{"id":"combat.008864.bonus.Tri-edge_R15.Ruinator.main","operation":"combat.weapon_bonus","input":{"main_name2":"Tri-edge R15","ranged_name2":"Empty","ws_name":"Ruinator"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.1}},"stdout":""}

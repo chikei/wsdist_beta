@@ -1,0 +1,1 @@
+{"id":"combat.008454.bonus.Gokotai.Blade_Ku.both","operation":"combat.weapon_bonus","input":{"main_name2":"Gokotai","ranged_name2":"Gokotai","ws_name":"Blade: Ku"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":1.2}},"stdout":""}

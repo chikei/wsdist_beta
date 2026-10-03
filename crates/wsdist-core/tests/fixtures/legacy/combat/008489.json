@@ -1,0 +1,1 @@
+{"id":"combat.008489.bonus.Ullr.Empyreal_Arrow.ranged","operation":"combat.weapon_bonus","input":{"main_name2":"Empty","ranged_name2":"Ullr","ws_name":"Empyreal Arrow"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.5}},"stdout":""}
