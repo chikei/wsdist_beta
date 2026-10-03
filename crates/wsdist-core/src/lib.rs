@@ -3,7 +3,9 @@ pub mod buffs;
 pub mod catalog;
 pub mod math;
 pub mod model;
+pub mod optimizer;
 pub mod rng;
+pub mod simulation;
 pub mod stats;
 pub mod weaponskills;
 
