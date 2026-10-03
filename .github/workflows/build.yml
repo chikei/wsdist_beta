@@ -1,96 +1,169 @@
-name: Build
+name: Native Rust delivery
 
 on:
-  # On a push to a branch.
   push:
-    branches: [ 'main' ]
-
-    paths-ignore:
-      - 'README.md'
-      - 'requirements.txt'
-      # - 'defaults.txt'
-      # - 'icons32/*'
-      # - 'item_list.txt'
-      # - 'enemies.py'
-      # - 'gear.py'
-
-  # On a pull request to a branch.
+    branches: [main]
   pull_request:
-    branches: [ 'main' ]
-    
-    paths-ignore:
-      - 'README.md'
-      - 'requirements.txt'
-      # - 'defaults.txt'
-      # - 'icons32/*'
-      # - 'item_list.txt'
-      # - 'enemies.py'
-      # - 'gear.py'
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
-  # System
-  TERM: xterm
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
+  SLINT_BACKEND: winit-software
+  SLINT_EMIT_DEBUG_INFO: '1'
 
 jobs:
-  build:
-    name: Build
-    runs-on: windows-latest
+  native:
+    name: Native ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            shell: bash
+            rustflags: ''
+          - platform: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            shell: pwsh
+            # A portable Windows executable must not need a VC++ runtime install.
+            rustflags: '-C target-feature=+crt-static'
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10.6' 
+      - name: Install Linux native build and desktop prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential pkg-config jq libfontconfig1-dev libfreetype6-dev \
+            libx11-dev libx11-xcb-dev libxcb1-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev libxcursor-dev libxi-dev \
+            libxrandr-dev libxinerama-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libwayland-dev libpng-dev fonts-dejavu-core fonts-liberation \
+            xvfb xauth dbus-x11 xdg-desktop-portal xdg-desktop-portal-gtk
 
-    - name: Setup PIP
-      run: | 
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        # pip install numpy
-        # pip install matplotlib
-        # pip install numba
-        # pip install pillow
-        # pip install pyinstaller
-        # pip install colorama
+      - name: Install pinned native Rust
+        run: rustup toolchain install 1.92.0 --profile minimal --target ${{ matrix.target }} --no-self-update
 
-    - name: Create Installer
-      run: pyinstaller --exclude-module gear --exclude-module enemies --clean --onefile --icon=icons32/23937.ico gui_main.py
+      - name: Record native toolchain
+        run: rustc +1.92.0 --verbose --version
 
-    - name: Upload Installer
-      uses: actions/upload-artifact@v4
-      with: 
-        name: kastra_ffxi_sim-executable-only
-        path: ./dist/gui_main.exe
+      - name: Test core against frozen numerical evidence
+        if: ${{ !cancelled() }}
+        run: cargo +1.92.0 test --locked --target ${{ matrix.target }} -p wsdist-core
 
-  publish-artifacts:
-    name: Publish Artifacts
-    runs-on: ubuntu-latest
-    needs: build
+      - name: Test app with serialized native controller workflows
+        if: ${{ !cancelled() }}
+        run: cargo +1.92.0 test --locked --target ${{ matrix.target }} -p wsdist-app -- --test-threads=1
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Execute complete numerical verifier
+        if: ${{ !cancelled() }}
+        run: cargo +1.92.0 run --locked --release --target ${{ matrix.target }} -p wsdist-core --example verify_numerics -- --fixtures crates/wsdist-core/tests/fixtures/legacy --report target/numerical-report-${{ matrix.platform }}.json
 
-    - name: Download Artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: kastra_ffxi_sim-executable-only
-        path: ./  
+      - name: Build native release GUI
+        if: ${{ !cancelled() }}
+        run: cargo +1.92.0 build --locked --release --target ${{ matrix.target }} -p wsdist-app --bin wsdist-gui
 
-    - name: Zip Artifacts
-      run: |
-        zip -r ./kastra_ffxi_sim-full.zip ./gui_main.exe
-        zip -r ./kastra_ffxi_sim-full.zip ./gear.py
-        zip -r ./kastra_ffxi_sim-full.zip ./enemies.py
-        zip -r ./kastra_ffxi_sim-full.zip ./item_list.csv
-        zip -r ./kastra_ffxi_sim-full.zip ./defaults.pkl
-        zip -r ./kastra_ffxi_sim-full.zip ./icons32
+      - name: Real Winit software UI smoke at 100 percent (Linux)
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        env:
+          WSDIST_DATA_DIR: ${{ github.workspace }}
+          SLINT_SCALE_FACTOR: '1'
+          WINIT_UNIX_BACKEND: x11
+        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/linux-100
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with: 
-        name: kastra_ffxi_sim-full
-        path: ./kastra_ffxi_sim-full.zip
+      - name: Real Winit software UI smoke at 150 percent (Linux)
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        env:
+          WSDIST_DATA_DIR: ${{ github.workspace }}
+          SLINT_SCALE_FACTOR: '1.5'
+          WINIT_UNIX_BACKEND: x11
+        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/linux-150
+
+      - name: Real Winit software UI smoke at 100 percent (Windows)
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
+        env:
+          WSDIST_DATA_DIR: ${{ github.workspace }}
+          SLINT_SCALE_FACTOR: '1'
+        run: cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/windows-100
+
+      - name: Real Winit software UI smoke at 150 percent (Windows)
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
+        env:
+          WSDIST_DATA_DIR: ${{ github.workspace }}
+          SLINT_SCALE_FACTOR: '1.5'
+        run: cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/windows-150
+
+      - name: Install pinned build-only license generator
+        if: ${{ !cancelled() }}
+        run: cargo +1.92.0 install --locked cargo-about --version 0.8.2
+
+      - name: Package Linux executable and inert resources
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        run: bash tools/package-linux.sh --skip-build --output target/dist
+
+      - name: Package Windows executable and inert resources
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
+        run: ./tools/package-windows.ps1 -SkipBuild -Output target/dist
+
+      # These launch the actual extracted release executable, observe a painted
+      # native window, capture it and send WM_CLOSE. The development UI driver
+      # is then copied beside (but never into) the release archive and exercises
+      # full workflows with WSDIST_DATA_DIR unset and an unrelated, empty CWD.
+      - name: Exercise extracted Linux archive at 100 percent
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- bash tools/smoke-linux-archive.sh --archive target/dist/wsdist-linux-x86_64.tar.gz --output target/archive-smoke/linux-100 --scale 1 --ui-smoke target/${{ matrix.target }}/debug/examples/ui_smoke
+
+      - name: Exercise extracted Linux archive at 150 percent
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- bash tools/smoke-linux-archive.sh --archive target/dist/wsdist-linux-x86_64.tar.gz --output target/archive-smoke/linux-150 --scale 1.5 --ui-smoke target/${{ matrix.target }}/debug/examples/ui_smoke
+
+      - name: Exercise extracted Windows archive at 100 percent
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
+        run: ./tools/smoke-windows-archive.ps1 -Archive target/dist/wsdist-windows-x86_64.zip -Output target/archive-smoke/windows-100 -Scale 1 -UiSmoke target/${{ matrix.target }}/debug/examples/ui_smoke.exe
+
+      - name: Exercise extracted Windows archive at 150 percent
+        if: ${{ !cancelled() && runner.os == 'Windows' }}
+        run: ./tools/smoke-windows-archive.ps1 -Archive target/dist/wsdist-windows-x86_64.zip -Output target/archive-smoke/windows-150 -Scale 1.5 -UiSmoke target/${{ matrix.target }}/debug/examples/ui_smoke.exe
+
+      - name: Retain numerical and native screenshot evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-evidence-${{ matrix.platform }}
+          path: |
+            target/numerical-report-*.json
+            target/ui-smoke/
+            target/archive-smoke/
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Failed parity/UI/packaging is evidence, not a publishable native release.
+      - name: Upload verified native portable archive
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wsdist-${{ matrix.platform }}
+          path: |
+            target/dist/wsdist-${{ matrix.platform }}.tar.gz
+            target/dist/wsdist-${{ matrix.platform }}.tar.gz.sha256
+            target/dist/wsdist-${{ matrix.platform }}.zip
+            target/dist/wsdist-${{ matrix.platform }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,61 @@
+WSDist native distribution: provenance and licensing boundaries
+
+PROJECT CODE, GAME DATA AND ITEM IMAGES
+No project license grant was found in this repository. This notice does not
+license the repository's own code, grant permission to redistribute game data
+or icons, or assert that the distributor owns their intellectual property.
+Project contributors and the original asset rights holders retain their rights.
+Before redistributing a build, establish the permissions applicable to those
+materials independently of the third-party software licenses below.
+
+The equipment, enemy, buff and attachment JSON catalogs were materialized from
+the original repository's Python catalogs in a one-time migration. defaults.json,
+item_list.csv and icons32 are retained repository assets. Their conversion or
+inclusion here does not establish a new license or independent game accuracy.
+No Python implementation, reference snapshot, capture program, numerical fixture,
+Qt runtime, or Python runtime is part of this native distribution.
+The local wsdist-app/wsdist-core crates are explicitly unpublished and excluded
+from third-party license resolution. This avoids assigning them a made-up
+license; it does not remove the redistribution warning above.
+
+
+RUST AND THIRD-PARTY SOFTWARE
+THIRD-PARTY-NOTICES.html lists the target-filtered, locked Cargo dependency graph
+used for the application, including build dependencies as a conservative superset
+of code contained in the binary. licenses/dependencies.json records the exact
+crate versions, declared expressions, authors and upstream source locations.
+The HTML contains the selected standard license texts. licenses/crates preserves
+original license/copyright/notice documents and license sidecars from the resolved
+crate packages, including alternative license documents where supplied upstream.
+Those alternatives are not a license election for WSDist's own code or assets.
+For OR expressions the notice policy prefers MIT, then Apache-2.0. All required
+terms of AND expressions are retained. License generation fails on unaccepted or
+unresolved expressions rather than attributing a made-up project license.
+
+Slint 1.16.0 is used under LicenseRef-Slint-Royalty-free-2.0. Its full license is
+licenses/Slint-Royalty-free-2.0.txt; cargo-about 0.8.2 cannot render custom
+LicenseRef text, so it is included explicitly. The application's top-level
+Help > About Slint action displays Slint's AboutSlint widget for attribution.
+Slint artwork/font terms are identified in licenses/Slint-asset-attributions.txt.
+
+licenses/Rust-standard-library.html is the pinned Rust 1.92.0 toolchain's original
+standard-library copyright/license document, including its bundled dependencies.
+Operating-system libraries and system fonts are not copied into this archive;
+their licenses and installation requirements belong to the native OS distribution.
+Windows builds statically link the MSVC CRT; the compiler/toolchain's applicable
+Microsoft terms remain distinct from the Cargo crate licenses.
+
+SOURCE AVAILABILITY
+The dependency inventory links each registry crate to its exact released source
+archive at https://crates.io/api/v1/crates/<name>/<version>/download and to its
+upstream repository. This includes any MPL-2.0-covered third-party files (such as
+option-ext when present in the target graph). The MPL license text and upstream
+notices are included; the compiled application does not replace those terms.
+The Rust standard library source for this toolchain is available at
+https://github.com/rust-lang/rust/tree/1.92.0/library .
+
+BUILD TRACEABILITY
+BUILD-INFO.json records the target, toolchain, Cargo.lock SHA-256 and pinned
+notice generator. The archive SHA-256 is emitted beside the archive. This is
+build provenance, not a claim that Windows execution or in-game validation has
+been performed by the person who generated the archive.
