@@ -1,16 +1,22 @@
-import { Button, CheckBox, GroupBox, ListView, Palette, ScrollView } from "std-widgets.slint";
+import { Button, CheckBox, GroupBox, Palette } from "std-widgets.slint";
+import { ListView, ScrollView } from "scroll.slint";
 import { GearChoiceRow, GearSlotRow } from "types.slint";
 
 component GearCard inherits Rectangle {
     in property <GearSlotRow> item;
     in property <bool> active;
     in property <bool> inputs-enabled: true;
+    in property <bool> label-only: false;
     callback selected(int);
     callback inspected;
     private property <bool> inspecting: hover-area.has-hover || button.has-focus;
 
-    min-width: 64px;
-    min-height: 72px;
+    min-width: 48px;
+    preferred-width: 48px;
+    max-width: 48px;
+    min-height: 48px;
+    preferred-height: 48px;
+    max-height: 48px;
     vertical-stretch: 0;
     border-width: root.active ? 2px : 1px;
     border-color: root.active ? Palette.accent-background : Palette.border;
@@ -44,31 +50,25 @@ component GearCard inherits Rectangle {
                     button.clicked();
                 }
             }
-            VerticalLayout {
-                padding: 3px;
-                spacing: 1px;
-                Text {
-                    text: root.item.label;
-                    font-size: 11px;
-                    color: Palette.foreground;
-                    horizontal-alignment: center;
-                    overflow: elide;
-                    accessible-role: none;
-                }
-                Image {
-                    source: root.item.icon;
-                    height: 28px;
-                    image-fit: contain;
-                    accessible-role: none;
-                }
-                Text {
-                    text: root.item.name;
-                    font-size: 11px;
-                    color: Palette.foreground;
-                    horizontal-alignment: center;
-                    overflow: elide;
-                    accessible-role: none;
-                }
+            if root.label-only: slot-label := Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.item.label;
+                font-size: 11px;
+                color: Palette.foreground;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+                accessible-role: none;
+            }
+            if !root.label-only: slot-icon := Image {
+                source: root.item.icon;
+                width: 28px;
+                height: 28px;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                image-fit: contain;
+                accessible-role: none;
             }
         }
 }
@@ -188,15 +188,14 @@ export component GearPanel inherits Rectangle {
     in property <int> active-slot;
     in property <bool> checkbox-mode: false;
     in property <bool> inputs-enabled: true;
+    in property <length> equipped-width: 300px;
     callback slot-selected(string, int);
     callback item-selected(string, int);
     callback item-toggled(int, bool);
 
-    private property <length> assigned-width: 1152px;
-    changed width => { root.assigned-width = self.width; }
-    private property <bool> wide: root.assigned-width >= 640px;
-    private property <length> choice-height: 40px;
+    private property <length> choice-height: 28px;
     private property <int> focus-index: -1;
+    private property <bool> follow-focus: false;
     private property <int> inspection-slot: root.active-slot;
     private property <int> inspection-item: -1;
     private property <string> inspected-name: root.inspection-item >= 0 && root.inspection-item < root.items.length
@@ -204,11 +203,15 @@ export component GearPanel inherits Rectangle {
     private property <string> inspected-tooltip: root.inspection-item >= 0 && root.inspection-item < root.items.length
         ? root.items[root.inspection-item].tooltip : root.slots[root.inspection-slot].tooltip;
 
-    min-width: 300px;
-    min-height: root.wide ? 380px : 620px;
-    preferred-height: root.wide ? 480px : 680px;
+    min-width: 680px;
+    preferred-width: 680px;
+    max-width: 680px;
+    horizontal-stretch: 0;
+    min-height: 280px;
+    preferred-height: 320px;
 
     changed active-slot => {
+        root.follow-focus = false;
         root.focus-index = -1;
         choices.viewport-y = 0px;
         root.inspection-slot = root.active-slot;
@@ -227,15 +230,21 @@ export component GearPanel inherits Rectangle {
         root.inspection-item = index;
     }
 
-    function move-focus(index: int) {
-        if root.items.length == 0 { return; }
-        root.focus-index = max(0, min(root.items.length - 1, index));
+    function reveal-focus() {
+        if root.focus-index < 0 || root.focus-index >= root.items.length { return; }
         if choices.viewport-y + root.focus-index * root.choice-height < 0px {
             choices.viewport-y = -root.focus-index * root.choice-height;
         }
         if choices.viewport-y + (root.focus-index + 1) * root.choice-height > choices.visible-height {
             choices.viewport-y = choices.visible-height - (root.focus-index + 1) * root.choice-height;
         }
+    }
+
+    function move-focus(index: int) {
+        if root.items.length == 0 { return; }
+        root.focus-index = max(0, min(root.items.length - 1, index));
+        root.follow-focus = true;
+        root.reveal-focus();
         root.inspect(root.focus-index);
     }
 
@@ -251,48 +260,71 @@ export component GearPanel inherits Rectangle {
     }
 
     GridLayout {
-        spacing: 8px;
+        spacing: 4px;
 
         GroupBox {
             row: 0;
             col: 0;
             title: root.checkbox-mode ? "Current equipment slots" : "Equipped items";
-            horizontal-stretch: 1;
+            min-width: root.equipped-width;
+            content-padding: 0px;
+            max-width: root.equipped-width;
+            horizontal-stretch: 0;
             vertical-stretch: 0;
-            GridLayout {
-                spacing: 4px;
-                for slot[index] in root.slots : GearCard {
-                    row: floor(index / 4);
-                    col: mod(index, 4);
-                    item: slot;
-                    active: root.active-slot == slot.slot;
-                    inputs-enabled: root.inputs-enabled;
-                    selected(slot-id) => {
-                        if root.inputs-enabled { root.slot-selected(root.source-key, slot-id); }
-                    }
-                    inspected => {
-                        root.inspection-slot = index;
-                        root.inspection-item = -1;
+            VerticalLayout {
+                spacing: 2px;
+                Rectangle {
+                    min-height: 198px;
+                    max-height: 198px;
+                    vertical-stretch: 0;
+                    GridLayout {
+                        width: 198px;
+                        height: 198px;
+                        x: (parent.width - self.width) / 2;
+                        spacing: 2px;
+                        for slot[index] in root.slots : GearCard {
+                            row: floor(index / 4);
+                            col: mod(index, 4);
+                            item: slot;
+                            active: root.active-slot == slot.slot;
+                            inputs-enabled: root.inputs-enabled;
+                            label-only: root.checkbox-mode;
+                            selected(slot-id) => {
+                                if root.inputs-enabled { root.slot-selected(root.source-key, slot-id); }
+                            }
+                            inspected => {
+                                root.inspection-slot = index;
+                                root.inspection-item = -1;
+                            }
+                        }
                     }
                 }
+                @children
             }
         }
 
         GroupBox {
-            row: root.wide ? 0 : 1;
-            col: root.wide ? 1 : 0;
+            row: 0;
+            col: 1;
             title: (root.checkbox-mode ? "Candidates: " : "Select: ") + root.slots[root.active-slot].label;
-            horizontal-stretch: 2;
+            content-padding: 0px;
+            min-width: 680px - root.equipped-width - 4px;
+            max-width: self.min-width;
+            horizontal-stretch: 0;
             VerticalLayout {
-                spacing: 6px;
+                spacing: 2px;
                 list-focus := FocusScope {
                     enabled: root.inputs-enabled;
-                    min-height: 140px;
+                    min-width: 680px - root.equipped-width - 4px;
+                    max-width: self.min-width;
+                    horizontal-stretch: 0;
+                    min-height: 100px;
                     accessible-role: list;
                     accessible-label: root.checkbox-mode ? "Gear candidates" : "Available equipment";
                     accessible-item-count: root.items.length;
                     accessible-delegate-focus: root.focus-index;
                     focus-changed-event => {
+                        if !self.has-focus { root.follow-focus = false; }
                         if self.has-focus && root.focus-index < 0 && root.items.length > 0 {
                             root.move-focus(0);
                         }
@@ -322,6 +354,19 @@ export component GearPanel inherits Rectangle {
                         width: parent.width;
                         height: parent.height;
                         viewport-width: self.visible-width;
+                        scroll-label: (root.checkbox-mode ? "Gear candidates" : "Available equipment") + " vertical scrollbar";
+                        // Retain focused-row visibility through native virtualization until explicit scrolling.
+                        scrolled => { root.follow-focus = false; }
+                        changed viewport-y => {
+                            if root.follow-focus && list-focus.has-focus && root.focus-index >= 0 {
+                                root.reveal-focus();
+                            }
+                        }
+                        changed visible-height => {
+                            if root.follow-focus && list-focus.has-focus && root.focus-index >= 0 {
+                                root.reveal-focus();
+                            }
+                        }
                         for item[index] in root.items : Rectangle {
                             width: choices.visible-width;
                             height: root.choice-height;
@@ -356,12 +401,18 @@ export component GearPanel inherits Rectangle {
                 }
                 GroupBox {
                     title: "Item details — hover or focus";
-                    min-height: 100px;
-                    preferred-height: 130px;
+                    content-padding: 0px;
+                    min-width: 680px - root.equipped-width - 4px;
+                    max-width: self.min-width;
+                    horizontal-stretch: 0;
+                    min-height: 60px;
+                    preferred-height: 80px;
                     vertical-stretch: 0;
-                    ScrollView {
+                    details-scroll := ScrollView {
                         viewport-width: self.visible-width;
+                        scroll-label: "Item details vertical scrollbar";
                         VerticalLayout {
+                            width: details-scroll.visible-width;
                             padding: 4px;
                             Text {
                                 text: root.inspected-name;

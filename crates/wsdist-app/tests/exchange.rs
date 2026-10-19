@@ -435,17 +435,19 @@ fn any_invalid_required_resource_retains_every_reload_argument_and_reports_its_p
 fn icon_catalog(paths: &AppPaths) -> Catalog {
     let mut gear = load_json(&paths.data.join("gear.json"));
     add_piece(&mut gear, "Icon alias", "Icon alias augmented", Slot::Head);
+    add_piece(&mut gear, "Shared icon alias", "Shared icon alias", Slot::Head);
     add_piece(&mut gear, "No icon alias", "No icon alias", Slot::Head);
     save_json(&paths.data.join("gear.json"), &gear);
     append_aliases(&paths.item_list, &[
         ("000100", "ICON ALIAS", "icon alias"),
         ("000101", "icon alias", "conflicting icon alias"),
+        ("000100", "Shared icon alias", "shared icon alias"),
     ]);
     Catalog::load(&paths.root).unwrap()
 }
 
 #[test]
-fn icons_use_first_full_name_id_and_missing_requested_asset_uses_empty_without_recursion() {
+fn icons_use_first_full_name_csv_alias_and_load_real_assets() {
     let (_directory, paths) = resource_directory();
     let catalog = icon_catalog(&paths);
     fs::create_dir(&paths.icons).unwrap();
@@ -460,45 +462,89 @@ fn icons_use_first_full_name_id_and_missing_requested_asset_uses_empty_without_r
     assert_ne!(requested.to_rgba8().unwrap().as_bytes(),
         slint::Image::load_from_path(&paths.icons.join("000101.png")).unwrap().to_rgba8().unwrap().as_bytes());
     assert!(icons.take_warnings().is_empty());
+}
 
-    let (_missing_directory, missing_paths) = resource_directory();
-    fs::create_dir(&missing_paths.icons).unwrap();
-    let empty = missing_paths.icons.join("65536.png");
+fn assert_blank_icon(image: slint::Image) {
+    let size = image.size();
+    assert_eq!((size.width, size.height), (0, 0));
+    assert!(image.to_rgba8().is_none());
+}
+
+#[test]
+fn missing_requested_icon_does_not_substitute_empty_and_reload_restores_it() {
+    let (_directory, paths) = resource_directory();
+    let catalog = icon_catalog(&paths);
+    fs::create_dir(&paths.icons).unwrap();
+    let empty = paths.icons.join("65536.png");
     fs::copy(repository().join("icons32/65536.png"), &empty).unwrap();
-    let mut icons = IconProvider::new(&missing_paths);
-    let fallback = icons.icon(&catalog, id);
-    assert_eq!(fallback.to_rgba8().unwrap().as_bytes(),
+    let mut icons = IconProvider::new(&paths);
+    assert_eq!(icons.icon(&catalog, catalog.empty).to_rgba8().unwrap().as_bytes(),
         slint::Image::load_from_path(&empty).unwrap().to_rgba8().unwrap().as_bytes());
-    let warnings = icons.take_warnings();
-    assert!(matches!(warnings.as_slice(), [IconWarning::Asset { path, .. }]
-        if path == &missing_paths.icons.join("000100.png")));
-    assert_eq!(icons.icon(&catalog, id), fallback);
+    assert!(icons.take_warnings().is_empty());
+
+    let id = piece(&catalog, "Icon alias augmented");
+    let requested = paths.icons.join("000100.png");
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert!(matches!(icons.take_warnings().as_slice(), [IconWarning::Asset { path, .. }]
+        if path == &requested));
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert_blank_icon(icons.icon(&catalog, piece(&catalog, "Shared icon alias")));
+    assert!(icons.take_warnings().is_empty());
+
+    fs::copy(repository().join("icons32/23937.png"), &requested).unwrap();
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert!(icons.take_warnings().is_empty());
+    icons.clear_cache();
+    assert_eq!(icons.icon(&catalog, id).to_rgba8().unwrap().as_bytes(),
+        slint::Image::load_from_path(&requested).unwrap().to_rgba8().unwrap().as_bytes());
     assert!(icons.take_warnings().is_empty());
 }
 
 #[test]
-fn unavailable_empty_icon_uses_a_shared_neutral_drawing_and_reports_actual_assets() {
+fn missing_alias_empty_icon_and_icon_directory_stay_blank_and_warn_once() {
     let (_directory, paths) = resource_directory();
     let catalog = icon_catalog(&paths);
     let mut icons = IconProvider::new(&paths);
-    let first = icons.icon(&catalog, piece(&catalog, "Icon alias augmented"));
-    let warnings = icons.take_warnings();
-    assert!(matches!(warnings.as_slice(), [IconWarning::Asset { path: requested, .. }, IconWarning::Asset { path: empty, .. }]
-        if requested == &paths.icons.join("000100.png") && empty == &paths.icons.join("65536.png")));
-    let pixels = first.to_rgba8().unwrap();
-    assert_eq!((pixels.width(), pixels.height()), (32, 32));
-    assert!(pixels.as_slice().iter().all(|pixel| pixel.r == pixel.g && pixel.g == pixel.b && pixel.a == 255));
-    assert_ne!(pixels.as_slice()[0], pixels.as_slice()[16 * 32 + 16]);
-    let second = icons.icon(&catalog, piece(&catalog, "No icon alias"));
-    assert_eq!(first, second);
-    assert_eq!(icons.take_warnings(), vec![IconWarning::MissingAlias { name: "No icon alias".to_owned() }]);
-    assert_eq!(icons.icon(&catalog, catalog.empty), first);
+    let id = piece(&catalog, "Icon alias augmented");
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert!(matches!(icons.take_warnings().as_slice(), [IconWarning::Asset { path, .. }]
+        if path == &paths.icons.join("000100.png")));
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert_blank_icon(icons.icon(&catalog, piece(&catalog, "Shared icon alias")));
     assert!(icons.take_warnings().is_empty());
 
+    let missing_alias = piece(&catalog, "No icon alias");
+    assert_blank_icon(icons.icon(&catalog, missing_alias));
+    assert_eq!(icons.take_warnings(), vec![IconWarning::MissingAlias { name: "No icon alias".to_owned() }]);
+    assert_blank_icon(icons.icon(&catalog, missing_alias));
+    assert!(icons.take_warnings().is_empty());
+
+    assert_blank_icon(icons.icon(&catalog, catalog.empty));
+    assert!(matches!(icons.take_warnings().as_slice(), [IconWarning::Asset { path, .. }]
+        if path == &paths.icons.join("65536.png")));
+    assert_blank_icon(icons.icon(&catalog, catalog.empty));
+    assert!(icons.take_warnings().is_empty());
+}
+
+#[test]
+fn undecodable_icon_stays_blank_and_clear_cache_retains_its_warning() {
+    let (_directory, paths) = resource_directory();
+    let catalog = icon_catalog(&paths);
     fs::create_dir(&paths.icons).unwrap();
-    fs::copy(repository().join("icons32/65536.png"), paths.icons.join("65536.png")).unwrap();
+    let requested = paths.icons.join("000100.png");
+    fs::write(&requested, b"not a PNG").unwrap();
+    let mut icons = IconProvider::new(&paths);
+    let id = piece(&catalog, "Icon alias augmented");
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert_blank_icon(icons.icon(&catalog, id));
+    assert_blank_icon(icons.icon(&catalog, piece(&catalog, "Shared icon alias")));
+
+    fs::copy(repository().join("icons32/23937.png"), &requested).unwrap();
+    assert_blank_icon(icons.icon(&catalog, id));
     icons.clear_cache();
-    let recovered = icons.icon(&catalog, catalog.empty);
-    assert_ne!(recovered.to_rgba8().unwrap().as_bytes(), pixels.as_bytes());
+    assert_eq!(icons.icon(&catalog, id).to_rgba8().unwrap().as_bytes(),
+        slint::Image::load_from_path(&requested).unwrap().to_rgba8().unwrap().as_bytes());
+    assert!(matches!(icons.take_warnings().as_slice(), [IconWarning::Asset { path, message }]
+        if path == &requested && !message.is_empty()));
     assert!(icons.take_warnings().is_empty());
 }

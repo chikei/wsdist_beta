@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
+use slint::Image;
 use wsdist_core::model::{CandidatePools, ModelState};
 use wsdist_core::{Catalog, GearId, Gearset, Slot};
 
@@ -149,15 +149,14 @@ pub enum IconWarning {
     Asset { path: PathBuf, message: String },
 }
 
-/// Event-loop-thread image cache. Failed paths are cached too, so an unavailable
-/// asset is reported once rather than once per model refresh.
+/// Event-loop-thread image cache. Missing aliases and unavailable assets display
+/// nothing and are reported once rather than once per model refresh.
 pub struct IconProvider {
     icons: PathBuf,
     by_name: HashMap<Arc<str>, Image>,
     images: HashMap<PathBuf, Option<Image>>,
     missing_aliases: HashSet<Arc<str>>,
     warnings: Vec<IconWarning>,
-    neutral: Option<Image>,
 }
 
 impl IconProvider {
@@ -168,7 +167,6 @@ impl IconProvider {
             images: HashMap::new(),
             missing_aliases: HashSet::new(),
             warnings: Vec::new(),
-            neutral: None,
         }
     }
 
@@ -177,15 +175,7 @@ impl IconProvider {
         if let Some(image) = self.by_name.get(name.as_ref()) {
             return image.clone();
         }
-        let image = self.load_named(catalog, name)
-            .or_else(|| {
-                if id == catalog.empty {
-                    None
-                } else {
-                    self.load_named(catalog, &catalog.piece(catalog.empty).name)
-                }
-            })
-            .unwrap_or_else(|| self.neutral.get_or_insert_with(neutral_slot_image).clone());
+        let image = self.load_named(catalog, name).unwrap_or_default();
         self.by_name.insert(Arc::clone(name), image.clone());
         image
     }
@@ -228,25 +218,6 @@ impl IconProvider {
         eprintln!("{warning}");
         self.warnings.push(warning);
     }
-}
-
-fn neutral_slot_image() -> Image {
-    let mut pixels = SharedPixelBuffer::<Rgba8Pixel>::new(32, 32);
-    for (index, pixel) in pixels.make_mut_slice().iter_mut().enumerate() {
-        let x = index % 32;
-        let y = index / 32;
-        let shade = if x == 0 || y == 0 || x == 31 || y == 31 {
-            112
-        } else if (7..=24).contains(&x) && (y == 7 || y == 24)
-            || (7..=24).contains(&y) && (x == 7 || x == 24)
-        {
-            80
-        } else {
-            48
-        };
-        *pixel = Rgba8Pixel::new(shade, shade, shade, 255);
-    }
-    Image::from_rgba8(pixels)
 }
 
 /// These are the actual combo strings, not interpreted numeric ranks. Unknown

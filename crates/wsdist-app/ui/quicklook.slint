@@ -1,6 +1,7 @@
-import { Button, GroupBox, Palette, ScrollView } from "std-widgets.slint";
-import { InputRow, GearChoiceRow, GearSlotRow } from "types.slint";
-import { InputGroup } from "controls.slint";
+import { Button, GroupBox, Palette } from "std-widgets.slint";
+import { ScrollView } from "scroll.slint";
+import { InputRow, InputWidgetKind, GearChoiceRow, GearSlotRow } from "types.slint";
+import { ControlEditor, InputGroup } from "controls.slint";
 import { GearPanel } from "gear.slint";
 
 export component Quicklook inherits Rectangle {
@@ -32,12 +33,6 @@ export component Quicklook inherits Rectangle {
     callback action(string);
     callback copy(string, string);
 
-    // Latch assigned geometry: intrinsic GridLayout sizing must not depend
-    // recursively on the width it is currently calculating.
-    private property <length> assigned-width: 1152px;
-    changed width => { root.assigned-width = self.width; }
-    private property <bool> wide-inputs: root.assigned-width >= 980px;
-    private property <bool> wide-actions: root.assigned-width >= 760px;
     private property <int> focus-count: 0;
     private property <bool> editing-focus: root.inputs-enabled && root.visible && root.focus-count > 0;
     changed editing-focus => { root.text-focus(root.editing-focus); }
@@ -46,276 +41,538 @@ export component Quicklook inherits Rectangle {
         root.focus-count = max(0, root.focus-count + (focused ? 1 : -1));
     }
 
-    min-width: 320px;
-    min-height: 360px;
+    // Enemy and COR models keep the literal INPUT_PRESENTATION row order.
+    private property <[string]> enemy-stat-labels: [
+        "Evasion:", "Defense:", "Magic Evasion:", "Magic Defense:", "Magic DT%:",
+        "Resist Rank:", "VIT:", "AGI:", "INT:", "MND:", "CHR:",
+    ];
+
+    min-width: 640px;
+    min-height: 120px;
     preferred-height: 800px;
 
-    VerticalLayout {
-        spacing: 8px;
-        padding: 8px;
+    input-scroll := ScrollView {
+        width: root.width;
+        height: root.height;
+        viewport-width: self.visible-width;
+        accessible-role: list;
+        accessible-label: "Quicklook content";
+        scroll-label: self.accessible-label + " vertical scrollbar";
 
-        GroupBox {
-            title: "Quicklook — explicit calculations";
-            vertical-stretch: 0;
-            VerticalLayout {
-                spacing: 6px;
-                Text {
-                    text: "Change inputs and equipment, then choose a calculation. Simulate WS writes a sampled hit trace to Results.";
-                    color: Palette.foreground;
-                    wrap: word-wrap;
+        VerticalLayout {
+            x: 0px;
+            width: 688px;
+            horizontal-stretch: 0;
+            padding: 4px;
+            spacing: 4px;
+
+            HorizontalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                spacing: 4px;
+                min-height: 245px;
+                max-height: 245px;
+                preferred-height: 245px;
+                vertical-stretch: 0;
+
+                GroupBox {
+                    title: "Basic Inputs";
+                    content-padding: 0px;
+                    min-width: 216px;
+                    max-width: 216px;
+                    preferred-width: 216px;
+                    horizontal-stretch: 0;
+
+                    basics-scroll := ScrollView {
+                        min-width: 216px;
+                        max-width: 216px;
+                        preferred-width: 216px;
+                        horizontal-stretch: 0;
+                        viewport-width: self.visible-width;
+                        accessible-role: list;
+                        accessible-label: "Job, spell, weapon skill & TP inputs";
+                        scroll-label: self.accessible-label + " vertical scrollbar";
+
+                        VerticalLayout {
+                            width: basics-scroll.visible-width;
+                            horizontal-stretch: 0;
+                            spacing: 0px;
+                            for row in root.basics : Rectangle {
+                                min-width: basics-scroll.visible-width;
+                                max-width: basics-scroll.visible-width;
+                                preferred-width: basics-scroll.visible-width;
+                                horizontal-stretch: 0;
+                                min-height: basic-editor.row-height;
+                                max-height: basic-editor.row-height;
+                                preferred-height: basic-editor.row-height;
+                                vertical-stretch: 0;
+                                basic-editor := ControlEditor {
+                                    width: parent.width;
+                                    horizontal-stretch: 0;
+                                    height: parent.height;
+                                    control: row;
+                                    display-label: row.key == "defaults_subjob_combobox" ? "Subjob (Lv." + root.sublevel + ")" : row.label;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, value) => { root.text-edited(key, value); }
+                                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                                    toggled(key, value) => { root.toggled(key, value); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
+                                }
+                            }
+                        }
+                    }
                 }
-                GridLayout {
-                    spacing: 6px;
-                    Button {
-                        row: 0;
-                        col: 0;
-                        text: "Quicklook TP";
-                        enabled: root.inputs-enabled;
-                        clicked => { if root.inputs-enabled { root.action("quick-round"); } }
-                    }
-                    Button {
-                        row: 0;
-                        col: 1;
-                        text: "Quicklook WS";
-                        enabled: root.inputs-enabled;
-                        clicked => { if root.inputs-enabled { root.action("quick-ws"); } }
-                    }
-                    Button {
-                        row: root.wide-actions ? 0 : 1;
-                        col: root.wide-actions ? 2 : 0;
-                        text: "Quicklook Spell";
-                        enabled: root.inputs-enabled;
-                        clicked => { if root.inputs-enabled { root.action("quick-spell"); } }
-                    }
-                    Button {
-                        row: root.wide-actions ? 0 : 1;
-                        col: root.wide-actions ? 3 : 1;
-                        text: "Simulate WS";
-                        enabled: root.inputs-enabled;
-                        clicked => { if root.inputs-enabled { root.action("single-ws"); } }
-                    }
+
+                InputGroup {
+                    title: "Special Toggles";
+                    rows: root.abilities;
+                    min-width: 180px;
+                    max-width: 180px;
+                    preferred-width: 180px;
+                    min-height: 245px;
+                    max-height: 245px;
+                    preferred-height: 245px;
+                    horizontal-stretch: 0;
+                    inputs-enabled: root.inputs-enabled;
+                    text-edited(key, value) => { root.text-edited(key, value); }
+                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                    toggled(key, value) => { root.toggled(key, value); }
+                    wheel(key, direction) => { root.wheel(key, direction); }
+                    text-focus(focused) => { root.focus-changed(focused); }
                 }
-                GridLayout {
-                    spacing: 6px;
-                    Text {
-                        row: 0;
-                        col: 0;
-                        text: "Average Damage =";
-                        color: Palette.foreground;
-                    }
-                    Text {
-                        row: 0;
-                        col: 1;
-                        text: root.damage;
-                        color: Palette.foreground;
-                        accessible-label: "Average damage";
-                        accessible-value: root.damage;
-                    }
-                    Text {
-                        row: 1;
-                        col: 0;
-                        text: "Average TP =";
-                        color: Palette.foreground;
-                    }
-                    Text {
-                        row: 1;
-                        col: 1;
-                        text: root.tp-return;
-                        color: Palette.foreground;
-                        accessible-label: "Average TP";
-                        accessible-value: root.tp-return;
-                    }
-                    Text {
-                        row: 2;
-                        col: 0;
-                        text: "Time per WS =";
-                        color: Palette.foreground;
-                    }
-                    Text {
-                        row: 2;
-                        col: 1;
-                        text: root.time-to-ws;
-                        color: Palette.foreground;
-                        accessible-label: "Time per WS";
-                        accessible-value: root.time-to-ws;
+
+                GroupBox {
+                    title: "Enemy Inputs";
+                    content-padding: 0px;
+                    min-width: 276px;
+                    max-width: 276px;
+                    preferred-width: 276px;
+                    horizontal-stretch: 0;
+
+                    // This fixed 178px control grid always fits the 245px group.
+                    enemy-scroll := Rectangle {
+                        min-width: 276px;
+                        max-width: 276px;
+                        preferred-width: 276px;
+                        horizontal-stretch: 0;
+                        accessible-role: list;
+                        accessible-label: "Enemy Inputs inputs";
+
+                        GridLayout {
+                            width: 276px;
+                            horizontal-stretch: 0;
+                            spacing: 0px;
+                            for control[index] in root.enemy : ControlEditor {
+                                row: index < 8 ? index : index - 6;
+                                col: index < 8 ? 0 : 1;
+                                colspan: index < 2 ? 2 : 1;
+                                control: control;
+                                show-label: index >= 2;
+                                editor-height: index < 2 ? 26px : 21px;
+                                display-label: index >= 2 ? root.enemy-stat-labels[index - 2] : control.label;
+                                label-width: index < 2 ? 0px : index < 8 ? 92px : 36px;
+                                min-width: index < 2 ? 276px : index < 8 ? 174px : 102px;
+                                max-width: index < 2 ? 276px : index < 8 ? 174px : 102px;
+                                preferred-width: index < 2 ? 276px : index < 8 ? 174px : 102px;
+                                max-height: self.row-height;
+                                horizontal-stretch: 0;
+                                inputs-enabled: root.inputs-enabled;
+                                text-edited(key, value) => { root.text-edited(key, value); }
+                                editing-finished(key, value) => { root.editing-finished(key, value); }
+                                toggled(key, value) => { root.toggled(key, value); }
+                                wheel(key, direction) => { root.wheel(key, direction); }
+                                text-focus(focused) => { root.focus-changed(focused); }
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        input-scroll := ScrollView {
-            min-height: 160px;
-            viewport-width: self.visible-width;
-            accessible-role: list;
-            accessible-label: "Quicklook content";
-            GridLayout {
-                padding: 4px;
-                spacing: 8px;
+            GroupBox {
+                title: "Active Buffs";
+                content-padding: 0px;
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                min-height: 336px;
+                max-height: 336px;
+                preferred-height: 336px;
+                vertical-stretch: 0;
 
-                GroupBox {
-                    row: 0;
-                    col: 0;
-                    title: "Basic Inputs";
-                    preferred-height: 360px;
-                    VerticalLayout {
-                        spacing: 4px;
-                        Text {
-                            text: "Sub Job Level: " + root.sublevel;
-                            color: Palette.foreground;
-                            accessible-label: "Sub job level";
-                            accessible-value: root.sublevel;
+                HorizontalLayout {
+                    min-width: 680px;
+                    max-width: 680px;
+                    preferred-width: 680px;
+                    horizontal-stretch: 0;
+                    spacing: 4px;
+
+                    whm-scroll := ScrollView {
+                        min-width: 148px;
+                        max-width: 148px;
+                        preferred-width: 148px;
+                        horizontal-stretch: 0;
+                        viewport-width: self.visible-width;
+                        accessible-role: list;
+                        accessible-label: "White Magic — " + root.skill-label + " inputs";
+                        scroll-label: self.accessible-label + " vertical scrollbar";
+
+                        VerticalLayout {
+                            width: whm-scroll.visible-width;
+                            horizontal-stretch: 0;
+                            spacing: 2px;
+                            for row in root.whm : Rectangle {
+                                min-width: whm-scroll.visible-width;
+                                max-width: whm-scroll.visible-width;
+                                preferred-width: whm-scroll.visible-width;
+                                horizontal-stretch: 0;
+                                min-height: whm-editor.row-height;
+                                max-height: whm-editor.row-height;
+                                preferred-height: whm-editor.row-height;
+                                vertical-stretch: 0;
+                                whm-editor := ControlEditor {
+                                    width: parent.width;
+                                    horizontal-stretch: 0;
+                                    height: parent.height;
+                                    control: row;
+                                    show-label: row.control-kind != InputWidgetKind.combo;
+                                    display-label: row.key == "defaults_enhancing_skill_entry" ? root.skill-label : row.label;
+                                    label-width: row.control-kind == InputWidgetKind.entry ? 68px : 0px;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, value) => { root.text-edited(key, value); }
+                                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                                    toggled(key, value) => { root.toggled(key, value); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
+                                }
+                            }
+                            GroupBox {
+                                title: "Active Food";
+                                content-padding: 0px;
+                                min-width: whm-scroll.visible-width;
+                                max-width: whm-scroll.visible-width;
+                                preferred-width: whm-scroll.visible-width;
+                                horizontal-stretch: 0;
+                                vertical-stretch: 0;
+                                accessible-role: list;
+                                accessible-label: "Active Food inputs";
+                                VerticalLayout {
+                                    min-width: whm-scroll.visible-width;
+                                    max-width: whm-scroll.visible-width;
+                                    preferred-width: whm-scroll.visible-width;
+                                    horizontal-stretch: 0;
+                                    spacing: 0px;
+                                    for row in root.food : ControlEditor {
+                                        control: row;
+                                        min-width: whm-scroll.visible-width;
+                                        max-width: whm-scroll.visible-width;
+                                        preferred-width: whm-scroll.visible-width;
+                                        horizontal-stretch: 0;
+                                        show-label: false;
+                                        max-height: self.row-height;
+                                        inputs-enabled: root.inputs-enabled;
+                                        text-edited(key, value) => { root.text-edited(key, value); }
+                                        editing-finished(key, value) => { root.editing-finished(key, value); }
+                                        toggled(key, value) => { root.toggled(key, value); }
+                                        wheel(key, direction) => { root.wheel(key, direction); }
+                                        text-focus(focused) => { root.focus-changed(focused); }
+                                    }
+                                }
+                            }
                         }
-                        InputGroup {
-                            title: "Job, spell, weapon skill & TP";
-                            rows: root.basics;
-                            inputs-enabled: root.inputs-enabled;
-                            text-edited(key, value) => { root.text-edited(key, value); }
-                            editing-finished(key, value) => { root.editing-finished(key, value); }
-                            toggled(key, value) => { root.toggled(key, value); }
-                            wheel(key, direction) => { root.wheel(key, direction); }
-                            text-focus(focused) => { root.focus-changed(focused); }
+                    }
+
+                    brd-scroll := ScrollView {
+                        min-width: 148px;
+                        max-width: 148px;
+                        preferred-width: 148px;
+                        horizontal-stretch: 0;
+                        viewport-width: self.visible-width;
+                        accessible-role: list;
+                        accessible-label: "Bard Songs inputs";
+                        scroll-label: self.accessible-label + " vertical scrollbar";
+
+                        VerticalLayout {
+                            width: brd-scroll.visible-width;
+                            horizontal-stretch: 0;
+                            spacing: 0px;
+                            for row in root.brd : Rectangle {
+                                min-width: brd-scroll.visible-width;
+                                max-width: brd-scroll.visible-width;
+                                preferred-width: brd-scroll.visible-width;
+                                horizontal-stretch: 0;
+                                min-height: brd-editor.row-height;
+                                max-height: brd-editor.row-height;
+                                preferred-height: brd-editor.row-height;
+                                vertical-stretch: 0;
+                                brd-editor := ControlEditor {
+                                    width: parent.width;
+                                    horizontal-stretch: 0;
+                                    height: parent.height;
+                                    control: row;
+                                    show-label: false;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, value) => { root.text-edited(key, value); }
+                                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                                    toggled(key, value) => { root.toggled(key, value); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
+                                }
+                            }
+                        }
+                    }
+
+                    cor-scroll := ScrollView {
+                        min-width: 212px;
+                        max-width: 212px;
+                        preferred-width: 212px;
+                        horizontal-stretch: 0;
+                        viewport-width: self.visible-width;
+                        accessible-role: list;
+                        accessible-label: "Corsair Rolls inputs";
+                        scroll-label: self.accessible-label + " vertical scrollbar";
+
+                        GridLayout {
+                            width: cor-scroll.visible-width;
+                            horizontal-stretch: 0;
+                            spacing: 0px;
+                            for control[index] in root.cor : ControlEditor {
+                                row: index < 2 ? index : index < 10 ? floor((index - 2) / 2) + 2 : index - 4;
+                                col: index >= 2 && index < 10 ? mod(index - 2, 2) : 0;
+                                colspan: index >= 2 && index < 10 ? 1 : 2;
+                                control: control;
+                                show-label: false;
+                                // Keep rank cells intact; roll selectors use the remaining lane-free width.
+                                min-width: index >= 2 && index < 10 ? (mod(index, 2) == 0 ? 72px : cor-scroll.visible-width - 72px) : cor-scroll.visible-width;
+                                max-width: index >= 2 && index < 10 ? (mod(index, 2) == 0 ? 72px : cor-scroll.visible-width - 72px) : cor-scroll.visible-width;
+                                preferred-width: index >= 2 && index < 10 ? (mod(index, 2) == 0 ? 72px : cor-scroll.visible-width - 72px) : cor-scroll.visible-width;
+                                max-height: self.row-height;
+                                horizontal-stretch: 0;
+                                inputs-enabled: root.inputs-enabled;
+                                text-edited(key, value) => { root.text-edited(key, value); }
+                                editing-finished(key, value) => { root.editing-finished(key, value); }
+                                toggled(key, value) => { root.toggled(key, value); }
+                                wheel(key, direction) => { root.wheel(key, direction); }
+                                text-focus(focused) => { root.focus-changed(focused); }
+                            }
+                        }
+                    }
+
+                    geo-scroll := ScrollView {
+                        min-width: 160px;
+                        max-width: 160px;
+                        preferred-width: 160px;
+                        horizontal-stretch: 0;
+                        viewport-width: self.visible-width;
+                        accessible-role: list;
+                        accessible-label: "Geomancy Bubbles inputs";
+                        scroll-label: self.accessible-label + " vertical scrollbar";
+
+                        VerticalLayout {
+                            width: geo-scroll.visible-width;
+                            horizontal-stretch: 0;
+                            spacing: 0px;
+                            for row in root.geo : Rectangle {
+                                min-width: geo-scroll.visible-width;
+                                max-width: geo-scroll.visible-width;
+                                preferred-width: geo-scroll.visible-width;
+                                horizontal-stretch: 0;
+                                min-height: geo-editor.row-height;
+                                max-height: geo-editor.row-height;
+                                preferred-height: geo-editor.row-height;
+                                vertical-stretch: 0;
+                                geo-editor := ControlEditor {
+                                    width: parent.width;
+                                    horizontal-stretch: 0;
+                                    height: parent.height;
+                                    control: row;
+                                    show-label: row.control-kind != InputWidgetKind.combo;
+                                    display-label: row.key == "defaults_bubble_potency_entry" ? "Bubble Potency:" : row.label;
+                                    label-width: row.control-kind == InputWidgetKind.entry ? 68px : 0px;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, value) => { root.text-edited(key, value); }
+                                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                                    toggled(key, value) => { root.toggled(key, value); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
+                                }
+                            }
                         }
                     }
                 }
+            }
 
-                InputGroup {
-                    row: root.wide-inputs ? 0 : 1;
-                    col: root.wide-inputs ? 1 : 0;
-                    title: "Special Toggles";
-                    rows: root.abilities;
-                    preferred-height: 360px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
+            GearPanel {
+                source-key: "quicklook";
+                equipped-width: 300px;
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                min-height: 420px;
+                max-height: 420px;
+                preferred-height: 420px;
+                vertical-stretch: 0;
+                slots: root.equipped;
+                items: root.items;
+                active-slot: root.active-slot;
+                inputs-enabled: root.inputs-enabled;
+                slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                item-selected(source, id) => { root.item-selected(source, id); }
 
-                InputGroup {
-                    row: root.wide-inputs ? 0 : 2;
-                    col: root.wide-inputs ? 2 : 0;
-                    title: "Enemy Inputs";
-                    rows: root.enemy;
-                    preferred-height: 400px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
-
-                InputGroup {
-                    row: root.wide-inputs ? 1 : 3;
-                    col: 0;
-                    title: "White Magic — " + root.skill-label;
-                    rows: root.whm;
-                    preferred-height: 360px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
-
-                InputGroup {
-                    row: root.wide-inputs ? 2 : 4;
-                    col: 0;
-                    title: "Active Food";
-                    rows: root.food;
-                    preferred-height: 140px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
-
-                InputGroup {
-                    row: root.wide-inputs ? 1 : 5;
-                    col: root.wide-inputs ? 1 : 0;
-                    title: "Bard Songs";
-                    rows: root.brd;
-                    preferred-height: 400px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
-
-                InputGroup {
-                    row: root.wide-inputs ? 1 : 6;
-                    col: root.wide-inputs ? 2 : 0;
-                    title: "Corsair Rolls";
-                    rows: root.cor;
-                    preferred-height: 440px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
-
-                InputGroup {
-                    row: root.wide-inputs ? 2 : 7;
-                    col: root.wide-inputs ? 1 : 0;
-                    title: "Geomancy Bubbles";
-                    rows: root.geo;
-                    preferred-height: 360px;
-                    inputs-enabled: root.inputs-enabled;
-                    text-edited(key, value) => { root.text-edited(key, value); }
-                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                    toggled(key, value) => { root.toggled(key, value); }
-                    wheel(key, direction) => { root.wheel(key, direction); }
-                    text-focus(focused) => { root.focus-changed(focused); }
-                }
-
-                GroupBox {
-                    row: root.wide-inputs ? 3 : 8;
-                    col: 0;
-                    colspan: root.wide-inputs ? 3 : 1;
-                    title: "Quicklook Equipment";
-                    VerticalLayout {
-                        spacing: 8px;
-                        GridLayout {
-                            spacing: 6px;
-                            Button {
-                                row: 0;
-                                col: 0;
-                                text: "Copy to TP Set";
-                                enabled: root.inputs-enabled;
-                                clicked => { if root.inputs-enabled { root.copy("quicklook", "tp"); } }
-                            }
-                            Button {
-                                row: 0;
-                                col: 1;
-                                text: "Copy to WS Set";
-                                enabled: root.inputs-enabled;
-                                clicked => { if root.inputs-enabled { root.copy("quicklook", "ws"); } }
-                            }
-                            Button {
-                                row: 1;
-                                col: 0;
-                                colspan: 2;
-                                text: "Copy Quicklook to Clipboard";
-                                enabled: root.inputs-enabled;
-                                clicked => { if root.inputs-enabled { root.action("export-quicklook"); } }
-                            }
+                VerticalLayout {
+                    spacing: 2px;
+                    min-width: 298px;
+                    max-width: 298px;
+                    preferred-width: 298px;
+                    horizontal-stretch: 0;
+                    vertical-stretch: 0;
+                    GridLayout {
+                        spacing: 2px;
+                        min-width: 298px;
+                        max-width: 298px;
+                        preferred-width: 298px;
+                        horizontal-stretch: 0;
+                        Button {
+                            row: 0;
+                            col: 0;
+                            text: "Copy to TP Set";
+                            min-width: 148px;
+                            max-width: 148px;
+                            preferred-width: 148px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.copy("quicklook", "tp"); } }
                         }
-                        GearPanel {
-                            source-key: "quicklook";
-                            slots: root.equipped;
-                            items: root.items;
-                            active-slot: root.active-slot;
-                            inputs-enabled: root.inputs-enabled;
-                            slot-selected(source, slot) => { root.slot-selected(source, slot); }
-                            item-selected(source, id) => { root.item-selected(source, id); }
+                        Button {
+                            row: 0;
+                            col: 1;
+                            text: "Copy to WS Set";
+                            min-width: 148px;
+                            max-width: 148px;
+                            preferred-width: 148px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.copy("quicklook", "ws"); } }
+                        }
+                        Button {
+                            row: 1;
+                            col: 0;
+                            colspan: 2;
+                            text: "Copy Quicklook to Clipboard";
+                            min-width: 298px;
+                            max-width: 298px;
+                            preferred-width: 298px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.action("export-quicklook"); } }
+                        }
+                        Button {
+                            row: 2;
+                            col: 0;
+                            text: "Quicklook TP";
+                            min-width: 148px;
+                            max-width: 148px;
+                            preferred-width: 148px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.action("quick-round"); } }
+                        }
+                        Button {
+                            row: 2;
+                            col: 1;
+                            text: "Quicklook WS";
+                            min-width: 148px;
+                            max-width: 148px;
+                            preferred-width: 148px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.action("quick-ws"); } }
+                        }
+                        Button {
+                            row: 3;
+                            col: 0;
+                            text: "Quicklook Spell";
+                            min-width: 148px;
+                            max-width: 148px;
+                            preferred-width: 148px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.action("quick-spell"); } }
+                        }
+                        Button {
+                            row: 3;
+                            col: 1;
+                            text: "Simulate WS";
+                            min-width: 148px;
+                            max-width: 148px;
+                            preferred-width: 148px;
+                            horizontal-stretch: 0;
+                            min-height: 28px;
+                            max-height: 28px;
+                            enabled: root.inputs-enabled;
+                            clicked => { if root.inputs-enabled { root.action("single-ws"); } }
+                        }
+                    }
+                    GridLayout {
+                        spacing: 0px;
+                        min-width: 298px;
+                        max-width: 298px;
+                        preferred-width: 298px;
+                        horizontal-stretch: 0;
+                        Text {
+                            row: 0;
+                            col: 0;
+                            text: root.damage;
+                            min-width: 298px;
+                            max-width: 298px;
+                            preferred-width: 298px;
+                            horizontal-stretch: 0;
+                            color: Palette.foreground;
+                            preferred-height: 18px;
+                            accessible-label: "Average damage";
+                            accessible-value: root.damage;
+                        }
+                        Text {
+                            row: 1;
+                            col: 0;
+                            text: root.tp-return;
+                            min-width: 298px;
+                            max-width: 298px;
+                            preferred-width: 298px;
+                            horizontal-stretch: 0;
+                            color: Palette.foreground;
+                            preferred-height: 18px;
+                            accessible-label: "Average TP";
+                            accessible-value: root.tp-return;
+                        }
+                        Text {
+                            row: 2;
+                            col: 0;
+                            text: root.time-to-ws;
+                            min-width: 298px;
+                            max-width: 298px;
+                            preferred-width: 298px;
+                            horizontal-stretch: 0;
+                            color: Palette.foreground;
+                            preferred-height: 18px;
+                            accessible-label: "Time per WS";
+                            accessible-value: root.time-to-ws;
                         }
                     }
                 }

@@ -43,6 +43,20 @@ for the exercised verification and remaining manual checks.
 - **Player Stats:** explicitly refresh from Quicklook, TP or WS gear. Reports
   preserve the existing source-specific display units and haste caps.
 
+At 760×440, the UI preserves the original three input columns, four buff columns,
+equipment grid beside its candidate list, and grouped Stats columns. The main
+tabs use a fixed 704px rail with 680px content rows: controls, dropdowns, buttons,
+candidate lists and Stats columns keep their widths when the window grows.
+Content stays left-aligned; only the available height and vertical scrolling
+expand. Equipment cards are 48×48px with centered 28×28px icon canvases. Long
+Stats labels/values wrap vertically instead of widening their columns.
+Missing or unreadable icon assets leave the image blank; the slot button and item
+details remain usable. App-owned scroll views reserve an 18px vertical scrollbar
+lane with a persistent 14px thumb and contrasting track whenever content overflows.
+Drag the thumb, click the track to page, or use the mouse wheel; report text retains
+native selection and copying.
+The preferred window size is 760×900; the minimum remains 720×440.
+
 The three equipment sets have independent slot grids, variant lists, icons and
 item details. Copy actions support Quicklook ↔ TP and Quicklook ↔ WS;
 clipboard exports use the actual selected source. Closing a result/chart window

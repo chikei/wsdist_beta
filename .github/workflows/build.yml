@@ -80,21 +80,26 @@ jobs:
         if: ${{ !cancelled() }}
         run: cargo +1.92.0 build --locked --release --target ${{ matrix.target }} -p wsdist-app --bin wsdist-gui
 
+      - name: Build development-only Linux native focus helper
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        run: |
+          mkdir -p target
+          read -r -a native_flags <<<"$(pkg-config --cflags --libs x11 libpng)"
+          cc -std=c11 -O2 tools/native-window-x11.c -o target/native-window-x11 "${native_flags[@]}"
+
       - name: Real Winit software UI smoke at 100 percent (Linux)
         if: ${{ !cancelled() && runner.os == 'Linux' }}
         env:
           WSDIST_DATA_DIR: ${{ github.workspace }}
           SLINT_SCALE_FACTOR: '1'
-          WINIT_UNIX_BACKEND: x11
-        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/linux-100
+        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET target/native-window-x11 --focus-main cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/linux-100
 
       - name: Real Winit software UI smoke at 150 percent (Linux)
         if: ${{ !cancelled() && runner.os == 'Linux' }}
         env:
           WSDIST_DATA_DIR: ${{ github.workspace }}
           SLINT_SCALE_FACTOR: '1.5'
-          WINIT_UNIX_BACKEND: x11
-        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/linux-150
+        run: xvfb-run -a --server-args='-screen 0 2400x1800x24' dbus-run-session -- env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET target/native-window-x11 --focus-main cargo +1.92.0 run --locked --target ${{ matrix.target }} -p wsdist-app --example ui_smoke -- --output target/ui-smoke/linux-150
 
       - name: Real Winit software UI smoke at 100 percent (Windows)
         if: ${{ !cancelled() && runner.os == 'Windows' }}

@@ -22,7 +22,7 @@ also needs Xvfb/xauth; archive automation needs Xlib/libpng development headers,
 Desktop Portal backend such as GTK, GNOME or KDE. Windows requires the native
 x64 MSVC Rust build environment and an interactive desktop session.
 
-Current integrated Linux results: **109 core tests** and **60 app tests** passed.
+Current integrated Linux results: **109 core tests** and **61 app tests** passed.
 The release verifier passed **30,192 exercised cases**, one explicitly inert
 provenance case, and zero failed cases. Completed work includes 20 full DPS
 trajectories, 12 full distributions / 240,000 samples, 30 complete optimizer
@@ -172,18 +172,34 @@ base-name/CSV lines come from the actual Quicklook, TP or WS source.
 
 ## Real-backend UI proof
 
+Linux native proof uses an isolated X11 display and the development focus helper:
+
 ```sh
-WSDIST_DATA_DIR="$PWD" SLINT_BACKEND=winit-software SLINT_EMIT_DEBUG_INFO=1 \
+mkdir -p target
+cc -std=c11 -O2 tools/native-window-x11.c -o target/native-window-x11 \
+  $(pkg-config --cflags --libs x11 libpng)
+xvfb-run -a -n 198 -s '-screen 0 2560x1800x24' \
+  env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET WSDIST_DATA_DIR="$PWD" \
+  SLINT_BACKEND=winit-software SLINT_EMIT_DEBUG_INFO=1 \
+  target/native-window-x11 --focus-main \
   cargo run --locked -p wsdist-app --example ui_smoke -- --output target/ui-smoke-100
-WSDIST_DATA_DIR="$PWD" SLINT_BACKEND=winit-software SLINT_EMIT_DEBUG_INFO=1 \
-  SLINT_SCALE_FACTOR=1.5 target/debug/examples/ui_smoke --output target/ui-smoke-150
+xvfb-run -a -n 199 -s '-screen 0 2560x1800x24' \
+  env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET WSDIST_DATA_DIR="$PWD" \
+  SLINT_BACKEND=winit-software SLINT_EMIT_DEBUG_INFO=1 SLINT_SCALE_FACTOR=1.5 \
+  target/native-window-x11 --focus-main \
+  target/debug/examples/ui_smoke --output target/ui-smoke-150
 ```
 
-For displayless Linux prefix each command with `xvfb-run -a`; use a screen large
-enough for scaled windows, for example `-s '-screen 0 2560x1800x24'`. Windows
-PowerShell sets the corresponding environment variables and runs the same
-Cargo command without the POSIX prefix. The driver uses the real Winit/software
-backend, never the testing backend, and temporary resources for save/reload.
+The helper focuses the actual mapped main window with `XSetInputFocus` and checks
+`XGetInputFocus`; it is not shipped. Bare Xvfb otherwise lets injected keys reach
+Slint's stored focus item while the window remains inactive, bypassing
+focus-dependent behavior. Both Wayland variables must be unset so the clipboard
+uses the isolated X11 display rather than the inherited host session. Concurrent
+runs require separate displays and a screen large enough for scaled windows.
+Windows PowerShell sets the corresponding Slint/data environment variables and
+runs the Cargo command without the Linux helper or POSIX prefix. The driver uses
+the real Winit/software backend, never the testing backend, and temporary
+resources for save/reload.
 
 The 100% and 150% Linux runs passed. Native screenshots were inspected for all
 four tabs, generated variants/details, numerical errors, result windows, Stats,
@@ -200,6 +216,68 @@ The Slint 1.16 software snapshot path leaves its unused alpha channel at zero.
 The driver sets alpha opaque while preserving every rendered RGB byte; this is
 not numerical/image golden rewriting. Each `report.json` records screenshot
 filenames, dimensions, actual scale and exercised workflows.
+
+The compact-layout correction was compared with the frozen Qt application.
+Qt received a 760×440 resize request but enforced an actual 760×897 window
+(`target/compact-layout/reference/report.json`); the native application supports
+an actual 760×440 window using outer vertical scrolling, not column stacking.
+The permanent native driver now checks 760×440, 720×560 and 1440×1080 at both
+100% and 150% scale, verifies the resulting logical dimensions, and records the
+three input columns, four buff columns and grouped Stats geometry. It rejects
+stretched/overlapping editor rows, checks equipment beside candidate lists,
+scrolls to lower actions and performs a native compact Quicklook WS calculation
+against the frozen Ninja result. Both runs passed, and compact screenshots for
+all four tabs were inspected. Evidence:
+`target/compact-layout/verified-100/report.json` and
+`target/compact-layout/verified-150/report.json`.
+
+The subsequent fixed-width/icon-centering proof also passed at 100% and 150%.
+The four main tabs now have a fixed 704px rail and 680px content rows, with
+left-aligned horizontal geometry independent of window width. The regression
+and native driver compare element X positions and widths across 760×440,
+720×560 and 1440×1080, including profile changes, all displayed Stats rows,
+candidate lists/inspectors, TP/WS gear and lower actions. Normal, empty and
+label-only gear cards were checked through debug element geometry: 48×48px
+cards, centered 28×28px Image canvases or centered slot-label canvases. Oversized
+Stats values retain fixed columns, gain vertical space and do not overlap
+subsequent rows/groups. Native compact/expanded screenshots were inspected;
+both Quicklook WS and TP results/time fields remain reachable and match the
+frozen Ninja calculations. All 61 app tests passed. Evidence:
+`target/fixed-width-layout/verified-100/report.json` and
+`target/fixed-width-layout/verified-150/report.json`.
+
+The missing-icon/visible-scrollbar update passed all 65 app tests. The native
+driver removes the requested `icons32/20977.png` only in its temporary sandbox,
+verifies a blank 0×0 image with the gear card still usable, restores the original
+bytes, and recovers the image through the normal reload-data action.
+
+The persistent scrollbar lane is 18 logical pixels wide, with an opaque 14px
+thumb and a 32px minimum length capped to a shorter track. The complete native
+driver passed at 100% and 150% scale with actual 760×440, 720×440, 720×560 and
+1440×1080 logical windows. It exercises pointer down/move/up thumb dragging,
+track page clicks and wheel scrolling on the four tabs, nested scalar inputs,
+2,048 virtual candidates and their inspector, 1,024 variable-height progress
+rows, and the native report editor. Empty/fitting content retains its reserved
+lane without a handle. Keyboard End/Home leaves gear radio selection fully
+visible after virtual realization; explicit user scrolling remains independent.
+For variable-height rows, wheel direction is verified with unique rendered text
+anchors, not monotonic estimated offsets: Slint may refine the global estimate
+while correctly moving the visible rows. The real TP/WS comparison is repeated
+four times to ensure report overflow; scrollbar interaction preserves selection
+and exact native clipboard contents. Each full run captured 156 screenshots;
+representative blank/restored icons and compact/high-DPI scrollbar surfaces were
+inspected. Evidence:
+`target/visible-scrollbars/verified-100/ui-workflows/report.json` and
+`target/visible-scrollbars/verified-150/ui-workflows/report.json`.
+
+Observed Winit/software renderer limit: selected report backgrounds can paint
+below the native viewport, while text glyphs and the enlarged scrollbar remain
+clipped and clipboard contents remain exact. [INFERENCE] Source inspection
+attributes this to Slint 1.16's stock Parley/software selection rectangle path
+bypassing the inherited clip, not to removal of a clip by the wrapper. No
+pre-change selected-report screenshot was available for a visual before/after
+comparison. The native editor and renderer are retained; no dependency patch is
+included in this scrollbar change.
 
 A separate native GTK portal proof passed using the production inventory action,
 a painted chooser owned by the real portal process, and native XTest keyboard
@@ -256,7 +334,7 @@ CI runs both native targets, locked core/app tests, the full numerical verifier,
 release GUI, real-backend 100%/150% UI proof, packaging and extracted-archive
 smokes. Failed gates retain evidence but never publish a release archive.
 
-A separate Linux proof ran the final archive's production GUI and complete UI
+The original cutover Linux proof ran that archive's production GUI and complete UI
 workflows at both 100% and 150% scale in an isolated filesystem with no Python or
 Qt interpreter, library or source tree. Both processes exited zero at each
 scale. The inventory recorded 2,082 staged files, 48 native ELF libraries and all
@@ -276,3 +354,38 @@ driver: 23 workflow records and 45 native screenshots, production GUI launch
 from an unrelated empty CWD, executable-relative resources and clean exit.
 Evidence: `target/archive-smoke/post-cutover-linux-100/report.json` and
 `target/archive-smoke/post-cutover-linux-100/ui-workflows/report.json`.
+
+The compact-layout Linux archive was rebuilt and its extracted production GUI
+launched at 100% and 150% from an unrelated empty CWD, with `WSDIST_DATA_DIR`
+unset. Both native launch/close proofs passed; these archive runs did not repeat
+the separately completed full UI workflows above. Evidence:
+`target/compact-layout/archive-100/report.json` and
+`target/compact-layout/archive-150/report.json`.
+Archive SHA-256:
+`4d8fabc2511a3be22307266823f684ae2100ec2f999d80a64743a5b815bec249`.
+
+The fixed-width/icon-centering Linux archive was rebuilt. Its extracted
+production GUI rendered and closed at both scales from an unrelated empty CWD,
+with executable-relative resources and `WSDIST_DATA_DIR` unset. The full
+workflows were exercised separately by the native driver above. Evidence:
+`target/fixed-width-layout/archive-100/report.json` and
+`target/fixed-width-layout/archive-150/report.json`.
+Archive SHA-256:
+`c478267082ed7702ae276dc9294cb7f7527de5bb3c9e393fe4e390397d2f10f0`.
+
+The blank-missing-icon/larger-scrollbar Linux archive was rebuilt. Its extracted
+production GUI rendered and closed at 100% and 150% scale from an unrelated empty
+CWD, with executable-relative resources and `WSDIST_DATA_DIR` unset. The native
+surfaces were inspected: persistent wider scrollbars do not cover controls, and
+the WHM/GEO numeric fields remain fully readable. These archive runs cover
+production launch/close, not the separate development driver's full workflows.
+Evidence: `target/visible-scrollbars/archive-100/report.json` and
+`target/visible-scrollbars/archive-150/report.json`.
+Archive SHA-256:
+`a08ab0619b79c7ae697bc2169a72051ebe3cb509ff7a9c85f6e2f23e08964812`.
+
+Subsequent extracted runs also passed the complete development UI driver at
+both scales, in addition to production launch/render/close:
+`target/visible-scrollbars/verified-100/report.json` and
+`target/visible-scrollbars/verified-150/report.json`. Each report links its
+complete workflow evidence and screenshots. The archive hash above is unchanged.

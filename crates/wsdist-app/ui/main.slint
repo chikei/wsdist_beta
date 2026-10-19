@@ -1,4 +1,5 @@
-import { AboutSlint, Button, ListView, Palette, TabWidget, TextEdit } from "std-widgets.slint";
+import { AboutSlint, Button, Palette, TabWidget } from "std-widgets.slint";
+import { ListView, ScrollableTextEdit } from "scroll.slint";
 import { Quicklook } from "quicklook.slint";
 import { Optimize } from "optimize.slint";
 import { Simulate } from "simulate.slint";
@@ -32,12 +33,13 @@ export component ResourceErrorWindow inherits Window {
             wrap: word-wrap;
         }
 
-        TextEdit {
+        ScrollableTextEdit {
             text: root.error-detail;
             read-only: true;
             wrap: word-wrap;
             vertical-stretch: 1;
             accessible-label: "Resource error details";
+            scroll-label: self.accessible-label + " vertical scrollbar";
             accessible-value: self.text;
         }
 
@@ -113,10 +115,11 @@ export component MainWindow inherits Window {
 
     title: "Kastra FFXI Damage Simulator  (2026 May 21a)";
     icon: root.app-icon;
-    preferred-width: 1152px;
+    preferred-width: 760px;
     preferred-height: 900px;
     min-width: 720px;
-    min-height: 560px;
+    min-height: 440px;
+    default-font-size: 12px;
     background: Palette.background;
     forward-focus: keyboard;
     changed active-tab => {
@@ -172,10 +175,18 @@ export component MainWindow inherits Window {
         }
 
         VerticalLayout {
-            padding: 8px;
-            spacing: 6px;
+            x: 0px;
+            y: 0px;
+            width: 712px;
+            height: parent.height;
+            padding: 4px;
+            spacing: 2px;
             tabs := TabWidget {
                 current-index <=> root.active-tab;
+                min-width: 704px;
+                preferred-width: 704px;
+                max-width: 704px;
+                horizontal-stretch: 0;
                 vertical-stretch: 1;
                 Tab {
                     title: "Quicklook";
@@ -250,19 +261,49 @@ export component MainWindow inherits Window {
                 }
             }
             if root.error-message != "": HorizontalLayout {
+                min-width: 704px;
+                max-width: 704px;
+                spacing: 2px;
                 Text {
                     text: root.error-message;
                     color: #c0392b;
                     wrap: word-wrap;
                     vertical-alignment: center;
-                    horizontal-stretch: 1;
+                    min-width: 552px;
+                    max-width: 552px;
+                    horizontal-stretch: 0;
                 }
-                Button { text: "Error details"; clicked => { root.action("show-error"); } }
+                Button {
+                    min-width: 150px;
+                    max-width: 150px;
+                    text: "Error details";
+                    clicked => { root.action("show-error"); }
+                }
             }
             HorizontalLayout {
-                Text { text: root.status; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
-                if root.busy: Button { text: "Cancel computation"; clicked => { root.action("cancel"); } }
-                Button { text: "Close"; clicked => { root.close-requested(); } }
+                min-width: 704px;
+                max-width: 704px;
+                spacing: 2px;
+                Text {
+                    min-width: root.busy ? 472px : 630px;
+                    max-width: self.min-width;
+                    text: root.status;
+                    overflow: elide;
+                    vertical-alignment: center;
+                    horizontal-stretch: 0;
+                }
+                if root.busy: Button {
+                    min-width: 156px;
+                    max-width: 156px;
+                    text: "Cancel computation";
+                    clicked => { root.action("cancel"); }
+                }
+                Button {
+                    min-width: 72px;
+                    max-width: 72px;
+                    text: "Close";
+                    clicked => { root.close-requested(); }
+                }
             }
         }
     }
@@ -279,13 +320,14 @@ export component ResultWindow inherits Window {
     min-height: 280px;
     VerticalLayout {
         padding: 12px; spacing: 8px;
-        TextEdit {
+        ScrollableTextEdit {
             text: root.report-text;
             read-only: true;
             font-family: "monospace";
             wrap: word-wrap;
             vertical-stretch: 1;
             accessible-label: "Computation result";
+            scroll-label: self.accessible-label + " vertical scrollbar";
             accessible-value: self.text;
         }
         HorizontalLayout { alignment: end; Button { text: "Close result"; clicked => { root.close-requested(); } } }
@@ -330,9 +372,18 @@ export component ProgressWindow inherits Window {
     min-height: 260px;
     VerticalLayout {
         padding: 12px; spacing: 8px;
-        ListView {
+        progress-list := ListView {
             vertical-stretch: 1;
-            for line in root.lines: Text { text: line; wrap: word-wrap; font-family: "monospace"; }
+            viewport-width: self.visible-width;
+            accessible-role: list;
+            accessible-label: "Optimizer progress content";
+            scroll-label: self.accessible-label + " vertical scrollbar";
+            for line in root.lines: Text {
+                width: progress-list.visible-width;
+                text: line;
+                wrap: word-wrap;
+                font-family: "monospace";
+            }
         }
         Button { text: "Close progress"; clicked => { root.close-requested(); } }
     }

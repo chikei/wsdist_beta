@@ -106,9 +106,9 @@ if [[ -n "$ui_smoke" ]]; then
     # Place the development-only driver beside the extracted resources, AFTER
     # archive hygiene checks. It is not present in the delivered archive.
     cp -- "$ui_smoke" "$bundle/ui_smoke"
-    (cd -- "$other_cwd" && exec timeout 20m env -u WSDIST_DATA_DIR -u PYTHONPATH -u PYTHONHOME -u QT_PLUGIN_PATH -u WAYLAND_DISPLAY \
-        SLINT_BACKEND=winit-software WINIT_UNIX_BACKEND=x11 SLINT_SCALE_FACTOR="$scale" SLINT_EMIT_DEBUG_INFO=1 \
-        "$bundle/ui_smoke" --output "$output/ui-workflows") > "$output/ui.stdout.log" 2> "$output/ui.stderr.log"
+    (cd -- "$other_cwd" && exec timeout 20m env -u WSDIST_DATA_DIR -u PYTHONPATH -u PYTHONHOME -u QT_PLUGIN_PATH -u WAYLAND_DISPLAY -u WAYLAND_SOCKET \
+        SLINT_BACKEND=winit-software SLINT_SCALE_FACTOR="$scale" SLINT_EMIT_DEBUG_INFO=1 \
+        "$work/native-window-x11" --focus-main "$bundle/ui_smoke" --output "$output/ui-workflows") > "$output/ui.stdout.log" 2> "$output/ui.stderr.log"
     jq -e --argjson scale "$scale" '.status == "passed" and .scale_factor == $scale' "$output/ui-workflows/report.json" >/dev/null
 fi
 status=passed

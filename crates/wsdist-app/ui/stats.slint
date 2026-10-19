@@ -1,43 +1,64 @@
-import { Button, GroupBox, ListView, Palette, ScrollView } from "std-widgets.slint";
+import { Button, GroupBox, Palette } from "std-widgets.slint";
+import { ScrollView } from "scroll.slint";
 import { StatDisplayRow } from "types.slint";
 
 component StatGroup inherits GroupBox {
     in property <[StatDisplayRow]> rows;
+    in property <length> group-width;
+    in property <length> value-width: 64px;
+    private property <length> label-width: root.group-width - root.value-width - 10px;
 
-    min-width: 300px;
-    preferred-height: 48px + root.rows.length * 34px;
+    content-padding: 0px;
+    width: root.group-width;
+    horizontal-stretch: 0;
+
+    preferred-height: 32px + rows-layout.preferred-height;
     vertical-stretch: 0;
 
-    stat-list := ListView {
-        viewport-width: self.visible-width;
-        min-height: max(34px, root.rows.length * 34px);
-
+    rows-layout := VerticalLayout {
+        width: root.group-width;
+        horizontal-stretch: 0;
+        spacing: 0px;
+        alignment: start;
+        vertical-stretch: 1;
         for row in root.rows: Rectangle {
-            width: stat-list.visible-width;
-            height: 34px;
+            private property <length> row-height: max(24px, max(stat-label.preferred-height, stat-value.preferred-height) + 4px);
+            width: root.group-width;
+            horizontal-stretch: 0;
+            min-height: self.row-height;
+            max-height: self.row-height;
+            preferred-height: self.row-height;
+            vertical-stretch: 0;
             accessible-role: list-item;
             accessible-label: row.label + ": " + row.value;
 
             HorizontalLayout {
-                padding-left: 8px;
-                padding-right: 8px;
-                spacing: 12px;
+                width: root.group-width;
+                horizontal-stretch: 0;
+                padding-left: 2px;
+                padding-right: 2px;
+                padding-top: 2px;
+                padding-bottom: 2px;
+                spacing: 6px;
 
-                Text {
+                stat-label := Text {
                     text: row.label;
                     color: Palette.foreground;
-                    font-size: 13px;
+                    font-size: 12px;
                     wrap: word-wrap;
                     vertical-alignment: center;
-                    horizontal-stretch: 1;
+                    width: root.label-width;
+                    horizontal-stretch: 0;
                 }
-                Text {
+                stat-value := Text {
                     text: row.value;
                     color: Palette.foreground;
-                    font-size: 13px;
+                    font-size: 12px;
                     font-weight: 500;
+                    wrap: word-wrap;
                     horizontal-alignment: right;
                     vertical-alignment: center;
+                    width: root.value-width;
                     horizontal-stretch: 0;
                     accessible-label: row.label;
                     accessible-value: row.value;
@@ -61,24 +82,65 @@ export component Stats inherits Rectangle {
     callback action(string);
 
     ScrollView {
-        viewport-width: max(self.visible-width, 360px);
+        viewport-width: self.visible-width;
         accessible-role: list;
         accessible-label: "Stats content";
+        scroll-label: self.accessible-label + " vertical scrollbar";
 
         VerticalLayout {
-            padding: 12px;
-            spacing: 12px;
+            x: 0px;
+            width: 692px;
+            horizontal-stretch: 0;
+            padding: 6px;
+            spacing: 6px;
 
-            Text {
-                text: "Player Stats";
-                color: Palette.foreground;
-                font-size: 20px;
-                font-weight: 600;
-                wrap: word-wrap;
+            HorizontalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                spacing: 4px;
                 vertical-stretch: 0;
+                Button {
+                    text: "Quicklook Gear Stats";
+                    enabled: root.inputs-enabled;
+                    min-height: 28px;
+                    preferred-height: 28px;
+                    min-width: 224px;
+                    max-width: 224px;
+                    preferred-width: 224px;
+                    horizontal-stretch: 0;
+                    clicked => { root.action("stats-quicklook"); }
+                }
+                Button {
+                    text: "TP Gear Stats";
+                    enabled: root.inputs-enabled;
+                    min-height: 28px;
+                    preferred-height: 28px;
+                    min-width: 224px;
+                    max-width: 224px;
+                    preferred-width: 224px;
+                    horizontal-stretch: 0;
+                    clicked => { root.action("stats-tp"); }
+                }
+                Button {
+                    text: "WS Gear Stats";
+                    enabled: root.inputs-enabled;
+                    min-height: 28px;
+                    preferred-height: 28px;
+                    min-width: 224px;
+                    max-width: 224px;
+                    preferred-width: 224px;
+                    horizontal-stretch: 0;
+                    clicked => { root.action("stats-ws"); }
+                }
             }
 
             Text {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
                 text: "Displayed source: " + root.source-label;
                 color: Palette.foreground;
                 wrap: word-wrap;
@@ -87,82 +149,70 @@ export component Stats inherits Rectangle {
                 accessible-value: root.source-label;
             }
 
-            if root.width >= 600px: HorizontalLayout {
-                spacing: 8px;
-
-                Button {
-                    text: "Quicklook Gear Stats";
-                    enabled: root.inputs-enabled;
-                    horizontal-stretch: 1;
-                    clicked => { root.action("stats-quicklook"); }
+            HorizontalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                alignment: start;
+                spacing: 6px;
+                vertical-stretch: 0;
+                StatGroup {
+                    title: "Base Parameters";
+                    rows: root.base;
+                    value-width: 48px;
+                    group-width: 120px;
                 }
-                Button {
-                    text: "TP Gear Stats";
-                    enabled: root.inputs-enabled;
-                    horizontal-stretch: 1;
-                    clicked => { root.action("stats-tp"); }
+                StatGroup {
+                    title: "Physical";
+                    rows: root.physical;
+                    group-width: 230px;
                 }
-                Button {
-                    text: "WS Gear Stats";
-                    enabled: root.inputs-enabled;
-                    horizontal-stretch: 1;
-                    clicked => { root.action("stats-ws"); }
-                }
-            }
-
-            if root.width < 600px: VerticalLayout {
-                spacing: 8px;
-
-                Button {
-                    text: "Quicklook Gear Stats";
-                    enabled: root.inputs-enabled;
-                    horizontal-stretch: 1;
-                    clicked => { root.action("stats-quicklook"); }
-                }
-                Button {
-                    text: "TP Gear Stats";
-                    enabled: root.inputs-enabled;
-                    horizontal-stretch: 1;
-                    clicked => { root.action("stats-tp"); }
-                }
-                Button {
-                    text: "WS Gear Stats";
-                    enabled: root.inputs-enabled;
-                    horizontal-stretch: 1;
-                    clicked => { root.action("stats-ws"); }
+                StatGroup {
+                    title: "Magical";
+                    rows: root.magical;
+                    group-width: 270px;
                 }
             }
 
-            if root.width >= 980px: GridLayout {
-                spacing: 12px;
-
-                Row {
-                    StatGroup { title: "Base Parameters"; rows: root.base; }
-                    StatGroup { title: "Physical"; rows: root.physical; }
-                    StatGroup { title: "Magical"; rows: root.magical; }
+            HorizontalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                alignment: start;
+                spacing: 6px;
+                vertical-stretch: 0;
+                StatGroup {
+                    title: "Multi-Attack";
+                    rows: root.multi;
+                    group-width: 220px;
                 }
-                Row {
-                    StatGroup { title: "Multi-Attack"; rows: root.multi; }
-                    StatGroup { title: "Attack Speed"; rows: root.haste; }
-                    Rectangle { }
-                }
-                Row {
-                    StatGroup { title: "Defensive"; rows: root.defensive; }
-                    StatGroup { title: "Other Stats"; rows: root.other; }
-                    Rectangle { }
+                StatGroup {
+                    title: "Attack Speed";
+                    rows: root.haste;
+                    group-width: 260px;
                 }
             }
 
-            if root.width < 980px: VerticalLayout {
-                spacing: 12px;
-
-                StatGroup { title: "Base Parameters"; rows: root.base; }
-                StatGroup { title: "Physical"; rows: root.physical; }
-                StatGroup { title: "Magical"; rows: root.magical; }
-                StatGroup { title: "Multi-Attack"; rows: root.multi; }
-                StatGroup { title: "Attack Speed"; rows: root.haste; }
-                StatGroup { title: "Defensive"; rows: root.defensive; }
-                StatGroup { title: "Other Stats"; rows: root.other; }
+            HorizontalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                alignment: start;
+                spacing: 6px;
+                vertical-stretch: 0;
+                StatGroup {
+                    title: "Defensive";
+                    rows: root.defensive;
+                    group-width: 230px;
+                }
+                StatGroup {
+                    title: "Other Stats";
+                    rows: root.other;
+                    group-width: 310px;
+                }
             }
         }
     }
