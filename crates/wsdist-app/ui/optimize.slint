@@ -39,8 +39,11 @@ export component Optimize inherits Rectangle {
             x: 0px;
             width: 692px;
             horizontal-stretch: 0;
-            padding: 6px;
-            spacing: 6px;
+            padding-left: 6px;
+            padding-right: 6px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            spacing: 2px;
 
             GearPanel {
                 min-width: 680px;
@@ -54,8 +57,8 @@ export component Optimize inherits Rectangle {
                 checkbox-mode: true;
                 equipped-width: 300px;
                 inputs-enabled: root.inputs-enabled;
-                min-height: 460px;
-                preferred-height: 460px;
+                min-height: 440px;
+                preferred-height: 440px;
                 vertical-stretch: 0;
 
                 slot-selected(source, slot) => { root.slot-selected(source, slot); }
@@ -66,7 +69,7 @@ export component Optimize inherits Rectangle {
                     max-width: 300px;
                     preferred-width: 300px;
                     horizontal-stretch: 0;
-                    spacing: 4px;
+                    spacing: 2px;
 
                     GridLayout {
                         min-width: 282px;
@@ -204,7 +207,7 @@ export component Optimize inherits Rectangle {
                         horizontal-stretch: 0;
                         vertical-stretch: 0;
                         VerticalLayout {
-                            spacing: 4px;
+                            spacing: 2px;
 
                             VerticalLayout {
                                 min-width: 338px;

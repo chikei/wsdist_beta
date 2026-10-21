@@ -1,4 +1,5 @@
-import { CheckBox, ComboBox, GroupBox, LineEdit, Palette } from "std-widgets.slint";
+import { CheckBox, GroupBox, LineEdit, Palette } from "std-widgets.slint";
+import { CompactComboBox } from "combobox.slint";
 import { ScrollView } from "scroll.slint";
 import { InputRow, InputWidgetKind } from "types.slint";
 
@@ -37,7 +38,7 @@ component EntryControl inherits LineEdit {
     }
 }
 
-component ComboControl inherits ComboBox {
+component ComboControl inherits CompactComboBox {
     in property <InputRow> control;
     in property <bool> inputs-enabled;
     callback text-edited(string, string);
@@ -89,7 +90,7 @@ export component ControlEditor inherits Rectangle {
     in property <bool> show-label: true;
     in property <string> display-label: root.control.label;
     in property <length> label-width: 100px;
-    in property <length> editor-height: 26px;
+    in property <length> editor-height: 20px;
     callback text-edited(string, string);
     callback editing-finished(string, string);
     callback toggled(string, bool);
@@ -99,8 +100,7 @@ export component ControlEditor inherits Rectangle {
     private property <bool> editable: root.inputs-enabled && root.control.enabled && root.control.visible;
     private property <bool> has-label: root.show-label && root.control.control-kind != InputWidgetKind.checkbox;
     private property <length> editor-width: max(0px, root.width - (root.has-label ? root.label-width + 2px : 0px));
-    private property <bool> show-tooltip: root.control.tooltip != "" && root.control.visible && hover-area.has-hover;
-    out property <length> row-height: root.control.visible ? root.editor-height + 2px : 0px;
+    out property <length> row-height: root.control.visible ? root.editor-height : 0px;
     visible: root.control.visible;
     min-width: 84px;
     preferred-width: 84px;
@@ -108,29 +108,7 @@ export component ControlEditor inherits Rectangle {
     preferred-height: root.row-height;
     vertical-stretch: 0;
 
-    changed show-tooltip => {
-        if root.show-tooltip { help.show(); } else { help.close(); }
-    }
-    help := PopupWindow {
-        x: 0px;
-        y: root.height;
-        width: 320px;
-        height: 140px;
-        close-policy: no-auto-close;
-        Rectangle {
-            background: Palette.alternate-background;
-            border-color: Palette.foreground.with-alpha(0.2);
-            border-width: 1px;
-            border-radius: 3px;
-            tooltip-scroll := ScrollView {
-                viewport-width: self.visible-width;
-                scroll-label: root.control.label + " help vertical scrollbar";
-                Text { width: tooltip-scroll.visible-width; text: root.control.tooltip; color: Palette.foreground; wrap: word-wrap; }
-            }
-        }
-    }
-
-    hover-area := TouchArea {
+    TouchArea {
         width: root.width;
         height: root.height;
         enabled: root.control.visible;
@@ -146,7 +124,7 @@ export component ControlEditor inherits Rectangle {
         HorizontalLayout {
             width: parent.width;
             height: root.editor-height;
-            y: 1px;
+            y: 0px;
             spacing: 2px;
             if root.has-label: Text {
                 text: root.display-label;

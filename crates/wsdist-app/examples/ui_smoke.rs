@@ -294,6 +294,272 @@ fn assert_sets(desktop: &Desktop, expected: &Value) -> Result<()> {
     Ok(())
 }
 
+fn dropdown_text(owner: &ElementHandle, label: &str) -> Result<ElementHandle> {
+    let origin = owner.absolute_position();
+    let size = owner.size();
+    owner.query_descendants().match_type_name("Text").find_all().into_iter()
+        .filter(|text| {
+            let position = text.absolute_position();
+            let text_size = text.size();
+            text_size.width > 0.0 && text_size.height > 0.0 && position.x >= origin.x - 0.5 &&
+                position.y >= origin.y - 0.5 && position.x + text_size.width <= origin.x + size.width + 0.5 &&
+                position.y + text_size.height <= origin.y + size.height + 0.5
+        })
+        .max_by(|left, right| left.size().width.total_cmp(&right.size().width))
+        .ok_or_else(|| format!("{label}: selected/option Text descendant is absent").into())
+}
+
+fn dropdown_options(popup: &ElementHandle) -> Vec<ElementHandle> {
+    popup.query_descendants().find_all().into_iter().filter(|option|
+        option.accessible_role() == Some(AccessibleRole::ListItem) && option.accessible_label().is_some()).collect()
+}
+
+fn dropdown_option_visible(option: &ElementHandle, viewport: &ElementHandle) -> bool {
+    let position = option.absolute_position();
+    let clip = viewport.absolute_position();
+    let size = option.size();
+    size.width > 0.0 && size.height > 0.0 && position.x >= clip.x - 0.5 && position.y >= clip.y - 0.5 &&
+        position.x + size.width <= clip.x + viewport.size().width + 0.5 &&
+        position.y + size.height <= clip.y + viewport.size().height + 0.5
+}
+
+fn dropdown_popup(desktop: &Desktop, label: &str) -> Result<(ElementHandle, ElementHandle)> {
+    let popup = element(&desktop.window, &format!("{label} options"), AccessibleRole::List)?;
+    let viewport = popup.query_descendants().match_inherits("Flickable").find_all().into_iter()
+        .max_by(|left, right| left.size().width.total_cmp(&right.size().width))
+        .ok_or_else(|| format!("{label}: active options have no actual native scrolling viewport"))?;
+    Ok((popup, viewport))
+}
+
+fn dropdown_native_position(window: &slint::Window, position: slint::LogicalPosition) -> Result<slint::LogicalPosition> {
+    use slint::private_unstable_api::re_exports::{ItemRc, WindowInner};
+    // Slint1.16 ElementHandle positions stop at PopupWindow boundaries, even
+    // when Winit embeds the popup in the main window. Its single_click/scroll
+    // helpers have the same limitation. Obtain the real, possibly edge-adjusted
+    // child origin instead of inferring it from the combo's requested position.
+    let inner = WindowInner::from_pub(window);
+    let popups = inner.active_popups();
+    let popup = popups.last().ok_or("Native dropdown input has no active popup")?;
+    let root = ItemRc::new_root(popup.component.clone());
+    let offset = root.map_to_native_window(Default::default()) - root.map_to_window(Default::default());
+    Ok(slint::LogicalPosition::new(position.x + offset.x, position.y + offset.y))
+}
+
+fn assert_dropdown_value(desktop: &Desktop, label: &str, key: &str, expected: &str) -> Result<()> {
+    let state = desktop.controller.borrow();
+    let actual = state.ui.controls.get(key).or_else(|| state.extras.get(key))
+        .ok_or_else(|| format!("{label}: controller input {key:?} is absent"))?;
+    let combo = element(&desktop.window, label, AccessibleRole::Combobox)?;
+    if actual.value.as_str() != Some(expected) || combo.accessible_value().as_deref() != Some(expected) ||
+        combo.accessible_id().as_deref() != Some(key) {
+        return Err(format!("{label}: native selection/public accessibility differs: expected={expected:?}, controller={}, accessible={:?}, id={:?}",
+            actual.value, combo.accessible_value(), combo.accessible_id()).into());
+    }
+    Ok(())
+}
+
+fn selected_dropdown_option(desktop: &Desktop, label: &str, key: &str, expected: &str) -> Result<ElementHandle> {
+    assert_dropdown_value(desktop, label, key, expected)?;
+    let combo = element(&desktop.window, label, AccessibleRole::Combobox)?;
+    let (popup, viewport) = dropdown_popup(desktop, label)?;
+    let options = dropdown_options(&popup);
+    let selected = options.iter().filter(|option| option.accessible_item_selected() == Some(true)).collect::<Vec<_>>();
+    if combo.accessible_expanded() != Some(true) || selected.len() != 1 ||
+        selected[0].accessible_label().as_deref() != Some(expected) ||
+        selected[0].accessible_item_selectable() != Some(true) || !dropdown_option_visible(selected[0], &viewport) {
+        let visible = options.iter().map(|option| json!({"label": option.accessible_label().map(|text| text.to_string()),
+            "selected": option.accessible_item_selected(), "rectangle": rectangle(option)})).collect::<Vec<_>>();
+        return Err(format!("{label}: current item {expected:?} is not the unique fully visible, accessible selected popup option: expanded={:?}, viewport={}, options={visible:?}",
+            combo.accessible_expanded(), rectangle(&viewport)).into());
+    }
+    Ok(selected[0].clone())
+}
+
+fn assert_dropdown_closed(desktop: &Desktop, label: &str, key: &str, expected: &str) -> Result<()> {
+    assert_dropdown_value(desktop, label, key, expected)?;
+    if element(&desktop.window, label, AccessibleRole::Combobox)?.accessible_expanded() != Some(false) ||
+        ElementHandle::find_by_accessible_label(&desktop.window, &format!("{label} options")).next().is_some() {
+        return Err(format!("{label}: native popup remained open after selection/closing key").into());
+    }
+    Ok(())
+}
+
+async fn compact_dropdowns(desktop: &Desktop, output: &Path, screenshots: &mut Vec<Value>, checks: &mut Vec<Value>) -> Result<()> {
+    let original_tab = desktop.window.get_active_tab();
+    // Master-level activation can hide and clear abilities. Restore the whole
+    // input state, not only the three directly exercised values.
+    let (original_controls, original_extras, original_sub_level) = {
+        let state = desktop.controller.borrow();
+        (state.ui.controls.clone(), state.extras.clone(), state.ui.sub_job_level)
+    };
+    let original_values = original_controls.iter().chain(&original_extras)
+        .map(|(key, control)| (*key, control.value.clone())).collect::<BTreeMap<_, _>>();
+    let mut proof = Vec::new();
+    for (label, key_name, tab_index, expected_height, name) in [
+        ("Master level", "defaults_ml_combobox", 0, 26.0, "master-level"),
+        ("Resistance rank", "defaults_enemy_resist_rank_combobox", 0, 21.0, "resistance-rank"),
+        ("TP set metric", "optimize_tab.tp_metric_combobox", 1, 26.0, "tp-metric"),
+    ] {
+        tab(desktop, tab_index).await?;
+        let combo = geometry_element(desktop, label, AccessibleRole::Combobox).await?;
+        let (initial_value, choices) = {
+            let state = desktop.controller.borrow();
+            let control = state.ui.controls.get(key_name).or_else(|| state.extras.get(key_name)).ok_or("Dropdown input is absent")?;
+            (control.value.as_str().ok_or("Dropdown value is not text")?.to_owned(), control.choices.clone())
+        };
+        assert_dropdown_closed(desktop, label, key_name, &initial_value)?;
+        if (combo.size().height - expected_height).abs() > 0.5 {
+            return Err(format!("{label}: closed geometry changed: expected {expected_height}px, actual {}", rectangle(&combo)).into());
+        }
+        let text = dropdown_text(&combo, label)?;
+        let closed_inset = text.absolute_position().x - combo.absolute_position().x;
+        let closed_center = text.absolute_position().y + text.size().height / 2.0 -
+            combo.absolute_position().y - combo.size().height / 2.0;
+        let closed = json!({"control": rectangle(&combo), "text": rectangle(&text), "text_inset": closed_inset,
+            "text_center_offset_y": closed_center});
+        let prefix = format!("00-dropdown-{name}");
+        snapshot(&desktop.window, output, &format!("{prefix}-closed"), screenshots)?;
+        let origin = combo.absolute_position();
+        pointer_click(desktop.window.window(), slint::LogicalPosition::new(
+            origin.x + combo.size().width / 2.0, origin.y + combo.size().height / 2.0)).await?;
+        pause(80).await;
+        let (popup, viewport) = dropdown_popup(desktop, label)?;
+        let current = selected_dropdown_option(desktop, label, key_name, &initial_value)?;
+        let current_text = dropdown_text(&current, label)?;
+        let options = dropdown_options(&popup);
+        let mut rows = Vec::new();
+        for option in options.iter().filter(|option| dropdown_option_visible(option, &viewport)) {
+            let text = dropdown_text(option, label)?;
+            // Include the popup's outer padding: row-local padding alone is not
+            // the inset of the displayed option relative to the closed control.
+            let effective_inset = text.absolute_position().x - popup.absolute_position().x;
+            let center = text.absolute_position().y + text.size().height / 2.0 -
+                option.absolute_position().y - option.size().height / 2.0;
+            if (option.size().height - combo.size().height).abs() > 0.5 ||
+                (closed_inset - 11.0).abs() > 0.5 || (effective_inset - closed_inset).abs() > 0.5 ||
+                closed_center.abs() > 0.5 || (center - closed_center).abs() > 0.5 ||
+                option.accessible_item_selected().is_none() || option.accessible_item_selectable() != Some(true) {
+                return Err(format!("{label}: popup option padding/geometry/accessibility differs from its selected display: closed={closed}, popup={}, option={}, text={}, effective_inset={effective_inset}, text_center_offset={center}",
+                    rectangle(&popup), rectangle(option), rectangle(&text)).into());
+            }
+            rows.push(json!({"label": option.accessible_label().map(|text| text.to_string()), "selected": option.accessible_item_selected(),
+                "option": rectangle(option), "text": rectangle(&text), "effective_text_inset": effective_inset,
+                "row_local_text_inset": text.absolute_position().x - option.absolute_position().x, "text_center_offset_y": center}));
+        }
+        if rows.len() < 2 { return Err(format!("{label}: fewer than two fully visible native popup options").into()); }
+        let native_origin = dropdown_native_position(desktop.window.window(), popup.absolute_position())?;
+        let open = json!({"popup": rectangle(&popup), "viewport": rectangle(&viewport), "visible_options": rows,
+            "coordinate_space": "popup-local", "native_origin": {"x": native_origin.x, "y": native_origin.y},
+            "selected_text": rectangle(&current_text), "typography": "shared Fluent body font; Text bounds and screenshots"});
+        snapshot(&desktop.window, output, &format!("{prefix}-open"), screenshots)?;
+        println!("Dropdown {label}: closed={}px, option={}px, closed inset={closed_inset}px, popup effective inset={}px, text center offset={closed_center}px",
+            combo.size().height, current.size().height, current_text.absolute_position().x - popup.absolute_position().x);
+
+        let long_list = label == "Master level";
+        let mut scrolling = Value::Null;
+        let pointer_option = if long_list {
+            if choices.len() < 40 || viewport.size().height >= choices.len() as f32 * expected_height {
+                return Err("Master level no longer supplies a real long-list scrolling probe".into());
+            }
+            let before = options.iter().filter(|option| dropdown_option_visible(option, &viewport))
+                .filter_map(|option| option.accessible_label().map(|text| text.to_string())).collect::<Vec<_>>();
+            let origin = viewport.absolute_position();
+            let position = slint::LogicalPosition::new(origin.x + viewport.size().width / 2.0,
+                origin.y + viewport.size().height / 2.0);
+            let position = dropdown_native_position(desktop.window.window(), position)?;
+            PointerClip::new(desktop.window.window(), None).check(position, label)?;
+            desktop.window.window().dispatch_event(WindowEvent::PointerScrolled { position, delta_x: 0.0, delta_y: -10000.0 });
+            pause(100).await;
+            assert_dropdown_value(desktop, label, key_name, &initial_value)?;
+            let (scrolled_popup, scrolled_viewport) = dropdown_popup(desktop, label)?;
+            let after_options = dropdown_options(&scrolled_popup);
+            let after = after_options.iter().filter(|option| dropdown_option_visible(option, &scrolled_viewport))
+                .filter_map(|option| option.accessible_label().map(|text| text.to_string())).collect::<Vec<_>>();
+            if before == after { return Err("Master level native popup wheel did not move its visible options".into()); }
+            let last = choices.last().ok_or("Master level choices are empty")?;
+            let last_option = after_options.into_iter().find(|option| option.accessible_label().as_deref() == Some(last.as_str()) &&
+                dropdown_option_visible(option, &scrolled_viewport)).ok_or("Native popup wheel did not reveal the final Master level option")?;
+            scrolling = json!({"wheel_delta_y": -10000, "before_visible_labels": before, "after_visible_labels": after,
+                "controller_value_unchanged": initial_value, "tail_option": rectangle(&last_option)});
+            snapshot(&desktop.window, output, &format!("{prefix}-wheel-tail"), screenshots)?;
+            last_option
+        } else {
+            options.into_iter().find(|option| dropdown_option_visible(option, &viewport) &&
+                option.accessible_label().as_deref() != Some(initial_value.as_str()) &&
+                option.accessible_label().as_deref() != choices.last().map(String::as_str))
+                .ok_or_else(|| format!("{label}: no different fully visible option available for real pointer selection"))?
+        };
+        let pointer_value = pointer_option.accessible_label().ok_or("Pointer option lost its accessible label")?.to_string();
+        let pointer_index = choices.iter().position(|choice| choice == &pointer_value).ok_or("Pointer option is not a real controller choice")?;
+        let origin = pointer_option.absolute_position();
+        let hit = dropdown_native_position(desktop.window.window(), slint::LogicalPosition::new(
+            origin.x + pointer_option.size().width / 2.0, origin.y + pointer_option.size().height / 2.0))?;
+        pointer_click(desktop.window.window(), hit).await?;
+        assert_dropdown_closed(desktop, label, key_name, &pointer_value)?;
+        key(desktop.window.window(), Key::Return);
+        pause(80).await;
+        let reopened = selected_dropdown_option(desktop, label, key_name, &pointer_value)?;
+        let reopened_geometry = rectangle(&reopened);
+        let mut keyboard = Vec::new();
+        let mut index = pointer_index;
+        // Eight steps cross the six-row long-list viewport; every newly
+        // selected value must remain visible, not merely update the controller.
+        for step in 0..if long_list { 9 } else { 2 } {
+            let up = if long_list { step < 8 } else { step == 1 };
+            index = if up { index.saturating_sub(1) } else { (index + 1).min(choices.len() - 1) };
+            key(desktop.window.window(), if up { Key::UpArrow } else { Key::DownArrow });
+            pause(60).await;
+            let selected = selected_dropdown_option(desktop, label, key_name, &choices[index])?;
+            keyboard.push(json!({"key": if up { "Up" } else { "Down" },
+                "controller_value": choices[index], "selected_visible_option": rectangle(&selected)}));
+        }
+        snapshot(&desktop.window, output, &format!("{prefix}-keyboard-current-visible"), screenshots)?;
+        key(desktop.window.window(), Key::Escape);
+        pause(80).await;
+        assert_dropdown_closed(desktop, label, key_name, &choices[index])?;
+        key(desktop.window.window(), Key::Return);
+        pause(80).await;
+        selected_dropdown_option(desktop, label, key_name, &choices[index])?;
+        key(desktop.window.window(), Key::Return);
+        pause(80).await;
+        assert_dropdown_closed(desktop, label, key_name, &choices[index])?;
+        proof.push(json!({"label": label, "accessible_id": key_name, "initial_value": initial_value, "choices": choices.len(),
+            "closed": closed, "open": open, "scrolling": scrolling, "pointer_selected_value": pointer_value,
+            "selected_visible_after_return_reopen": reopened_geometry, "keyboard": keyboard,
+            "closing": "Escape closes; Return reopens and closes; both preserve the immediately committed selection"}));
+    }
+    {
+        let mut state = desktop.controller.borrow_mut();
+        state.ui.controls = original_controls;
+        state.extras = original_extras;
+        state.ui.sub_job_level = original_sub_level;
+        // Publish restored state without activating a job/profile or re-clearing
+        // the restored ability values through the Master level callback.
+        state.edit("defaults_tp_entry", original_values["defaults_tp_entry"].clone())?;
+    }
+    pause(80).await;
+    let mut restored = 0;
+    for model in [desktop.window.get_basic_controls(), desktop.window.get_ability_controls(), desktop.window.get_enemy_controls(),
+        desktop.window.get_whm_controls(), desktop.window.get_food_controls(), desktop.window.get_brd_controls(),
+        desktop.window.get_cor_controls(), desktop.window.get_geo_controls(), desktop.window.get_optimize_controls(),
+        desktop.window.get_simulate_controls()] {
+        for row in model.iter() {
+            let expected = original_values.get(row.key.as_str()).ok_or("Restored input model contains an unknown key")?;
+            if row.text.as_str() != expected.as_str().unwrap_or("") || row.checked != wsdist_core::model::python_truth(expected) {
+                return Err(format!("Dropdown native proof failed to restore input {:?}", row.key).into());
+            }
+            restored += 1;
+        }
+    }
+    tab(desktop, original_tab).await?;
+    scroll_content(desktop, 10000.0).await?;
+    checks.push(json!({"workflow": "native compact dropdown padding and selection parity", "scale_factor": desktop.window.window().scale_factor(),
+        "controls": proof, "restored_input_count": original_values.len(), "restored_published_rows": restored,
+        "restored_tab": original_tab, "restored_sub_job_level": original_sub_level,
+        "input_isolation": "all controller input values, choices, hidden/enabled state and published models restored before subsequent workflows"}));
+    Ok(())
+}
+
 fn assert_input_spacing(desktop: &Desktop) -> Result<()> {
     let first = element(&desktop.window, "Master level", AccessibleRole::Combobox)?;
     let second = element(&desktop.window, "Main job", AccessibleRole::Combobox)?;
@@ -539,18 +805,6 @@ async fn pointer_click(window: &slint::Window, position: slint::LogicalPosition)
     window.dispatch_event(WindowEvent::PointerReleased { position, button: PointerEventButton::Left });
     pause(60).await;
     Ok(())
-}
-
-async fn leave_control_hover_before_reset(window: &slint::Window) -> Result<Value> {
-    // Help popups own parent focus until normal hover leave closes them. Let
-    // that lifecycle finish before replacing the rows that own their popups.
-    let client_width = window.size().width as f32 / window.scale_factor();
-    let position = slint::LogicalPosition::new(client_width - 8.0, 38.0);
-    PointerClip::new(window, None).check(position, "control Help hover leave")?;
-    window.dispatch_event(WindowEvent::PointerMoved { position });
-    pause(80).await;
-    Ok(json!({"event": "PointerMoved", "position": [position.x, position.y], "settle_ms": 80,
-        "purpose": "normal control Help hover leave before replacing its model"}))
 }
 
 async fn pointer_drag(window: &slint::Window, from: slint::LogicalPosition, to: slint::LogicalPosition,
@@ -1465,14 +1719,13 @@ async fn native_scrollbars(desktop: &Desktop, output: &Path, width: f32, height:
     let editor = scalar.query_descendants().match_inherits("ControlEditor").find_first().ok_or("Nested scalar lost its editor row")?;
     let scalar_protected = clear_scrollbar_lane(&editor, &scalar_state, "nested scalar editor")?;
     snapshot(&proof.window, output, &format!("{prefix}-nested-scalar"), screenshots)?;
-    let hover_leave = leave_control_hover_before_reset(proof.window.window()).await?;
     proof.window.set_ability_controls(slint::ModelRc::new(slint::VecModel::from(vec![first_scalar])));
     pause(80).await;
     let fitting_scalar = scroll_state(&scalar, "Special Toggles inputs vertical scrollbar", ScrollSurface::Standard)?;
     if fitting_scalar.bar.is_some() { return Err("A fitting scalar list retained a visible handle".into()); }
-    snapshot(&proof.window, output, &format!("{prefix}-fitting-scalar-after-hover-leave"), screenshots)?;
+    snapshot(&proof.window, output, &format!("{prefix}-fitting-scalar"), screenshots)?;
     surfaces.push(json!({"surface": "nested scalar", "rows": 48, "events": scalar_events,
-        "rightmost_editor": scalar_protected, "hover_leave_before_reset": hover_leave, "fitting": fitting_scalar.geometry}));
+        "rightmost_editor": scalar_protected, "fitting": fitting_scalar.geometry}));
 
     tab(&proof, 1).await?;
     scroll_content(&proof, 1_000_000.0).await?;
@@ -1637,6 +1890,7 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Val
     let mut screenshots = Vec::new();
     let mut checks = Vec::new();
     pause(180).await;
+    compact_dropdowns(desktop, output, &mut screenshots, &mut checks).await?;
     missing_icon_workflow(desktop, missing_icon, output, &mut screenshots, &mut checks).await?;
     let default = fixture(fixtures, index, "ui.profile.22.default")?;
     assert_sets(desktop, &default["expected"]["value"]["initial_state"]["equipped_sets"])?;

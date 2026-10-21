@@ -217,6 +217,42 @@ The driver sets alpha opaque while preserving every rendered RGB byte; this is
 not numerical/image golden rewriting. Each `report.json` records screenshot
 filenames, dimensions, actual scale and exercised workflows.
 
+The compact-dropdown update passed all **66 app tests** and the complete native
+driver at **100% and 150%** scale. Master level and TP set metric popup rows
+match their 26px selected displays; Resistance rank matches its 21px display.
+All three retain an effective 11px text inset and zero vertical-center offset.
+The driver exercises pointer selection, long-list wheel scrolling, selected-item
+visibility during Up/Down navigation, Return/Escape closing and reopening, and
+restores controller inputs before the existing workflows. Closed/open native
+screenshots were inspected at both scales. Evidence:
+`target/dropdown-padding-final-100/report.json` and
+`target/dropdown-padding-final-150/report.json`.
+The rebuilt local `wsdist-gui` also rendered a 760×900 native window from an
+unrelated working directory with `WSDIST_DATA_DIR` unset and exited cleanly;
+its observed surface is `target/dropdown-padding-launch.png`.
+
+The compact renderer reuses Slint 1.16's common combo interaction base and Fluent
+style primitives. Test input adapters map popup-local geometry to its observed
+native origin: Slint 1.16's embedded popup `ElementHandle::absolute_position()`
+does not include that origin. These internal APIs are covered by the exact
+Slint version pin and need review when upgrading the framework.
+
+The vertical-density update passed a focused native Winit/software probe at
+**100% and 150%** scale. All **22 job profiles** retain fully visible Basic and
+Enemy inputs. Four-tab captures at 760×900, 760×440, 720×440 and 1440×1080 verify
+compact input gutters, top-aligned Enemy/Food content, 2px section gaps and
+26px equipment-option rows. Native tab clicks, radio pointer/DownArrow selection,
+checkbox selection/restoration, checkbox containment and outer-wheel access to
+lower controls passed. Representative compact and high-DPI screenshots were
+inspected. Evidence: `target/vertical-spacing/verified-100/report.json` and
+`target/vertical-spacing/verified-150/report.json`. This is focused layout proof,
+not a rerun of the complete numerical UI workflow above. The rebuilt local
+`wsdist-gui` also painted a 760×900 native window from an unrelated working
+directory without `WSDIST_DATA_DIR` and closed cleanly; its capture is
+`target/vertical-spacing/standalone-final.png`.
+All **66 app tests** passed after these layout changes. The disposable density
+probe was removed after capturing the evidence.
+
 The compact-layout correction was compared with the frozen Qt application.
 Qt received a 760×440 resize request but enforced an actual 760×897 window
 (`target/compact-layout/reference/report.json`); the native application supports

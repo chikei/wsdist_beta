@@ -50,6 +50,11 @@ candidate lists and Stats columns keep their widths when the window grows.
 Content stays left-aligned; only the available height and vertical scrolling
 expand. Equipment cards are 48×48px with centered 28×28px icon canvases. Long
 Stats labels/values wrap vertically instead of widening their columns.
+Stacked sections use 2px vertical gaps. Input rows have no extra vertical gutter;
+equipment options use 26px rows without shrinking the dropdowns, entries or
+checkboxes. Compact section heights avoid leaving the saved row space blank.
+Dropdown options match the selected-value display's row height, text padding and
+vertical centering, including the compact Resistance rank control.
 Missing or unreadable icon assets leave the image blank; the slot button and item
 details remain usable. App-owned scroll views reserve an 18px vertical scrollbar
 lane with a persistent 14px thumb and contrasting track whenever content overflows.

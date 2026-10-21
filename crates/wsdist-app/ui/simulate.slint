@@ -34,8 +34,11 @@ export component Simulate inherits Rectangle {
             x: 0px;
             width: 692px;
             horizontal-stretch: 0;
-            padding: 6px;
-            spacing: 6px;
+            padding-left: 6px;
+            padding-right: 6px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            spacing: 2px;
 
             VerticalLayout {
                 min-width: 680px;
@@ -181,8 +184,8 @@ export component Simulate inherits Rectangle {
                 title: "Simulation options";
                 rows: root.controls;
                 inputs-enabled: root.inputs-enabled;
-                min-height: 32px + root.controls.length * 28px;
-                preferred-height: 32px + root.controls.length * 28px;
+                min-height: 32px + root.controls.length * 26px;
+                preferred-height: 32px + root.controls.length * 26px;
                 vertical-stretch: 0;
 
                 text-edited(key, text) => { root.text-edited(key, text); }

@@ -63,18 +63,21 @@ export component Quicklook inherits Rectangle {
             x: 0px;
             width: 688px;
             horizontal-stretch: 0;
-            padding: 4px;
-            spacing: 4px;
+            padding-left: 4px;
+            padding-right: 4px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            spacing: 0px;
 
             HorizontalLayout {
                 min-width: 680px;
                 max-width: 680px;
                 preferred-width: 680px;
                 horizontal-stretch: 0;
-                spacing: 4px;
-                min-height: 245px;
-                max-height: 245px;
-                preferred-height: 245px;
+                spacing: 2px;
+                min-height: 234px;
+                max-height: 234px;
+                preferred-height: 234px;
                 vertical-stretch: 0;
 
                 GroupBox {
@@ -132,9 +135,9 @@ export component Quicklook inherits Rectangle {
                     min-width: 180px;
                     max-width: 180px;
                     preferred-width: 180px;
-                    min-height: 245px;
-                    max-height: 245px;
-                    preferred-height: 245px;
+                    min-height: 234px;
+                    max-height: 234px;
+                    preferred-height: 234px;
                     horizontal-stretch: 0;
                     inputs-enabled: root.inputs-enabled;
                     text-edited(key, value) => { root.text-edited(key, value); }
@@ -152,7 +155,7 @@ export component Quicklook inherits Rectangle {
                     preferred-width: 276px;
                     horizontal-stretch: 0;
 
-                    // This fixed 178px control grid always fits the 245px group.
+                    // Keep the compact grid top-aligned inside the fixed-height group.
                     enemy-scroll := Rectangle {
                         min-width: 276px;
                         max-width: 276px;
@@ -163,6 +166,8 @@ export component Quicklook inherits Rectangle {
 
                         GridLayout {
                             width: 276px;
+                            height: self.preferred-height;
+                            y: 0px;
                             horizontal-stretch: 0;
                             spacing: 0px;
                             for control[index] in root.enemy : ControlEditor {
@@ -171,7 +176,7 @@ export component Quicklook inherits Rectangle {
                                 colspan: index < 2 ? 2 : 1;
                                 control: control;
                                 show-label: index >= 2;
-                                editor-height: index < 2 ? 26px : 21px;
+                               // editor-height: index < 2 ? 26px : 21px;
                                 display-label: index >= 2 ? root.enemy-stat-labels[index - 2] : control.label;
                                 label-width: index < 2 ? 0px : index < 8 ? 92px : 36px;
                                 min-width: index < 2 ? 276px : index < 8 ? 174px : 102px;
@@ -198,9 +203,9 @@ export component Quicklook inherits Rectangle {
                 max-width: 680px;
                 preferred-width: 680px;
                 horizontal-stretch: 0;
-                min-height: 336px;
-                max-height: 336px;
-                preferred-height: 336px;
+                min-height: 300px;
+                max-height: 300px;
+                preferred-height: 300px;
                 vertical-stretch: 0;
 
                 HorizontalLayout {
@@ -223,7 +228,7 @@ export component Quicklook inherits Rectangle {
                         VerticalLayout {
                             width: whm-scroll.visible-width;
                             horizontal-stretch: 0;
-                            spacing: 2px;
+                            spacing: 0px;
                             for row in root.whm : Rectangle {
                                 min-width: whm-scroll.visible-width;
                                 max-width: whm-scroll.visible-width;
@@ -249,37 +254,30 @@ export component Quicklook inherits Rectangle {
                                     text-focus(focused) => { root.focus-changed(focused); }
                                 }
                             }
-                            GroupBox {
-                                title: "Active Food";
-                                content-padding: 0px;
+                            VerticalLayout {
                                 min-width: whm-scroll.visible-width;
                                 max-width: whm-scroll.visible-width;
                                 preferred-width: whm-scroll.visible-width;
                                 horizontal-stretch: 0;
-                                vertical-stretch: 0;
-                                accessible-role: list;
-                                accessible-label: "Active Food inputs";
-                                VerticalLayout {
+                                spacing: 0px;
+                                alignment: start;
+                            Text {
+                              text: "Active Food";
+                            }
+                                for row in root.food : ControlEditor {
+                                    control: row;
                                     min-width: whm-scroll.visible-width;
                                     max-width: whm-scroll.visible-width;
                                     preferred-width: whm-scroll.visible-width;
                                     horizontal-stretch: 0;
-                                    spacing: 0px;
-                                    for row in root.food : ControlEditor {
-                                        control: row;
-                                        min-width: whm-scroll.visible-width;
-                                        max-width: whm-scroll.visible-width;
-                                        preferred-width: whm-scroll.visible-width;
-                                        horizontal-stretch: 0;
-                                        show-label: false;
-                                        max-height: self.row-height;
-                                        inputs-enabled: root.inputs-enabled;
-                                        text-edited(key, value) => { root.text-edited(key, value); }
-                                        editing-finished(key, value) => { root.editing-finished(key, value); }
-                                        toggled(key, value) => { root.toggled(key, value); }
-                                        wheel(key, direction) => { root.wheel(key, direction); }
-                                        text-focus(focused) => { root.focus-changed(focused); }
-                                    }
+                                    show-label: false;
+                                    max-height: self.row-height;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, value) => { root.text-edited(key, value); }
+                                    editing-finished(key, value) => { root.editing-finished(key, value); }
+                                    toggled(key, value) => { root.toggled(key, value); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
                                 }
                             }
                         }

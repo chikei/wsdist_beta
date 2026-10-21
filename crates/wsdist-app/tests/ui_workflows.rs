@@ -164,6 +164,128 @@ fn stats(desktop: &Desktop) -> Value {
 }
 
 #[test]
+fn combo_popup_selection_reaches_controller_and_retains_unlisted_restored_values() {
+    fn realize(desktop: &Desktop) {
+        for _ in 0..3 {
+            let _ = desktop.window.root_element().visit_descendants(|_| std::ops::ControlFlow::<()>::Continue(()));
+            i_slint_backend_testing::mock_elapsed_time(Duration::ZERO);
+        }
+    }
+    fn combo(desktop: &Desktop, label: &str) -> ElementHandle {
+        ElementHandle::find_by_accessible_label(&desktop.window, label)
+            .find(|element| element.accessible_role() == Some(AccessibleRole::Combobox)).unwrap()
+    }
+    fn popup(desktop: &Desktop, label: &str) -> Option<ElementHandle> {
+        ElementHandle::find_by_accessible_label(&desktop.window, &format!("{label} options"))
+            .find(|element| element.accessible_role() == Some(AccessibleRole::List))
+    }
+    fn option(popup: &ElementHandle, value: &str) -> ElementHandle {
+        popup.query_descendants().find_all().into_iter().find(|element|
+            element.accessible_role() == Some(AccessibleRole::ListItem) &&
+                element.accessible_label().is_some_and(|label| label == value)).unwrap()
+    }
+    fn click(desktop: &Desktop, element: &ElementHandle, in_popup: bool) {
+        let position = element.absolute_position();
+        let size = element.size();
+        let mut position = slint::LogicalPosition::new(position.x + size.width / 2.0, position.y + size.height / 2.0);
+        let window = desktop.window.window();
+        if in_popup {
+            // Slint 1.16's search API leaves embedded-popup coordinates local.
+            // Use its actual native origin, including any window-edge shift.
+            use slint::private_unstable_api::re_exports::{ItemRc, WindowInner};
+            let inner = WindowInner::from_pub(window);
+            let popups = inner.active_popups();
+            let popup = popups.last().expect("The clicked option must belong to an open popup");
+            let root = ItemRc::new_root(popup.component.clone());
+            let origin = root.map_to_native_window(Default::default());
+            position.x += origin.x;
+            position.y += origin.y;
+        }
+        window.dispatch_event(WindowEvent::PointerMoved { position });
+        window.dispatch_event(WindowEvent::PointerPressed { position, button: PointerEventButton::Left });
+        window.dispatch_event(WindowEvent::PointerReleased { position, button: PointerEventButton::Left });
+        realize(desktop);
+    }
+    fn key(desktop: &Desktop, pressed: Key) {
+        let text: slint::SharedString = pressed.into();
+        desktop.window.window().dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+        desktop.window.window().dispatch_event(WindowEvent::KeyReleased { text });
+        realize(desktop);
+    }
+
+    i_slint_backend_testing::init_no_event_loop();
+    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let sandbox = tempfile::tempdir().unwrap();
+    let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
+        std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
+    paths.defaults = sandbox.path().join("defaults.json");
+    fs::write(&paths.defaults, serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap()).unwrap();
+    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seeds(11, 11)).unwrap();
+    desktop.window.show().unwrap();
+    desktop.window.window().set_size(slint::LogicalSize::new(1152.0, 900.0));
+    desktop.window.window().dispatch_event(WindowEvent::WindowActiveChanged(true));
+    let choices = desktop.controller.borrow().ui.controls["defaults_ml_combobox"].choices.clone();
+    desktop.window.invoke_text_edited("defaults_ml_combobox".into(), choices[0].as_str().into());
+    realize(&desktop);
+
+    click(&desktop, &combo(&desktop, "Master level"), false);
+    let opened = popup(&desktop, "Master level").expect("A real pointer click must open the production popup");
+    click(&desktop, &option(&opened, &choices[2]), true);
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_ml_combobox"), choices[2]);
+    assert!(popup(&desktop, "Master level").is_none(), "Pointer selection must close the popup");
+    key(&desktop, Key::Return);
+    assert!(popup(&desktop, "Master level").is_some(), "The closed combo must regain keyboard focus");
+    key(&desktop, Key::DownArrow);
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_ml_combobox"), choices[3]);
+    key(&desktop, Key::UpArrow);
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_ml_combobox"), choices[2]);
+    key(&desktop, Key::Return);
+    assert!(popup(&desktop, "Master level").is_none());
+    key(&desktop, Key::Return);
+    assert!(popup(&desktop, "Master level").is_some());
+    key(&desktop, Key::Escape);
+    assert!(popup(&desktop, "Master level").is_none());
+    desktop.window.window().dispatch_event(WindowEvent::KeyPressed { text: "q".into() });
+    desktop.window.window().dispatch_event(WindowEvent::KeyReleased { text: "q".into() });
+    assert!(desktop.window.window().is_visible(), "Combo focus must still protect the application's q shortcut");
+
+    // Restore a value from disk, then refresh the actual native choices without
+    // it. A model reset is not an activation and must not replace that value.
+    let restored = "7";
+    let mut profile = fixture["input"]["profile_document"].clone();
+    profile["Ninja"]["defaults_aftermath_combobox"] = json!(restored);
+    fs::write(&desktop.controller.borrow().paths.defaults, serde_json::to_vec(&profile).unwrap()).unwrap();
+    desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
+    realize(&desktop);
+    assert_eq!(combo(&desktop, "Aftermath level").accessible_value().unwrap().as_str(), restored);
+    desktop.controller.borrow_mut().ui.controls.get_mut("defaults_aftermath_combobox").unwrap()
+        .choices.retain(|value| value != restored);
+    desktop.window.invoke_text_edited("defaults_tp_entry".into(), "1777".into());
+    realize(&desktop);
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_aftermath_combobox"), restored);
+    assert_eq!(combo(&desktop, "Aftermath level").accessible_value().unwrap().as_str(), restored,
+        "Refreshing choices must not erase an unlisted restored display value");
+    let first_choice = desktop.controller.borrow().ui.controls["defaults_aftermath_combobox"].choices[0].clone();
+    click(&desktop, &combo(&desktop, "Aftermath level"), false);
+    let opened = popup(&desktop, "Aftermath level").unwrap();
+    let first = option(&opened, &first_choice);
+    desktop.controller.borrow_mut().ui.controls.get_mut("defaults_aftermath_combobox").unwrap().enabled = false;
+    desktop.window.invoke_text_edited("defaults_tp_entry".into(), "1888".into());
+    realize(&desktop);
+    key(&desktop, Key::DownArrow);
+    click(&desktop, &first, true);
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_aftermath_combobox"), restored,
+        "Disabling a combo with its popup open must reject both keyboard and pointer selection");
+    assert_eq!(combo(&desktop, "Aftermath level").accessible_value().unwrap().as_str(), restored);
+    key(&desktop, Key::Escape);
+    click(&desktop, &combo(&desktop, "Aftermath level"), false);
+    key(&desktop, Key::Return);
+    key(&desktop, Key::DownArrow);
+    assert!(popup(&desktop, "Aftermath level").is_none(), "Disabled input must not reopen its popup");
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_aftermath_combobox"), restored);
+}
+
+#[test]
 fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corrupt_profiles() {
     i_slint_backend_testing::init_no_event_loop();
     let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
