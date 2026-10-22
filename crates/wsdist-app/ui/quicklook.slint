@@ -234,24 +234,36 @@ export component Quicklook inherits Rectangle {
                                 max-width: whm-scroll.visible-width;
                                 preferred-width: whm-scroll.visible-width;
                                 horizontal-stretch: 0;
-                                min-height: whm-editor.row-height;
-                                max-height: whm-editor.row-height;
-                                preferred-height: whm-editor.row-height;
+                                min-height: whm-row.preferred-height;
+                                max-height: whm-row.preferred-height;
+                                preferred-height: whm-row.preferred-height;
                                 vertical-stretch: 0;
-                                whm-editor := ControlEditor {
+                                whm-row := VerticalLayout {
                                     width: parent.width;
-                                    horizontal-stretch: 0;
                                     height: parent.height;
-                                    control: row;
-                                    show-label: row.control-kind != InputWidgetKind.combo;
-                                    display-label: row.key == "defaults_enhancing_skill_entry" ? root.skill-label : row.label;
-                                    label-width: row.control-kind == InputWidgetKind.entry ? 68px : 0px;
-                                    inputs-enabled: root.inputs-enabled;
-                                    text-edited(key, value) => { root.text-edited(key, value); }
-                                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                                    toggled(key, value) => { root.toggled(key, value); }
-                                    wheel(key, direction) => { root.wheel(key, direction); }
-                                    text-focus(focused) => { root.focus-changed(focused); }
+                                    spacing: 0px;
+                                    alignment: start;
+                                    if row.key == "defaults_enhancing_skill_entry" && row.visible: Text {
+                                        width: whm-scroll.visible-width;
+                                        text: root.skill-label;
+                                        color: root.inputs-enabled && row.enabled ? Palette.foreground : Palette.foreground.with-alpha(0.55);
+                                    }
+                                    whm-editor := ControlEditor {
+                                        min-width: whm-scroll.visible-width;
+                                        max-width: whm-scroll.visible-width;
+                                        preferred-width: whm-scroll.visible-width;
+                                        horizontal-stretch: 0;
+                                        max-height: self.row-height;
+                                        control: row;
+                                        show-label: row.key != "defaults_enhancing_skill_entry" && row.control-kind != InputWidgetKind.combo;
+                                        label-width: row.control-kind == InputWidgetKind.entry ? 68px : 0px;
+                                        inputs-enabled: root.inputs-enabled;
+                                        text-edited(key, value) => { root.text-edited(key, value); }
+                                        editing-finished(key, value) => { root.editing-finished(key, value); }
+                                        toggled(key, value) => { root.toggled(key, value); }
+                                        wheel(key, direction) => { root.wheel(key, direction); }
+                                        text-focus(focused) => { root.focus-changed(focused); }
+                                    }
                                 }
                             }
                             VerticalLayout {
@@ -378,24 +390,36 @@ export component Quicklook inherits Rectangle {
                                 max-width: geo-scroll.visible-width;
                                 preferred-width: geo-scroll.visible-width;
                                 horizontal-stretch: 0;
-                                min-height: geo-editor.row-height;
-                                max-height: geo-editor.row-height;
-                                preferred-height: geo-editor.row-height;
+                                min-height: geo-row.preferred-height;
+                                max-height: geo-row.preferred-height;
+                                preferred-height: geo-row.preferred-height;
                                 vertical-stretch: 0;
-                                geo-editor := ControlEditor {
+                                geo-row := VerticalLayout {
                                     width: parent.width;
-                                    horizontal-stretch: 0;
                                     height: parent.height;
-                                    control: row;
-                                    show-label: row.control-kind != InputWidgetKind.combo;
-                                    display-label: row.key == "defaults_bubble_potency_entry" ? "Bubble Potency:" : row.label;
-                                    label-width: row.control-kind == InputWidgetKind.entry ? 68px : 0px;
-                                    inputs-enabled: root.inputs-enabled;
-                                    text-edited(key, value) => { root.text-edited(key, value); }
-                                    editing-finished(key, value) => { root.editing-finished(key, value); }
-                                    toggled(key, value) => { root.toggled(key, value); }
-                                    wheel(key, direction) => { root.wheel(key, direction); }
-                                    text-focus(focused) => { root.focus-changed(focused); }
+                                    spacing: 0px;
+                                    alignment: start;
+                                    if row.key == "defaults_bubble_potency_entry" && row.visible: Text {
+                                        width: geo-scroll.visible-width;
+                                        text: "Bubble Potency:";
+                                        color: root.inputs-enabled && row.enabled ? Palette.foreground : Palette.foreground.with-alpha(0.55);
+                                    }
+                                    geo-editor := ControlEditor {
+                                        min-width: geo-scroll.visible-width;
+                                        max-width: geo-scroll.visible-width;
+                                        preferred-width: geo-scroll.visible-width;
+                                        horizontal-stretch: 0;
+                                        max-height: self.row-height;
+                                        control: row;
+                                        show-label: row.key != "defaults_bubble_potency_entry" && row.control-kind != InputWidgetKind.combo;
+                                        label-width: row.control-kind == InputWidgetKind.entry ? 68px : 0px;
+                                        inputs-enabled: root.inputs-enabled;
+                                        text-edited(key, value) => { root.text-edited(key, value); }
+                                        editing-finished(key, value) => { root.editing-finished(key, value); }
+                                        toggled(key, value) => { root.toggled(key, value); }
+                                        wheel(key, direction) => { root.wheel(key, direction); }
+                                        text-focus(focused) => { root.focus-changed(focused); }
+                                    }
                                 }
                             }
                         }

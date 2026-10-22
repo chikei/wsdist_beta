@@ -53,6 +53,8 @@ Stats labels/values wrap vertically instead of widening their columns.
 Stacked sections use 2px vertical gaps. Input rows have no extra vertical gutter;
 equipment options use 26px rows without shrinking the dropdowns, entries or
 checkboxes. Compact section heights avoid leaving the saved row space blank.
+In Quicklook's Active Buffs, the WHM skill and Geomancy Bubble Potency fields
+stack their labels above full-width inputs, matching Active Food.
 Dropdown options match the selected-value display's row height, text padding and
 vertical centering, including the compact Resistance rank control.
 Missing or unreadable icon assets leave the image blank; the slot button and item

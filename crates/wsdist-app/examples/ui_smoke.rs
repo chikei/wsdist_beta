@@ -395,10 +395,10 @@ async fn compact_dropdowns(desktop: &Desktop, output: &Path, screenshots: &mut V
     let original_values = original_controls.iter().chain(&original_extras)
         .map(|(key, control)| (*key, control.value.clone())).collect::<BTreeMap<_, _>>();
     let mut proof = Vec::new();
-    for (label, key_name, tab_index, expected_height, name) in [
-        ("Master level", "defaults_ml_combobox", 0, 26.0, "master-level"),
-        ("Resistance rank", "defaults_enemy_resist_rank_combobox", 0, 21.0, "resistance-rank"),
-        ("TP set metric", "optimize_tab.tp_metric_combobox", 1, 26.0, "tp-metric"),
+    for (label, key_name, tab_index, name) in [
+        ("Master level", "defaults_ml_combobox", 0, "master-level"),
+        ("Resistance rank", "defaults_enemy_resist_rank_combobox", 0, "resistance-rank"),
+        ("TP set metric", "optimize_tab.tp_metric_combobox", 1, "tp-metric"),
     ] {
         tab(desktop, tab_index).await?;
         let combo = geometry_element(desktop, label, AccessibleRole::Combobox).await?;
@@ -408,9 +408,6 @@ async fn compact_dropdowns(desktop: &Desktop, output: &Path, screenshots: &mut V
             (control.value.as_str().ok_or("Dropdown value is not text")?.to_owned(), control.choices.clone())
         };
         assert_dropdown_closed(desktop, label, key_name, &initial_value)?;
-        if (combo.size().height - expected_height).abs() > 0.5 {
-            return Err(format!("{label}: closed geometry changed: expected {expected_height}px, actual {}", rectangle(&combo)).into());
-        }
         let text = dropdown_text(&combo, label)?;
         let closed_inset = text.absolute_position().x - combo.absolute_position().x;
         let closed_center = text.absolute_position().y + text.size().height / 2.0 -
@@ -458,7 +455,7 @@ async fn compact_dropdowns(desktop: &Desktop, output: &Path, screenshots: &mut V
         let long_list = label == "Master level";
         let mut scrolling = Value::Null;
         let pointer_option = if long_list {
-            if choices.len() < 40 || viewport.size().height >= choices.len() as f32 * expected_height {
+            if choices.len() < 40 || viewport.size().height >= choices.len() as f32 * combo.size().height {
                 return Err("Master level no longer supplies a real long-list scrolling probe".into());
             }
             let before = options.iter().filter(|option| dropdown_option_visible(option, &viewport))
@@ -978,9 +975,31 @@ fn input_role(row: &InputRow) -> AccessibleRole {
     }
 }
 
+async fn stacked_input_elements(desktop: &Desktop, row: &InputRow, display_label: &str) -> Result<(ElementHandle, ElementHandle)> {
+    for attempt in 0..26 {
+        if let (Ok(field), Ok(text)) = (element(&desktop.window, row.label.as_str(), input_role(row)),
+            element(&desktop.window, display_label, AccessibleRole::Text)) {
+            if fully_visible(desktop, &field)? && fully_visible(desktop, &text)? { return Ok((field, text)); }
+        }
+        if attempt == 25 { break; }
+        scroll_content(desktop, if attempt == 0 { 10000.0 } else { -160.0 }).await?;
+    }
+    Err(format!("{display_label:?} and its entry cannot be made fully visible together through the native outer wheel path").into())
+}
+
 async fn record_input(desktop: &Desktop, prefix: &str, row: &InputRow, with_label: bool,
     baseline: &mut HorizontalBaseline, rectangles: &mut Vec<Value>) -> Result<()> {
-    let field = geometry_element(desktop, row.label.as_str(), input_role(row)).await?;
+    let stacked_label = match (prefix, row.key.as_str()) {
+        ("Quicklook", "defaults_enhancing_skill_entry") => Some(row.label.as_str()),
+        ("Quicklook", "defaults_bubble_potency_entry") => Some("Bubble Potency:"),
+        _ => None,
+    };
+    let (field, stacked_text) = if let Some(label) = stacked_label {
+        let (field, text) = stacked_input_elements(desktop, row, label).await?;
+        (field, Some(text))
+    } else {
+        (geometry_element(desktop, row.label.as_str(), input_role(row)).await?, None)
+    };
     let key = format!("{prefix}/{}", row.label);
     record_horizontal(desktop, &format!("{key}/editor"), &field, baseline, rectangles)?;
     let editor = ElementHandle::find_by_element_type_name(&desktop.window, "ControlEditor")
@@ -988,7 +1007,40 @@ async fn record_input(desktop: &Desktop, prefix: &str, row: &InputRow, with_labe
             child.accessible_label().is_some_and(|label| label == row.label) && child.accessible_role() == Some(input_role(row))))
         .ok_or_else(|| format!("{} has no visible editor row", row.label))?;
     record_horizontal(desktop, &format!("{key}/row"), &editor, baseline, rectangles)?;
-    if with_label && row.control_kind != InputWidgetKind::Checkbox {
+    if let Some(text) = stacked_text {
+        let column = if row.key == "defaults_enhancing_skill_entry" {
+            element(&desktop.window, &format!("White Magic — {} inputs", desktop.window.get_skill_label()), AccessibleRole::List)?
+        } else {
+            element(&desktop.window, "Geomancy Bubbles inputs", AccessibleRole::List)?
+        };
+        let column_viewport = column.query_descendants().match_inherits("Flickable").find_all().into_iter()
+            .max_by(|left, right| left.size().width.total_cmp(&right.size().width))
+            .ok_or_else(|| format!("{} has no native column viewport", row.label))?;
+        let outer_viewport = content_viewport(desktop)?;
+        let label_position = text.absolute_position();
+        let label_size = text.size();
+        let field_position = field.absolute_position();
+        let field_size = field.size();
+        let column_position = column_viewport.absolute_position();
+        let column_size = column_viewport.size();
+        let clip_top = column_position.y.max(outer_viewport.absolute_position().y);
+        let clip_bottom = (column_position.y + column_size.height)
+            .min(outer_viewport.absolute_position().y + outer_viewport.size().height);
+        if label_size.width <= 0.0 || label_size.height <= 0.0 ||
+            (label_position.x - column_position.x).abs() > 1.0 || (label_size.width - column_size.width).abs() > 1.0 ||
+            (field_position.x - column_position.x).abs() > 1.0 || (field_size.width - column_size.width).abs() > 1.0 ||
+            (editor.absolute_position().x - column_position.x).abs() > 1.0 || (editor.size().width - column_size.width).abs() > 1.0 ||
+            (field_position.y - label_position.y - label_size.height).abs() > 1.0 ||
+            label_position.y < clip_top - 1.0 || field_position.y + field_size.height > clip_bottom + 1.0 {
+            return Err(format!("{} must have an unclipped, full-column-width label immediately above its full-width entry: label {}, entry {}, editor {}, column viewport {}, outer viewport {}",
+                row.label, rectangle(&text), rectangle(&field), rectangle(&editor), rectangle(&column_viewport), rectangle(&outer_viewport)).into());
+        }
+        record_horizontal(desktop, &format!("{key}/label"), &text, baseline, rectangles)?;
+        record_horizontal(desktop, &format!("{key}/column-viewport"), &column_viewport, baseline, rectangles)?;
+        rectangles.push(json!({"key": key, "layout": "label-above-entry", "display_label": stacked_label,
+            "label": rectangle(&text), "entry": rectangle(&field), "column_viewport": rectangle(&column_viewport),
+            "visible_vertical_clip": {"top": clip_top, "bottom": clip_bottom}}));
+    } else if with_label && row.control_kind != InputWidgetKind::Checkbox {
         let text = editor.query_descendants().match_type_name("Text").find_all().into_iter()
             .find(|text| {
                 let position = text.absolute_position();

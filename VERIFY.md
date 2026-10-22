@@ -331,6 +331,26 @@ On other desktop backends/Windows, open **Optimize > Select all File**, verify
 filters, cancel without losing checks, then accept an inventory export. A
 missing portal/silent cancel is not proof of a working chooser.
 
+The Quicklook two-field stacking update passed all **66 app tests** and a focused
+native Winit/software probe at **100% and 150%** scale. At 760×900, 760×440,
+720×440, 720×560 and 1440×1080, both labels match Active Food's natural text
+height and sit immediately above unclipped, full-column-width entries. Other
+buff controls retain their horizontal positions, widths and heights. Native
+click/typing/Return committed skill `512` and bubble potency `75` without
+starting calculations; Paladin, Dark Knight and Ninja retained their Divine,
+Dark and Enhancing Skill labels. Compact and high-DPI screenshots were inspected.
+Evidence: `target/stacked-buff-inputs/focused-100/report.json` and
+`target/stacked-buff-inputs/focused-150/report.json`. The disposable probe was
+removed. The rebuilt local `wsdist-gui` rendered at 760×900 from an unrelated
+working directory without `WSDIST_DATA_DIR` and closed cleanly; its inspected
+capture is `target/stacked-buff-inputs/standalone.png`.
+
+The complete native driver did not pass: its Master level popup selected-item
+visibility check failed before reaching the buff geometry checks. No popup UI
+changes were made. The obsolete fixed dropdown-height assertion was removed,
+while popup rows must still match their rendered selected-value control.
+The evidence above is focused layout proof, not a complete UI-workflow pass.
+
 ## Native packaging and extracted launch
 
 ```sh
