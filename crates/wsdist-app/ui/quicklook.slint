@@ -75,9 +75,9 @@ export component Quicklook inherits Rectangle {
                 preferred-width: 680px;
                 horizontal-stretch: 0;
                 spacing: 2px;
-                min-height: 234px;
-                max-height: 234px;
-                preferred-height: 234px;
+                min-height: enemy-group.preferred-height;
+                max-height: enemy-group.preferred-height;
+                preferred-height: enemy-group.preferred-height;
                 vertical-stretch: 0;
 
                 GroupBox {
@@ -135,9 +135,10 @@ export component Quicklook inherits Rectangle {
                     min-width: 180px;
                     max-width: 180px;
                     preferred-width: 180px;
-                    min-height: 234px;
-                    max-height: 234px;
-                    preferred-height: 234px;
+                    min-height: enemy-group.preferred-height;
+                    max-height: enemy-group.preferred-height;
+                    preferred-height: enemy-group.preferred-height;
+                    vertical-stretch: 0;
                     horizontal-stretch: 0;
                     inputs-enabled: root.inputs-enabled;
                     text-edited(key, value) => { root.text-edited(key, value); }
@@ -147,7 +148,7 @@ export component Quicklook inherits Rectangle {
                     text-focus(focused) => { root.focus-changed(focused); }
                 }
 
-                GroupBox {
+                enemy-group := GroupBox {
                     title: "Enemy Inputs";
                     content-padding: 0px;
                     min-width: 276px;
@@ -155,16 +156,18 @@ export component Quicklook inherits Rectangle {
                     preferred-width: 276px;
                     horizontal-stretch: 0;
 
-                    // Keep the compact grid top-aligned inside the fixed-height group.
                     enemy-scroll := Rectangle {
                         min-width: 276px;
                         max-width: 276px;
                         preferred-width: 276px;
                         horizontal-stretch: 0;
+                        min-height: enemy-grid.preferred-height;
+                        max-height: enemy-grid.preferred-height;
+                        preferred-height: enemy-grid.preferred-height;
                         accessible-role: list;
                         accessible-label: "Enemy Inputs inputs";
 
-                        GridLayout {
+                        enemy-grid := GridLayout {
                             width: 276px;
                             height: self.preferred-height;
                             y: 0px;
@@ -203,9 +206,7 @@ export component Quicklook inherits Rectangle {
                 max-width: 680px;
                 preferred-width: 680px;
                 horizontal-stretch: 0;
-                min-height: 300px;
-                max-height: 300px;
-                preferred-height: 300px;
+                max-height: self.preferred-height;
                 vertical-stretch: 0;
 
                 HorizontalLayout {
@@ -214,6 +215,10 @@ export component Quicklook inherits Rectangle {
                     preferred-width: 680px;
                     horizontal-stretch: 0;
                     spacing: 4px;
+                    min-height: max(max(whm-content.preferred-height, brd-content.preferred-height), max(cor-content.preferred-height, geo-content.preferred-height));
+                    max-height: self.min-height;
+                    preferred-height: self.min-height;
+                    vertical-stretch: 0;
 
                     whm-scroll := ScrollView {
                         min-width: 148px;
@@ -225,7 +230,7 @@ export component Quicklook inherits Rectangle {
                         accessible-label: "White Magic — " + root.skill-label + " inputs";
                         scroll-label: self.accessible-label + " vertical scrollbar";
 
-                        VerticalLayout {
+                        whm-content := VerticalLayout {
                             width: whm-scroll.visible-width;
                             horizontal-stretch: 0;
                             spacing: 0px;
@@ -305,7 +310,7 @@ export component Quicklook inherits Rectangle {
                         accessible-label: "Bard Songs inputs";
                         scroll-label: self.accessible-label + " vertical scrollbar";
 
-                        VerticalLayout {
+                        brd-content := VerticalLayout {
                             width: brd-scroll.visible-width;
                             horizontal-stretch: 0;
                             spacing: 0px;
@@ -345,7 +350,7 @@ export component Quicklook inherits Rectangle {
                         accessible-label: "Corsair Rolls inputs";
                         scroll-label: self.accessible-label + " vertical scrollbar";
 
-                        GridLayout {
+                        cor-content := GridLayout {
                             width: cor-scroll.visible-width;
                             horizontal-stretch: 0;
                             spacing: 0px;
@@ -381,7 +386,7 @@ export component Quicklook inherits Rectangle {
                         accessible-label: "Geomancy Bubbles inputs";
                         scroll-label: self.accessible-label + " vertical scrollbar";
 
-                        VerticalLayout {
+                        geo-content := VerticalLayout {
                             width: geo-scroll.visible-width;
                             horizontal-stretch: 0;
                             spacing: 0px;

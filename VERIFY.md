@@ -351,6 +351,24 @@ changes were made. The obsolete fixed dropdown-height assertion was removed,
 while popup rows must still match their rendered selected-value control.
 The evidence above is focused layout proof, not a complete UI-workflow pass.
 
+The Quicklook content-height update passed focused native Winit/software probes
+at **100% and 150%** scale. All **22 job profiles** were checked at 760×900;
+Ninja and Black Mage were also checked at 760×440, 720×440, 720×560 and
+1440×1080, then resized back to 720×440. Special Toggles and the final Enemy
+row share their bottom edge. Both horizontal sections fit their natural content
+without stretching in expanded windows; normal control sizes and fixed widths
+remain intact. Native wheel input reaches the last special toggle, equipment
+and lower actions without changing input values. Compact, expanded and high-DPI
+captures were inspected. Evidence: `target/quicklook-sizing/final-100/report.json`
+and `target/quicklook-sizing/verified-150/report.json`. The disposable probe was
+removed. The rebuilt local `wsdist-gui` also rendered at 760×900 from an unrelated
+working directory without a data override and exited cleanly; its capture is
+`target/quicklook-sizing/standalone-final.png`. The full native workflow was not
+rerun; its previously recorded unrelated popup failure remains outside this change.
+All **66 app tests** passed with
+`cargo test --locked -p wsdist-app -- --test-threads=1`, including the extended
+compact-window alignment and content-height regression checks.
+
 ## Native packaging and extracted launch
 
 ```sh

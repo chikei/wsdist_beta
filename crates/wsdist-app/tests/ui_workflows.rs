@@ -7,6 +7,7 @@ use serde_json::{Value, json};
 use i_slint_backend_testing::{AccessibleRole, ElementHandle, ElementRoot};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
 use slint::{ComponentHandle, Model};
+use wsdist_app::{InputRow, InputWidgetKind};
 use wsdist_app::controller::Desktop;
 use wsdist_app::exchange::GearSource;
 use wsdist_app::resources::{Resources, AppPaths};
@@ -510,6 +511,95 @@ fn fixed_stat_geometry(desktop: &Desktop, baseline: &mut BTreeMap<String, (f32, 
     }
 }
 
+fn quicklook_content_height_geometry(desktop: &Desktop, baseline: &mut BTreeMap<String, (f32, f32)>) {
+    let element = |label: &str, role: AccessibleRole| {
+        ElementHandle::find_by_accessible_label(&desktop.window, label)
+            .find(|element| element.accessible_role() == Some(role))
+            .unwrap_or_else(|| panic!("{label:?} must expose its rendered {role:?} geometry"))
+    };
+    let bottom = |element: &ElementHandle| element.absolute_position().y + element.size().height;
+    let role = |row: &InputRow| match row.control_kind {
+        InputWidgetKind::Entry => AccessibleRole::TextInput,
+        InputWidgetKind::Combo => AccessibleRole::Combobox,
+        InputWidgetKind::Checkbox => AccessibleRole::Checkbox,
+        InputWidgetKind::Label => AccessibleRole::Text,
+    };
+    let basics = element("Job, spell, weapon skill & TP inputs", AccessibleRole::List);
+    let enemy = element("Enemy Inputs inputs", AccessibleRole::List);
+    let toggles = element("Special Toggles inputs", AccessibleRole::List);
+    let enemy_group = element("Enemy Inputs", AccessibleRole::Groupbox);
+    let buffs_group = element("Active Buffs", AccessibleRole::Groupbox);
+    let mut enemy_bottom = enemy.absolute_position().y;
+    for (model, viewport) in [(desktop.window.get_basic_controls(), &basics), (desktop.window.get_enemy_controls(), &enemy)] {
+        for row in model.iter().filter(|row| row.visible) {
+            let control = element(row.label.as_str(), role(&row));
+            assert!((20.0..=30.0).contains(&control.size().height),
+                "{} must retain its normal one-row editor height", row.label);
+            assert!(control.absolute_position().y >= viewport.absolute_position().y - 1.0 && bottom(&control) <= bottom(viewport) + 1.0,
+                "{} must fit its column without clipping or inner scrolling", row.label);
+            if viewport.accessible_label().as_deref() == Some("Enemy Inputs inputs") {
+                enemy_bottom = enemy_bottom.max(bottom(&control));
+            }
+        }
+    }
+    assert!((bottom(&enemy) - enemy_bottom).abs() <= 1.0,
+        "The Enemy viewport must end at its last rendered field, without surplus blank space");
+    assert!((bottom(&toggles) - enemy_bottom).abs() <= 1.0,
+        "The Special Toggles viewport must end at the last rendered Enemy row");
+    assert!((buffs_group.absolute_position().y - bottom(&enemy_group)).abs() <= 1.0,
+        "The buff section must immediately follow the first input row");
+    let enemy_chrome = enemy_group.size().height - enemy.size().height;
+    let enemy_bottom_padding = bottom(&enemy_group) - enemy_bottom;
+
+    // Scroll the whole buff section into the outer viewport, not one of its
+    // editable fields. Its final controls must fit without an inner wheel.
+    let outer = layout_viewport(desktop, "Quicklook content");
+    scroll_layout(desktop, "Quicklook content", outer.absolute_position().y - buffs_group.absolute_position().y);
+    let groups = [
+        (format!("White Magic — {} inputs", desktop.window.get_skill_label()),
+            vec![desktop.window.get_whm_controls(), desktop.window.get_food_controls()]),
+        ("Bard Songs inputs".to_owned(), vec![desktop.window.get_brd_controls()]),
+        ("Corsair Rolls inputs".to_owned(), vec![desktop.window.get_cor_controls()]),
+        ("Geomancy Bubbles inputs".to_owned(), vec![desktop.window.get_geo_controls()]),
+    ];
+    let mut content_bottom = f32::NEG_INFINITY;
+    let mut buff_top: Option<f32> = None;
+    let mut buff_bottom: Option<f32> = None;
+    for (label, models) in groups {
+        let viewport = layout_viewport(desktop, &label);
+        let top = viewport.absolute_position().y;
+        let end = bottom(&viewport);
+        if let Some(expected) = buff_top {
+            assert!((top - expected).abs() <= 1.0, "Buff columns must share their top edge");
+        }
+        if let Some(expected) = buff_bottom {
+            assert!((end - expected).abs() <= 1.0, "Buff columns must share their bottom edge");
+        }
+        buff_top = Some(top);
+        buff_bottom = Some(end);
+        for model in models {
+            for row in model.iter().filter(|row| row.visible) {
+                let control = element(row.label.as_str(), role(&row));
+                assert!((20.0..=30.0).contains(&control.size().height),
+                    "{} must retain its normal buff editor height", row.label);
+                assert!(control.absolute_position().y >= top - 1.0 && bottom(&control) <= end + 1.0,
+                    "{} must fit its buff column without clipping or inner scrolling", row.label);
+                assert!(control.absolute_position().y >= outer.absolute_position().y - 1.0 && bottom(&control) <= bottom(&outer) + 1.0,
+                    "{} must be fully reachable through the outer viewport", row.label);
+                fixed_horizontal(&control, &format!("Quicklook/buff/{}", row.key), &viewport, baseline);
+                content_bottom = content_bottom.max(bottom(&control));
+            }
+        }
+    }
+    let buff_height = buff_bottom.unwrap() - buff_top.unwrap();
+    assert!((buff_bottom.unwrap() - content_bottom).abs() <= 1.0,
+        "The buff row must end at its tallest natural content, not retain a fixed-height blank gap");
+    let buff_chrome = buffs_group.size().height - buff_height;
+    assert!((enemy_chrome - buff_chrome).abs() <= 1.0 &&
+        (enemy_bottom_padding - (bottom(&buffs_group) - content_bottom)).abs() <= 1.0,
+        "Both input rows must contain only their rendered content and matching GroupBox overhead: enemy chrome={enemy_chrome}, buff chrome={buff_chrome}, enemy bottom padding={enemy_bottom_padding}, buff bottom padding={}, buff height={buff_height}", bottom(&buffs_group) - content_bottom);
+}
+
 #[test]
 fn compact_window_preserves_input_columns_and_visible_editors() {
     i_slint_backend_testing::init_no_event_loop();
@@ -584,6 +674,7 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
             for label in ["Master level", "Main job", "Subjob", "Aftermath level", "Spell", "Weapon skill", "TP", "enemy Defense", "enemy VIT"] {
                 fixed_input_label(&desktop, label, &editor(label), &quick_viewport, &mut baseline);
             }
+            quicklook_content_height_geometry(&desktop, &mut baseline);
             // Refresh once with different real contents, not once per resize.
             if width == 760.0 && profile == "Black Mage" {
                 desktop.window.invoke_action("stats-quicklook".into());

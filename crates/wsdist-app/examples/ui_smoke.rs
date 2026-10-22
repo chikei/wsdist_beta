@@ -1078,6 +1078,72 @@ async fn quick_input_geometry(desktop: &Desktop, baseline: &mut HorizontalBaseli
         resistance.absolute_position().y + resistance.size().height > enemy.absolute_position().y + enemy.size().height + 1.0 {
         return Err("Enemy values clip or the final enemy field needs inner scrolling".into());
     }
+    quicklook_content_height_geometry(desktop, rectangles).await?;
+    Ok(())
+}
+
+async fn quicklook_content_height_geometry(desktop: &Desktop, rectangles: &mut Vec<Value>) -> Result<()> {
+    let bottom = |element: &ElementHandle| element.absolute_position().y + element.size().height;
+    let enemy = element(&desktop.window, "Enemy Inputs inputs", AccessibleRole::List)?;
+    let toggles = element(&desktop.window, "Special Toggles inputs", AccessibleRole::List)?;
+    let resistance = element(&desktop.window, "Resistance rank", AccessibleRole::Combobox)?;
+    let enemy_group = element(&desktop.window, "Enemy Inputs", AccessibleRole::Groupbox)?;
+    let buffs_group = element(&desktop.window, "Active Buffs", AccessibleRole::Groupbox)?;
+    let enemy_bottom = bottom(&resistance);
+    if (bottom(&enemy) - enemy_bottom).abs() > 1.0 || (bottom(&toggles) - enemy_bottom).abs() > 1.0 ||
+        (buffs_group.absolute_position().y - bottom(&enemy_group)).abs() > 1.0 {
+        return Err(format!("Quicklook first-row content must end with the last Enemy row and immediately precede Active Buffs: enemy {}, last row {}, toggles {}, enemy group {}, buffs group {}",
+            rectangle(&enemy), rectangle(&resistance), rectangle(&toggles), rectangle(&enemy_group), rectangle(&buffs_group)).into());
+    }
+    let enemy_chrome = enemy_group.size().height - enemy.size().height;
+    let enemy_bottom_padding = bottom(&enemy_group) - enemy_bottom;
+    rectangles.push(json!({"key": "Quicklook/content-tight-first-row", "enemy": rectangle(&enemy),
+        "last_enemy_row": rectangle(&resistance), "special_toggles": rectangle(&toggles),
+        "enemy_group": rectangle(&enemy_group), "buff_group": rectangle(&buffs_group)}));
+    let outer = content_viewport(desktop)?;
+    scroll_content(desktop, outer.absolute_position().y - buffs_group.absolute_position().y).await?;
+    let groups = [
+        (format!("White Magic — {} inputs", desktop.window.get_skill_label()),
+            vec![desktop.window.get_whm_controls(), desktop.window.get_food_controls()]),
+        ("Bard Songs inputs".to_owned(), vec![desktop.window.get_brd_controls()]),
+        ("Corsair Rolls inputs".to_owned(), vec![desktop.window.get_cor_controls()]),
+        ("Geomancy Bubbles inputs".to_owned(), vec![desktop.window.get_geo_controls()]),
+    ];
+    let mut content_bottom = f32::NEG_INFINITY;
+    let mut bounds: Option<(f32, f32)> = None;
+    for (label, models) in groups {
+        let viewport = element(&desktop.window, &label, AccessibleRole::List)?;
+        let top = viewport.absolute_position().y;
+        let end = bottom(&viewport);
+        if let Some((expected_top, expected_bottom)) = bounds {
+            if (top - expected_top).abs() > 1.0 || (end - expected_bottom).abs() > 1.0 {
+                return Err(format!("{label}: buff columns no longer share their natural-height row").into());
+            }
+        }
+        bounds = Some((top, end));
+        for model in models {
+            for row in model.iter().filter(|row| row.visible) {
+                let control = element(&desktop.window, row.label.as_str(), input_role(&row))?;
+                if !(20.0..=30.0).contains(&control.size().height) || control.absolute_position().y < top - 1.0 ||
+                    bottom(&control) > end + 1.0 || !fully_visible(desktop, &control)? {
+                    return Err(format!("{} must retain its normal, unclipped buff editor without inner scrolling: control {}, column {}",
+                        row.label, rectangle(&control), rectangle(&viewport)).into());
+                }
+                content_bottom = content_bottom.max(bottom(&control));
+            }
+        }
+        rectangles.push(json!({"key": format!("Quicklook/content-tight-buffs/{label}"), "viewport": rectangle(&viewport)}));
+    }
+    let (top, end) = bounds.ok_or("Quicklook buff columns are missing")?;
+    let buff_chrome = buffs_group.size().height - (end - top);
+    let buff_bottom_padding = bottom(&buffs_group) - content_bottom;
+    if (end - content_bottom).abs() > 1.0 || (enemy_chrome - buff_chrome).abs() > 1.0 ||
+        (enemy_bottom_padding - buff_bottom_padding).abs() > 1.0 {
+        return Err(format!("Quicklook rows must contain only natural content plus matching GroupBox title/padding, without surplus height: buff bottom={end}, final content bottom={content_bottom}, enemy chrome={enemy_chrome}, buff chrome={buff_chrome}, enemy bottom padding={enemy_bottom_padding}, buff bottom padding={buff_bottom_padding}").into());
+    }
+    rectangles.push(json!({"key": "Quicklook/content-tight-row-overheads", "enemy_chrome": enemy_chrome,
+        "buff_chrome": buff_chrome, "enemy_bottom_padding": enemy_bottom_padding, "buff_bottom_padding": buff_bottom_padding,
+        "buff_content_bottom": content_bottom, "buff_group": rectangle(&buffs_group)}));
     Ok(())
 }
 
@@ -1274,7 +1340,9 @@ async fn compact_layout(desktop: &Desktop, output: &Path, ninja: &Value, screens
     assert_input_spacing(desktop)?;
     let inputs = assert_columns(desktop, &["Master level", "Special Toggles inputs", "Enemy preset"])?;
     snapshot(&desktop.window, output, "11-compact-760x440-inputs", screenshots)?;
-    scroll_content(desktop, -240.0).await?;
+    let buff_group = element(&desktop.window, "Active Buffs", AccessibleRole::Groupbox)?;
+    let outer = content_viewport(desktop)?;
+    scroll_content(desktop, outer.absolute_position().y - buff_group.absolute_position().y).await?;
     let buffs = assert_columns(desktop, &["White Magic", "Bard Songs", "Corsair Rolls", "Geomancy Bubbles"])?;
     snapshot(&desktop.window, output, "11-compact-760x440-buffs", screenshots)?;
     let slot = desktop.window.get_quick_slots().row_data(0).ok_or("Main gear slot missing")?;
