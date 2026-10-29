@@ -278,6 +278,16 @@ pub struct HitEvent {
     pub tp_return: f64,
 }
 
+/// A display-only equation captured from an existing calculation.
+/// Named `{operands}` are substituted by the report renderer; random terms
+/// remain explicit placeholders in the formula rather than invented rolls.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CalculationStep {
+    pub label: &'static str,
+    pub formula: &'static str,
+    pub values: Vec<(&'static str, f64)>,
+}
+
 pub struct EvaluationContext<R: RandomSource = crate::rng::RandomSources> {
     pub catalog: Arc<crate::catalog::Catalog>,
     pub state: ModelState,
@@ -285,15 +295,23 @@ pub struct EvaluationContext<R: RandomSource = crate::rng::RandomSources> {
     pub scratch: EvaluationScratch,
     pub player_stages: Option<Vec<PlayerStageSnapshot>>,
     pub action_trace: Option<Vec<HitEvent>>,
+    pub calculation_trace: Option<Vec<CalculationStep>>,
 }
 
 impl<R: RandomSource> EvaluationContext<R> {
     pub fn new(catalog: Arc<crate::catalog::Catalog>, random: R) -> Self {
         Self { state: ModelState::new(catalog.pieces.len()), catalog, random,
-            scratch: EvaluationScratch::default(), player_stages: None, action_trace: None }
+            scratch: EvaluationScratch::default(), player_stages: None, action_trace: None,
+            calculation_trace: None }
     }
     pub fn record_hit(&mut self, event: HitEvent) {
         if let Some(trace) = &mut self.action_trace { trace.push(event); }
+    }
+    pub fn record_calculation(&mut self, label: &'static str, formula: &'static str,
+        values: &[(&'static str, f64)]) {
+        if let Some(trace) = &mut self.calculation_trace {
+            trace.push(CalculationStep { label, formula, values: values.to_vec() });
+        }
     }
 }
 

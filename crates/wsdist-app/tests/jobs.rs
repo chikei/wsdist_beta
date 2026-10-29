@@ -13,7 +13,7 @@ use wsdist_app::jobs::{
 use wsdist_app::state::CalculationInputs;
 use wsdist_core::Catalog;
 use wsdist_core::model::{
-    CalcError, CandidatePools, Enemy, EvaluationContext, HitEvent, OptimizeOptions,
+    CalcError, CalculationStep, CandidatePools, Enemy, EvaluationContext, HitEvent, OptimizeOptions,
     Player, PlayerStage, PlayerStageSnapshot, Progress, RandomStream,
     SkillType, Slot, WsType,
 };
@@ -278,6 +278,10 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
                 fixture["expected"]["value"]["player_at_action_boundary"]["gearset"]
                     [Slot::ALL[index].name()]["skill_type"].as_str().unwrap()).unwrap()),
         }]);
+        context.calculation_trace = Some(vec![CalculationStep {
+            label: "Retained observer", formula: "prior = {prior}", values: vec![("prior", 37.5)],
+        }]);
+        let saved_calculation = context.calculation_trace.clone();
         let saved_trace = serde_json::to_value(context.action_trace.as_ref().unwrap()).unwrap();
         let saved_stats = serde_json::to_value(&context.player_stages.as_ref().unwrap()[0].stats).unwrap();
         let mut worker = WorkerCoordinator::new();
@@ -300,6 +304,8 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
         assert_eq!(serde_json::to_value(completion.context.action_trace.as_ref().unwrap()).unwrap(), saved_trace);
         assert_eq!(completion.context.player_stages.as_ref().unwrap().len(), 1);
         assert_eq!(serde_json::to_value(&completion.context.player_stages.as_ref().unwrap()[0].stats).unwrap(), saved_stats);
+        assert_eq!(completion.context.calculation_trace, saved_calculation,
+            "a displayed sampled calculation must not overwrite the caller's observer");
 
         let rng = completion.context.random.clone();
         worker.start(stats_request(inputs), completion.context).unwrap();
@@ -324,8 +330,10 @@ fn none_spell_and_unresolved_ws_fail_after_the_current_h2h_prelude_and_allow_rec
             let rng = context.random.clone();
             context.action_trace = Some(Vec::with_capacity(7));
             context.player_stages = Some(Vec::with_capacity(5));
+            context.calculation_trace = Some(Vec::with_capacity(3));
             let trace_address = context.action_trace.as_ref().unwrap().as_ptr();
             let stages_address = context.player_stages.as_ref().unwrap().as_ptr();
+            let calculation_address = context.calculation_trace.as_ref().unwrap().as_ptr();
             let mut worker = WorkerCoordinator::new();
             worker.start(WorkRequest { quicklook: inputs.clone(),
                 action: if spell { GuiAction::Spell } else { GuiAction::Ws } }, context).unwrap();
@@ -342,6 +350,7 @@ fn none_spell_and_unresolved_ws_fail_after_the_current_h2h_prelude_and_allow_rec
             assert_eq!(completion.context.random, rng, "resolution failure must not reset or draw from either stream");
             assert_eq!(completion.context.action_trace.as_ref().unwrap().as_ptr(), trace_address);
             assert_eq!(completion.context.player_stages.as_ref().unwrap().as_ptr(), stages_address);
+            assert_eq!(completion.context.calculation_trace.as_ref().unwrap().as_ptr(), calculation_address);
             assert_eq!(EvaluationContext::new(catalog(), RandomSources::from_seeds(0, 0)).state.override_for(catalog().empty), None,
                 "worker model state must not leak into independent sessions");
 

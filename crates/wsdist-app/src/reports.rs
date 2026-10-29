@@ -6,7 +6,7 @@ use std::io::{self, Write as _};
 
 use wsdist_core::Catalog;
 use wsdist_core::model::{
-    ActionRequest, ActionResult, AttackKind, AttackProc, DistributionResult,
+    ActionRequest, ActionResult, AttackKind, AttackProc, CalculationStep, DistributionResult,
     DpsResult, HitEvent, OptimizeRequest, OptimizeResult, OptimizeTermination, PieceKind,
     Player, PlayerInput, Progress, Slot, WsSample,
 };
@@ -238,6 +238,48 @@ pub fn analytical_report(name: &str, display: &AnalyticalDisplay) -> TextReport 
     }
 }
 
+/// Render equations captured by the evaluator, without evaluating combat again.
+pub fn append_calculation(text: &mut String, steps: &[CalculationStep], sampled: bool) {
+    if steps.is_empty() { return; }
+    text.push_str("\nCalculation process\n-------------------\n");
+    text.push_str(if sampled {
+        "Sampled result; observed hit outcomes are listed above.\n"
+    } else {
+        "Analytical result: expected values, not a particular random roll.\n"
+    });
+    text.push_str("[random ...] marks a random-number placeholder, not a fixed roll.\n\
+        U(a,b) means a uniform random draw; trunc(x) discards the fractional part.\n\
+        Equation values are rounded to at most 6 decimal places.\n");
+    for (index, step) in steps.iter().enumerate() {
+        let _ = writeln!(text, "\n{}. {}", index + 1, step.label);
+        text.push_str("   ");
+        let mut formula = step.formula;
+        while let Some(open) = formula.find('{') {
+            text.push_str(&formula[..open]);
+            let rest = &formula[open + 1..];
+            let close = rest.find('}').expect("calculation operand must have a closing brace");
+            let name = &rest[..close];
+            let value = step.values.iter().find(|(key, _)| *key == name)
+                .expect("calculation operand must be captured by the evaluator").1;
+            append_calculation_value(text, value);
+            formula = &rest[close + 1..];
+        }
+        text.push_str(formula);
+        text.push('\n');
+    }
+    text.push('\n');
+}
+
+fn append_calculation_value(text: &mut String, value: f64) {
+    if !value.is_finite() || value == 0.0 || value.abs() < 1e-6 || value.abs() >= 1e9 {
+        let _ = write!(text, "{}", scalar(value));
+        return;
+    }
+    let _ = write!(text, "{value:.6}");
+    while text.ends_with('0') { text.pop(); }
+    if text.ends_with('.') { text.pop(); }
+}
+
 fn proc_label(proc: AttackProc) -> Option<Cow<'static, str>> {
     match proc {
         AttackProc::QuadAttack => Some("Quad. Attack".into()),
@@ -367,6 +409,7 @@ pub fn optimizer_report(request: &OptimizeRequest, result: &OptimizeResult, cata
             }
         }
         text.push_str("==============================================================\n==============================================================\n");
+        append_calculation(&mut text, &result.calculation, false);
     }
     let termination = match result.termination {
         OptimizeTermination::Converged => "Converged", OptimizeTermination::IterationLimit => "Iteration limit",

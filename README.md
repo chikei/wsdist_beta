@@ -49,6 +49,14 @@ for the exercised verification and remaining manual checks.
 - **Player Stats:** explicitly refresh from Quicklook, TP or WS gear. Reports
   preserve the existing source-specific display units and haste caps.
 
+Quicklook and Optimize result windows include a numbered **Calculation process**
+with the evaluated inputs, intermediate stages and damage/TP/timing formulas.
+Random terms use labeled placeholders such as `[random hit roll: U(0,1)]`;
+analytical expectations are distinguished from sampled rolls. **Simulate WS**
+keeps observed hit outcomes above its calculation process. Optimization details
+follow the retained scored output and identify any separate post-reorder restart
+comparison. Viewing a report does not rerun calculations or draw new rolls.
+
 At 760×440, the UI preserves the original three input columns, four buff columns,
 equipment grid beside its candidate list, and grouped Stats columns. The main
 tabs use a fixed 704px rail with 680px content rows: controls, dropdowns, buttons,

@@ -409,6 +409,32 @@ probe was removed after proof. The rebuilt local `wsdist-gui` also rendered from
 `target/optimizer-error-popup/standalone.png`. These focused native runs did not
 repeat the full numerical UI workflow.
 
+### Calculation-process result popups
+
+`cargo test --locked --workspace -- --test-threads=1` passed all **199 tests**,
+including the frozen numerical/RNG corpus and the new round, spell and optimizer
+calculation-trace regressions. The trace checks preserve numerical results and
+random-stream continuation, reconcile captured stages, retain the earliest
+restart winner and pre-reorder scored output, and restore caller observers.
+
+Focused native Winit/software probes passed at **100% and 150%** scale, with
+**25 scenarios and 52 screenshots per scale**. Production controller callbacks
+exercised analytical melee/ranged/magical/hybrid WS, their sampled WS paths,
+single/dual-wield and H2H TP rounds, EnSpell, Quick Draw, Ninjutsu, elemental
+nukes/helixes, Kaustra, Impact, ranged/Barrage, and the existing divine zero-output
+branch. Two-restart one-slot searches covered Optimize WS, Spell, TP/Time to WS,
+and TP/DPS.
+
+Each completion produced one visible result editor whose accessible text matched
+the completed report, with numerically substituted calculation stages and no
+unresolved operand tokens. Native scrolling and independent Close result actions
+remained usable; optimizer progress was dismissed. Representative formula,
+random-placeholder, spell-stage, high-DPI and minimum-size popup screenshots were
+inspected. These were focused popup checks, not a rerun of the complete native
+workflow. The disposable probe source was removed after proof. Evidence:
+`target/calculation-popups/final-100/report.json` and
+`target/calculation-popups/final-150/report.json`.
+
 ## Native packaging and extracted launch
 
 ```sh

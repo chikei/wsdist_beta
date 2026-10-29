@@ -374,6 +374,7 @@ fn optimizer_feasibility_warning_precedes_the_set_and_no_winner_cannot_look_equi
     let mut result = OptimizeResult {
         gearset: player.gearset, player: Some(player), metric: number(&expected["legacy_output"][0]),
         legacy_output: expected["legacy_output"].as_array().unwrap().iter().map(number).collect(),
+        calculation: Vec::new(),
         pdt: -9.0, mdt: -9.0, feasible: false, termination: OptimizeTermination::UnchangedDtStages,
         accepted: Vec::new(), similar: Vec::new(), stages: 4, passes: 4, scored: 0, restarts: 1, invert: 1,
         warnings: Vec::new(),

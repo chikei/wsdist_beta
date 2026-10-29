@@ -52,6 +52,18 @@ impl ScoreContext {
         output.push(result.tp_return);
         if self.action.action_type.as_ref() == "attack round" { output.push(result.seconds_per_round.expect("round output timing")); }
         output.push(f64::from(result.invert));
+        if engine.calculation_trace.is_some() {
+            engine.record_calculation("Action evaluation output",
+                "Damage = {damage}; TP return = {tp_return}.",
+                &[("damage", result.damage), ("tp_return", result.tp_return)]);
+            if let Some(seconds) = result.seconds_per_round {
+                engine.record_calculation("Action evaluation timing",
+                    "Seconds per attack round = {seconds}.", &[("seconds", seconds)]);
+            }
+            engine.record_calculation("Optimizer metric transformation",
+                "score = {action_metric}^{invert}; use 0.0001 if score <= 0; resulting score = {score}.",
+                &[("action_metric", result.metric), ("invert", f64::from(result.invert)), ("score", metric)]);
+        }
         let evaluation = LegacyEvaluation { metric, output, invert: result.invert,
             decimals: if self.action.action_type.as_ref() == "attack round" { 3 } else { 1 }, nondecimals: 8 };
         let state = state_snapshot(trace, &engine.state);
@@ -60,19 +72,27 @@ impl ScoreContext {
     }
 }
 
-pub struct ScoreScratch { pub input: PlayerInput, pub player: Player }
+pub struct ScoreScratch {
+    pub input: PlayerInput,
+    pub player: Player,
+    pub(super) calculation: Vec<CalculationStep>,
+}
 
 impl ScoreScratch {
     pub fn new(context: &ScoreContext) -> Self {
-        Self { input: context.player.clone(), player: Player::new(context.player.gearset) }
+        Self { input: context.player.clone(), player: Player::new(context.player.gearset), calculation: Vec::new() }
     }
 
     pub fn with_output<R: RandomSource>(&mut self, context: &ScoreContext, ids: &InternedSet,
         engine: &mut EvaluationContext<R>, trace: &mut Option<SearchTrace>) -> Result<LegacyEvaluation, CalcError> {
         self.input.gearset = context.gearset(ids);
-        build_player(&self.input, engine, &mut self.player)?;
-        let result = context.evaluate(&self.player, engine, trace)?;
-        record(trace, || TraceEvent::Rescore { ids: *ids, evaluation: result.clone() });
+        let (result, calculation) = capture_calculation(engine, |engine| {
+            build_player(&self.input, engine, &mut self.player)?;
+            let result = context.evaluate(&self.player, engine, trace)?;
+            record(trace, || TraceEvent::Rescore { ids: *ids, evaluation: result.clone() });
+            Ok(result)
+        })?;
+        self.calculation = calculation;
         Ok(result)
     }
 
@@ -83,6 +103,17 @@ impl ScoreScratch {
     }
 
     pub(crate) fn score_slices<R: RandomSource>(&mut self, context: &ScoreContext, base: &InternedSet,
+        groups: &[GroupSlice<'_>], thresholds: [f64; 2], engine: &mut EvaluationContext<R>,
+        stop: &AtomicBool, trace: &mut Option<SearchTrace>) -> Result<Vec<f64>, CalcError> {
+        // Candidate and warmup actions never contribute display calculations.
+        // Restore the caller's observer even when scoring fails or is cancelled.
+        let calculation = engine.calculation_trace.take();
+        let result = self.score_candidates(context, base, groups, thresholds, engine, stop, trace);
+        engine.calculation_trace = calculation;
+        result
+    }
+
+    fn score_candidates<R: RandomSource>(&mut self, context: &ScoreContext, base: &InternedSet,
         groups: &[GroupSlice<'_>], thresholds: [f64; 2], engine: &mut EvaluationContext<R>,
         stop: &AtomicBool, trace: &mut Option<SearchTrace>) -> Result<Vec<f64>, CalcError> {
         interrupted(stop)?;
@@ -136,6 +167,17 @@ impl ScoreScratch {
         let result = evaluate_action(&self.player, &context.enemy, action, engine)?;
         transform_metric(result.metric, result.invert)
     }
+}
+
+/// Capture one existing evaluation without replacing or filling the caller's observer.
+pub(super) fn capture_calculation<R: RandomSource, T>(engine: &mut EvaluationContext<R>,
+    evaluate: impl FnOnce(&mut EvaluationContext<R>) -> Result<T, CalcError>)
+    -> Result<(T, Vec<CalculationStep>), CalcError> {
+    let observer = engine.calculation_trace.take();
+    engine.calculation_trace = observer.as_ref().map(|_| Vec::new());
+    let result = evaluate(engine);
+    let calculation = std::mem::replace(&mut engine.calculation_trace, observer).unwrap_or_default();
+    result.map(|result| (result, calculation))
 }
 
 fn transform_metric(value: f64, invert: i8) -> Result<f64, CalcError> {
@@ -244,7 +286,7 @@ impl<R: RandomSource> Mapper<R> {
                     self.workers = (0..self.width).map(|_| {
                         let engine = EvaluationContext {
                             catalog: coordinator.catalog.clone(), state: coordinator.state.clone(), random: coordinator.random.clone(),
-                            scratch: EvaluationScratch::default(), player_stages: None, action_trace: None,
+                            scratch: EvaluationScratch::default(), player_stages: None, action_trace: None, calculation_trace: None,
                         };
                         Mutex::new(Worker { engine, scratch: ScoreScratch::new(&self.context), warmed: false })
                     }).collect();

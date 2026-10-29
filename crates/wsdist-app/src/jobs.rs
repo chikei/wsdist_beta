@@ -190,11 +190,13 @@ impl WorkerCoordinator {
                 let mut context = lock_context(&worker_context);
                 let saved_trace = context.action_trace.take();
                 let saved_stages = context.player_stages.take();
+                let saved_calculation = context.calculation_trace.take();
                 let outcome = catch_unwind(AssertUnwindSafe(|| {
                     execute(request, &mut context, &worker_stop, &sender)
                 }));
                 context.action_trace = saved_trace;
                 context.player_stages = saved_stages;
+                context.calculation_trace = saved_calculation;
                 match outcome {
                     Ok(Ok(result)) if worker_stop.load(Ordering::Acquire) => {
                         drop(result);
@@ -341,6 +343,7 @@ fn analytical(inputs: CalculationInputs, kind: AnalyticalKind, player: Player, c
         AnalyticalKind::Ws => ActionRequest::Ws(ws_request(&inputs)?),
         AnalyticalKind::Spell => ActionRequest::Spell(spell_request(&inputs.spell_name)?),
     };
+    context.calculation_trace = Some(Vec::new());
     let result = evaluate_action(&player, &inputs.enemy, &action, context)?;
     check_cancel(stop, operation)?;
     let display = reports::analytical_display(&result, kind == AnalyticalKind::Round);
@@ -348,7 +351,9 @@ fn analytical(inputs: CalculationInputs, kind: AnalyticalKind, player: Player, c
         AnalyticalKind::Round => "TP", AnalyticalKind::Ws => inputs.ws_name.as_ref(),
         AnalyticalKind::Spell => inputs.spell_name.as_ref(),
     };
-    let report = reports::analytical_report(name, &display);
+    let mut report = reports::analytical_report(name, &display);
+    let calculation = context.calculation_trace.take().expect("analytical calculation trace installed");
+    reports::append_calculation(&mut report.text, &calculation, false);
     Ok(WorkResult::Analytical { kind, player, result, display, report })
 }
 
@@ -356,10 +361,13 @@ fn single_ws(inputs: CalculationInputs, player: Player, context: &mut Engine, st
     operation: &'static str) -> Result<WorkResult, WorkerError> {
     let ws = ws_request(&inputs)?;
     context.action_trace = Some(Vec::with_capacity(11));
+    context.calculation_trace = Some(Vec::new());
     let sample = sample_ws(&player, &inputs.enemy, &ws, true, context)?;
     check_cancel(stop, operation)?;
     let events = context.action_trace.take().expect("single WS trace installed");
-    let report = reports::single_ws_report(&player, &inputs.ws_name, inputs.tp, &sample, &events);
+    let mut report = reports::single_ws_report(&player, &inputs.ws_name, inputs.tp, &sample, &events);
+    let calculation = context.calculation_trace.take().expect("single WS calculation trace installed");
+    reports::append_calculation(&mut report.text, &calculation, true);
     Ok(WorkResult::SingleWs { player, sample, events, report })
 }
 
@@ -448,6 +456,7 @@ fn execute(request: WorkRequest, context: &mut Engine, stop: &AtomicBool,
                 candidates, ws_name: quicklook.ws_name, spell_name: quicklook.spell_name, min_pdt, min_mdt,
                 options, similar_results, similar_percent, verbose_swaps };
             let mut progress = |progress| { let _ = sender.send(Message::Progress(progress)); };
+            context.calculation_trace = Some(Vec::new());
             let result = optimize(&request, context, stop, &mut progress)?;
             check_cancel(stop, operation)?;
             let report = reports::optimizer_report(&request, &result, &context.catalog);
