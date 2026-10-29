@@ -661,8 +661,11 @@ fn optimizer_candidate_failures_show_exact_error_and_preserve_successful_state()
     assert_eq!(fs::read(&paths.defaults).unwrap(), defaults, "Failed and recovered runs must not alter saved defaults");
 }
 
-fn layout_viewport(desktop: &Desktop, label: &str) -> ElementHandle {
-    let content = ElementHandle::find_by_accessible_label(&desktop.window, label).next().unwrap();
+fn layout_viewport(root: &ElementHandle, label: &str) -> ElementHandle {
+    let content_label = label.to_owned();
+    let content = root.query_descendants()
+        .match_predicate(move |element| element.accessible_label().is_some_and(|label| label == content_label))
+        .find_first().unwrap();
     // Inspect the actual Flickable rather than the accessible wrapper, whose
     // stable18px reserved lane is deliberately outside the viewport.
     let viewport = content.query_descendants().match_inherits("Flickable").find_all().into_iter()
@@ -696,27 +699,30 @@ fn fixed_horizontal(element: &ElementHandle, key: &str, viewport: &ElementHandle
     }
 }
 
-fn fixed_input_label(desktop: &Desktop, label: &str, field: &ElementHandle, viewport: &ElementHandle,
+fn fixed_input_label(label: &str, field: &ElementHandle, viewport: &ElementHandle,
     baseline: &mut BTreeMap<String, (f32, f32)>) {
-    let row = ElementHandle::find_by_element_type_name(&desktop.window, "ControlEditor")
-        .find(|row| row.query_descendants().find_all().iter()
-            .any(|child| child.accessible_label().is_some_and(|text| text == label)))
-        .unwrap_or_else(|| panic!("The visible {label} editor must have its label row"));
+    let row_label: slint::SharedString = label.into();
+    let row = viewport.query_descendants().match_type_name("ControlEditor")
+        .match_predicate(move |row| {
+            let row_label = row_label.clone();
+            row.query_descendants()
+                .match_predicate(move |child| child.accessible_label().is_some_and(|text| text == row_label))
+                .find_first().is_some()
+        }).find_first().unwrap_or_else(|| panic!("The visible {label} editor must have its label row"));
     let field_position = field.absolute_position();
-    let text = row.query_descendants().match_type_name("Text").find_all().into_iter()
-        .find(|text| {
+    let text = row.query_descendants().match_type_name("Text")
+        .match_predicate(move |text| {
             let position = text.absolute_position();
             let size = text.size();
             size.width > 0.0 && position.x < field_position.x - 1.0 &&
                 position.x + size.width <= field_position.x + 1.0 &&
                 (position.y - field_position.y).abs() <= 3.0
-        }).unwrap_or_else(|| panic!("{label} must retain a readable, non-overlapping label canvas"));
+        }).find_first().unwrap_or_else(|| panic!("{label} must retain a readable, non-overlapping label canvas"));
     fixed_horizontal(&row, &format!("input row/{label}"), viewport, baseline);
     fixed_horizontal(&text, &format!("input label/{label}"), viewport, baseline);
 }
 
-fn scroll_layout(desktop: &Desktop, label: &str, delta: f32) {
-    let viewport = layout_viewport(desktop, label);
+fn scroll_layout(desktop: &Desktop, viewport: &ElementHandle, delta: f32) {
     let position = viewport.absolute_position();
     desktop.window.window().dispatch_event(slint::platform::WindowEvent::PointerScrolled {
         position: slint::LogicalPosition::new(position.x + 2.0, position.y + viewport.size().height / 2.0),
@@ -724,67 +730,89 @@ fn scroll_layout(desktop: &Desktop, label: &str, delta: f32) {
     });
 }
 
-fn visible_stat_row(desktop: &Desktop, label: &str) -> ElementHandle {
-    scroll_layout(desktop, "Stats content", 10000.0);
-    for _ in 0..24 {
-        let viewport = layout_viewport(desktop, "Stats content");
-        if let Some(row) = ElementHandle::find_by_accessible_label(&desktop.window, label)
-            .find(|row| row.accessible_role() == Some(AccessibleRole::ListItem) &&
-                row.absolute_position().y >= viewport.absolute_position().y - 1.0 &&
-                row.absolute_position().y + row.size().height <= viewport.absolute_position().y + viewport.size().height + 1.0) {
-            return row;
-        }
-        scroll_layout(desktop, "Stats content", -160.0);
-    }
-    panic!("The Stats row {label:?} must be reachable through the outer viewport");
-}
-
-fn fixed_stat_geometry(desktop: &Desktop, baseline: &mut BTreeMap<String, (f32, f32)>) {
+fn fixed_stat_geometry(desktop: &Desktop, baseline: &mut BTreeMap<String, (f32, f32)>, oversized_labels: &[String]) {
     desktop.window.set_active_tab(3);
+    let viewport = layout_viewport(&desktop.window.root_element(), "Stats content");
     let groups = [desktop.window.get_stats_base(), desktop.window.get_stats_physical(), desktop.window.get_stats_magical(),
         desktop.window.get_stats_multi(), desktop.window.get_stats_haste(), desktop.window.get_stats_defensive(), desktop.window.get_stats_other()];
     assert_eq!(groups.iter().map(|rows| rows.row_count()).sum::<usize>(), 53, "All player Stats rows must remain available");
-    let mut group_boxes = Vec::with_capacity(groups.len());
-    for (index, rows) in groups.into_iter().enumerate() {
-        let mut previous: Option<ElementHandle> = None;
-        for stat in rows.iter() {
-            let row = visible_stat_row(desktop, &format!("{}: {}", stat.label, stat.value));
-            if let Some(previous) = previous.as_ref() {
-                assert!(row.absolute_position().y >= previous.absolute_position().y + previous.size().height - 1.0,
-                    "{} must not overlap the preceding Stats row", stat.label);
-            } else {
-                let row_label = format!("{}: {}", stat.label, stat.value);
-                let group = ElementHandle::find_by_element_type_name(&desktop.window, "StatGroup")
-                    .find(|group| group.query_descendants().find_all().iter()
-                        .any(|child| child.accessible_role() == Some(AccessibleRole::ListItem) &&
-                            child.accessible_label().is_some_and(|label| label == row_label)))
-                    .expect("Each visible Stats row must fit its group");
-                fixed_horizontal(&group, &format!("Stats/group/{index}"), &layout_viewport(desktop, "Stats content"), baseline);
-                group_boxes.push(group);
+    let mut expected = groups.map(|rows| rows.iter()
+        .map(|stat| (format!("{}: {}", stat.label, stat.value), stat, None::<ElementHandle>)).collect::<Vec<_>>());
+    let mut group_boxes: [Option<ElementHandle>; 7] = std::array::from_fn(|_| None);
+    let mut remaining = 53;
+    scroll_layout(desktop, &viewport, 10000.0);
+    // Groups share horizontal rows, so visit every exposed column before
+    // advancing the outer viewport rather than scrolling in model-group order.
+    for _ in 0..24 {
+        let top = viewport.absolute_position().y;
+        let bottom = top + viewport.size().height;
+        let visible = viewport.query_descendants().match_accessible_role(AccessibleRole::ListItem)
+            .match_predicate(move |row| {
+                let position = row.absolute_position();
+                position.y >= top - 1.0 && position.y + row.size().height <= bottom + 1.0
+            }).find_all();
+        for row in visible {
+            let Some(row_label) = row.accessible_label() else { continue; };
+            let Some((index, (_, stat, checked))) = expected.iter_mut().enumerate().find_map(|(index, rows)| {
+                rows.iter_mut().find(|(label, _, _)| label.as_str() == row_label.as_str())
+                    .map(|row| (index, row))
+            }) else { continue; };
+            if checked.is_some() { continue; }
+            if group_boxes[index].is_none() {
+                let row_label = row_label.clone();
+                let group = viewport.query_descendants().match_type_name("StatGroup")
+                    .match_predicate(move |group| {
+                        let row_label = row_label.clone();
+                        group.query_descendants().match_accessible_role(AccessibleRole::ListItem)
+                            .match_predicate(move |child| child.accessible_label().is_some_and(|label| label == row_label))
+                            .find_first().is_some()
+                    }).find_first().expect("Each visible Stats row must fit its group");
+                fixed_horizontal(&group, &format!("Stats/group/{index}"), &viewport, baseline);
+                group_boxes[index] = Some(group);
             }
-            let value = row.query_descendants().match_type_name("Text").find_all().into_iter()
+            let texts = row.query_descendants().match_type_name("Text").find_all();
+            let value = texts.iter()
                 .find(|text| text.accessible_label().is_some_and(|label| label == stat.label) &&
                     text.accessible_value().is_some_and(|value| value == stat.value))
                 .unwrap_or_else(|| panic!("{} must expose its displayed value", stat.label));
-            let label = row.query_descendants().match_type_name("Text").find_all().into_iter()
+            let label = texts.iter()
                 .find(|text| text.accessible_label().is_some_and(|label| label == stat.label) && text.accessible_value().is_none())
                 .unwrap_or_else(|| panic!("{} must retain its visible label", stat.label));
             assert!(value.size().width >= (if index == 0 { 48.0 } else { 64.0 }),
                 "{} must reserve readable value space independently of its digits/units", stat.label);
             assert!(label.size().width >= 20.0 && label.absolute_position().x + label.size().width + 5.0 <= value.absolute_position().x,
                 "{} label and value must not overlap", stat.label);
-            for text in [&label, &value] {
+            for text in [label, value] {
                 assert!(text.absolute_position().y >= row.absolute_position().y - 1.0 &&
                     text.absolute_position().y + text.size().height <= row.absolute_position().y + row.size().height + 1.0,
                     "{} must keep its wrapped label/value inside the row", stat.label);
             }
-            let viewport = layout_viewport(desktop, "Stats content");
-            for (part, element) in [("row", &row), ("label", &label), ("value", &value)] {
+            for (part, element) in [("row", &row), ("label", label), ("value", value)] {
                 fixed_horizontal(element, &format!("Stats/{}/{part}", stat.label), &viewport, baseline);
             }
-            previous = Some(row);
+            if oversized_labels.iter().any(|label| label.as_str() == row_label.as_str()) {
+                assert!(value.size().height > 24.0, "Oversized displayed values must gain vertical space rather than clip or widen");
+            }
+            *checked = Some(row);
+            remaining -= 1;
+        }
+        if remaining == 0 { break; }
+        scroll_layout(desktop, &viewport, -160.0);
+    }
+    // Ordinary repeater handles remain valid within this pass. Compare all
+    // neighbors and group rows now, in one consistent final scroll state.
+    for rows in &expected {
+        for (label, _, row) in rows {
+            assert!(row.is_some(), "The Stats row {label:?} must be reachable through the outer viewport");
+        }
+        for pair in rows.windows(2) {
+            let previous = pair[0].2.as_ref().unwrap();
+            let row = pair[1].2.as_ref().unwrap();
+            assert!(row.absolute_position().y >= previous.absolute_position().y + previous.size().height - 1.0,
+                "{} must not overlap the preceding Stats row", pair[1].1.label);
         }
     }
+    let group_boxes = group_boxes.map(|group| group.expect("Every Stats group must have an exposed row"));
     for (upper, lower) in [(&group_boxes[0..3], &group_boxes[3..5]), (&group_boxes[3..5], &group_boxes[5..7])] {
         let bottom = upper.iter().map(|group| group.absolute_position().y + group.size().height).fold(f32::NEG_INFINITY, f32::max);
         assert!(lower.iter().all(|group| group.absolute_position().y >= bottom - 1.0),
@@ -792,11 +820,12 @@ fn fixed_stat_geometry(desktop: &Desktop, baseline: &mut BTreeMap<String, (f32, 
     }
 }
 
-fn quicklook_content_height_geometry(desktop: &Desktop, baseline: &mut BTreeMap<String, (f32, f32)>) {
+fn quicklook_content_height_geometry(desktop: &Desktop, outer: &ElementHandle, baseline: &mut BTreeMap<String, (f32, f32)>) {
     let element = |label: &str, role: AccessibleRole| {
-        ElementHandle::find_by_accessible_label(&desktop.window, label)
-            .find(|element| element.accessible_role() == Some(role))
-            .unwrap_or_else(|| panic!("{label:?} must expose its rendered {role:?} geometry"))
+        let element_label = label.to_owned();
+        outer.query_descendants().match_accessible_role(role)
+            .match_predicate(move |element| element.accessible_label().is_some_and(|label| label == element_label))
+            .find_first().unwrap_or_else(|| panic!("{label:?} must expose its rendered {role:?} geometry"))
     };
     let bottom = |element: &ElementHandle| element.absolute_position().y + element.size().height;
     let role = |row: &InputRow| match row.control_kind {
@@ -834,8 +863,7 @@ fn quicklook_content_height_geometry(desktop: &Desktop, baseline: &mut BTreeMap<
 
     // Scroll the whole buff section into the outer viewport, not one of its
     // editable fields. Its final controls must fit without an inner wheel.
-    let outer = layout_viewport(desktop, "Quicklook content");
-    scroll_layout(desktop, "Quicklook content", outer.absolute_position().y - buffs_group.absolute_position().y);
+    scroll_layout(desktop, outer, outer.absolute_position().y - buffs_group.absolute_position().y);
     let groups = [
         (format!("White Magic — {} inputs", desktop.window.get_skill_label()),
             vec![desktop.window.get_whm_controls(), desktop.window.get_food_controls()]),
@@ -847,7 +875,7 @@ fn quicklook_content_height_geometry(desktop: &Desktop, baseline: &mut BTreeMap<
     let mut buff_top: Option<f32> = None;
     let mut buff_bottom: Option<f32> = None;
     for (label, models) in groups {
-        let viewport = layout_viewport(desktop, &label);
+        let viewport = layout_viewport(outer, &label);
         let top = viewport.absolute_position().y;
         let end = bottom(&viewport);
         if let Some(expected) = buff_top {
@@ -902,9 +930,14 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
         for profile in ["Ninja", "Black Mage"] {
             desktop.window.set_active_tab(0);
             desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), profile.into());
-            scroll_layout(&desktop, "Quicklook content", 10000.0);
-            let editor = |label: &str| ElementHandle::find_by_accessible_label(&desktop.window, label).next()
-                .unwrap_or_else(|| panic!("{label} must remain visible for {profile} at {width}x{height}"));
+            let quick_viewport = layout_viewport(&desktop.window.root_element(), "Quicklook content");
+            scroll_layout(&desktop, &quick_viewport, 10000.0);
+            let editor = |label: &str| {
+                let editor_label = label.to_owned();
+                quick_viewport.query_descendants()
+                    .match_predicate(move |element| element.accessible_label().is_some_and(|label| label == editor_label))
+                    .find_first().unwrap_or_else(|| panic!("{label} must remain visible for {profile} at {width}x{height}"))
+            };
             let basic = editor("Master level");
             let abilities = editor("Special Toggles inputs");
             let enemy = editor("Enemy preset");
@@ -945,7 +978,6 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
             assert!(resistance.size().height >= 20.0 &&
                 resistance.absolute_position().y + resistance.size().height <= enemy_viewport.absolute_position().y + enemy_viewport.size().height,
                 "The final enemy field must remain visible without inner scrolling");
-            let quick_viewport = layout_viewport(&desktop, "Quicklook content");
             for label in ["Master level", "Main job", "Subjob", "Aftermath level", "Spell", "Weapon skill", "TP",
                 "Special Toggles inputs", "Enemy preset", "Enemy level / location", "enemy Defense", "enemy Magic Evasion",
                 "enemy Magic Defense", "enemy Magic DT%", "enemy VIT", "enemy AGI", "enemy INT", "enemy MND", "enemy CHR", "Resistance rank"] {
@@ -953,15 +985,15 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
                 fixed_horizontal(&field, &format!("Quicklook/{label}"), &quick_viewport, &mut baseline);
             }
             for label in ["Master level", "Main job", "Subjob", "Aftermath level", "Spell", "Weapon skill", "TP", "enemy Defense", "enemy VIT"] {
-                fixed_input_label(&desktop, label, &editor(label), &quick_viewport, &mut baseline);
+                fixed_input_label(label, &editor(label), &quick_viewport, &mut baseline);
             }
-            quicklook_content_height_geometry(&desktop, &mut baseline);
+            quicklook_content_height_geometry(&desktop, &quick_viewport, &mut baseline);
             // Refresh once with different real contents, not once per resize.
             if width == 760.0 && profile == "Black Mage" {
                 desktop.window.invoke_action("stats-quicklook".into());
                 finish(&desktop, 2);
             }
-            fixed_stat_geometry(&desktop, &mut baseline);
+            fixed_stat_geometry(&desktop, &mut baseline, &[]);
         }
     }
     // Stress the displayed content itself without changing calculations or
@@ -975,13 +1007,7 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
     desktop.window.set_stats_physical(slint::ModelRc::new(slint::VecModel::from(physical)));
     for (width, height) in [(760.0, 440.0), (720.0, 560.0), (1440.0, 1080.0), (720.0, 440.0)] {
         desktop.window.window().set_size(slint::LogicalSize::new(width, height));
-        fixed_stat_geometry(&desktop, &mut baseline);
-        for label in &oversized_labels {
-            let row = visible_stat_row(&desktop, label);
-            let value = row.query_descendants().match_type_name("Text").find_all().into_iter()
-                .find(|text| text.accessible_value().is_some()).unwrap();
-            assert!(value.size().height > 24.0, "Oversized displayed values must gain vertical space rather than clip or widen");
-        }
+        fixed_stat_geometry(&desktop, &mut baseline, &oversized_labels);
     }
 }
 
@@ -1006,8 +1032,8 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
             position.y + size.height <= clip.y + extent.height + 1.0
     }
     fn expose_outer(desktop: &Desktop, element: &ElementHandle) {
+        let outer = layout_viewport(&desktop.window.root_element(), "Quicklook content");
         for _ in 0..3 {
-            let outer = layout_viewport(desktop, "Quicklook content");
             if inside(element, &outer) { return; }
             let position = element.absolute_position();
             let size = element.size();
@@ -1015,10 +1041,10 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
             let extent = outer.size();
             let delta = if position.y < clip.y { clip.y - position.y }
                 else { clip.y + extent.height - position.y - size.height };
-            scroll_layout(desktop, "Quicklook content", delta);
+            scroll_layout(desktop, &outer, delta);
             realize(desktop);
         }
-        assert!(inside(element, &layout_viewport(desktop, "Quicklook content")),
+        assert!(inside(element, &outer),
             "The real outer wheel must expose the complete interaction target");
     }
     fn click(desktop: &Desktop, element: &ElementHandle) {
@@ -1050,7 +1076,7 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
     fn wheel(desktop: &Desktop, viewport: &ElementHandle, delta: f32) {
         let position = viewport.absolute_position();
         let position = slint::LogicalPosition::new(position.x + 2.0, position.y + viewport.size().height / 2.0);
-        let outer = layout_viewport(desktop, "Quicklook content");
+        let outer = layout_viewport(&desktop.window.root_element(), "Quicklook content");
         assert!(position.x >= outer.absolute_position().x && position.y >= outer.absolute_position().y &&
             position.x <= outer.absolute_position().x + outer.size().width &&
             position.y <= outer.absolute_position().y + outer.size().height,
@@ -1088,7 +1114,7 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
         .find(|control| control.accessible_role() == Some(AccessibleRole::List)).unwrap();
     let viewport = choices.query_descendants().match_inherits("Flickable").find_first().unwrap();
     expose_outer(&desktop, &viewport);
-    assert!(inside(&viewport, &layout_viewport(&desktop, "Quicklook content")),
+    assert!(inside(&viewport, &layout_viewport(&desktop.window.root_element(), "Quicklook content")),
         "The tall production window must expose the entire inner clip");
     wheel(&desktop, &viewport, 1_000_000.0);
     let first_row = radio(&choices, first.name.as_str()).unwrap();
@@ -1105,7 +1131,7 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
             expected.id, "Keyboard navigation must select the actual controller/catalog ID");
         let row = radio(&choices, expected.name.as_str()).expect("The selected radio must remain realized");
         let viewport = choices.query_descendants().match_inherits("Flickable").find_first().unwrap();
-        let outer = layout_viewport(&desktop, "Quicklook content");
+        let outer = layout_viewport(&desktop.window.root_element(), "Quicklook content");
         assert!(inside(&row, &viewport),
             "{} must fit fully after virtual realization: row={:?}/{:?}, inner={:?}/{:?}",
             expected.name, row.absolute_position(), row.size(), viewport.absolute_position(), viewport.size());

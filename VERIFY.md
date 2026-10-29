@@ -41,6 +41,31 @@ Windows execution was explicitly waived for the local cutover. Windows build,
 parity, real-backend UI and extracted-archive gates remain in CI; no local
 Windows runtime result is claimed.
 
+### UI-test geometry traversal
+
+The compact-window regression in `crates/wsdist-app/tests/ui_workflows.rs`
+reuses viewport handles within each stable layout pass and uses scoped,
+short-circuit element queries. Each Stats pass scrolls from top to bottom once,
+checking every row when fully exposed instead of resetting to the top for each
+row. Handles and geometry are refreshed across profile/model/layout changes.
+All 53 Stats rows remain checked in each of the twelve geometry passes, with
+the same four sizes, two profiles, horizontal baselines, containment,
+row/group nonoverlap, and eight oversized-value wrapping checks.
+
+Local debug-test timing, with the pinned toolchain and serial test harness:
+
+| Scenario | Before | After |
+| --- | ---: | ---: |
+| `compact_window_preserves_input_columns_and_visible_editors` | 320.37 s | 27.13 s |
+
+The optimized scenario passed under `perf stat`; the complete app suite passed
+all **68 tests** with
+`env -u SLINT_SCALE_FACTOR cargo test --locked -p wsdist-app -- --test-threads=1`.
+This is a test-harness optimization, not a production UI or test-profile change.
+Evidence: `target/ui-geometry-optimization/comparison.json`,
+`compact-profiled.log`, `compact-perf-stat.txt`, and `app-tests.log` in that directory.
+
+
 ## Frozen reference and acceptance
 
 The reviewed snapshot/capture artifacts live under `target/migration/` and are
