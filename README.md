@@ -35,8 +35,14 @@ for the exercised verification and remaining manual checks.
   the last displayed results or Player Stats.
 - **Optimize:** check candidates independently for each slot, apply the bulk
   selection filters or import a Windower inventory file, choose metrics and
-  search options, then run an optimizer. **Equip best set** is enabled only for
-  an actual returned player. Unsatisfied damage-taken constraints remain visible.
+  search options, then run **Optimize WS**, **Optimize Spell** or **Optimize TP**.
+  When a job ends, its progress window closes. Successful jobs show the final set
+  and computed values in a Quicklook-style result window. Worker failures show
+  the full error there, including insufficient candidate selection, without
+  replacing the last successful result. Cancellation opens no result window.
+  Intermediate and final output still appear in the console. **Equip best set**
+  is enabled only for an actual returned player. Unsatisfied damage-taken
+  constraints remain visible in the final report.
 - **Simulate:** maintain separate TP and WS equipment sets; run the full
   7200-second DPS simulation, a 20000-sample WS distribution, or the TP/WS stat
   comparison. Reports and charts open in independent windows.

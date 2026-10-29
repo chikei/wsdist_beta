@@ -369,6 +369,46 @@ All **66 app tests** passed with
 `cargo test --locked -p wsdist-app -- --test-threads=1`, including the extended
 compact-window alignment and content-height regression checks.
 
+The Optimize result-popup update passed all **67 app tests** with
+`cargo test --locked -p wsdist-app -- --test-threads=1` and focused native
+Winit/software probes at **100% and 150%** scale. Seed-11 one-slot searches from
+the shipped Ninja profile exercised **Optimize WS**, **Optimize Spell**, and
+**Optimize TP** with both Time to WS and DPS metrics. Each completion dismissed
+progress and opened exactly one visible final report; its native accessible
+text matched the completed result, winning equipment and computed numeric values.
+Closing a result left the main window usable for native tab navigation and the
+next optimization. Final-result screenshots were inspected. Evidence:
+`target/optimize-result-popup/final-100/report.json` and
+`target/optimize-result-popup/final-150/report.json`.
+
+Early progress dismissal used the production close callback synchronously before
+native configuration; the controller regression also exercises the accessible
+Close progress button. The disposable native probe was removed after proof.
+These focused runs did not repeat the full numerical UI workflow. The rebuilt
+local `wsdist-gui` rendered at 760×900 from `/tmp` without a data override and
+exited cleanly; its inspected capture is `target/optimize-result-popup/standalone.png`.
+
+The worker-error popup fix passed all **68 app tests** with
+`cargo test --locked -p wsdist-app -- --test-threads=1`. Focused native
+Winit/software probes passed at **100% and 150%** scale: **Optimize WS** with
+empty pools, **Optimize Spell** with one singleton head pool, and **Optimize TP**
+with every slot singleton each displayed the complete candidate-selection
+assertion in one fresh result window. The main error stayed visible, progress
+was dismissed, inputs became idle, and no successful result or best set was
+installed. Closing the error reports left inputs usable; a subsequent real
+seed-11 optimization and **Equip best set** both succeeded.
+
+The controller regression also verifies retention of an earlier successful
+optimizer result and best set, and no popup for cancellation or rejected busy
+edits/actions. Native error/recovery screenshots were inspected. Evidence:
+`target/optimizer-error-popup/native-100/report.json` and
+`target/optimizer-error-popup/native-150/report.json`. Early progress dismissal
+used the production close callback before native configuration. The disposable
+probe was removed after proof. The rebuilt local `wsdist-gui` also rendered from
+`/tmp` without a data override and exited cleanly; its inspected capture is
+`target/optimizer-error-popup/standalone.png`. These focused native runs did not
+repeat the full numerical UI workflow.
+
 ## Native packaging and extracted launch
 
 ```sh

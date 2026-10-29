@@ -10,6 +10,7 @@ use slint::{ComponentHandle, Model};
 use wsdist_app::{InputRow, InputWidgetKind};
 use wsdist_app::controller::Desktop;
 use wsdist_app::exchange::GearSource;
+use wsdist_app::jobs::WorkResult;
 use wsdist_app::resources::{Resources, AppPaths};
 use wsdist_core::model::Slot;
 use wsdist_core::rng::RandomSources;
@@ -329,6 +330,7 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
     assert_eq!(desktop.window.get_active_tab(), 0);
     assert_eq!(stats(&desktop), stale_stats, "copy preserves last displayed source until explicit Stats refresh");
     assert_eq!(desktop.window.get_damage(), stale_damage);
+    let previous_results = desktop.controller.borrow().result_windows().len();
     desktop.window.invoke_action("distribution".into());
     assert!(desktop.window.get_busy());
     assert!(desktop.window.get_basic_controls().iter().all(|row| !row.enabled));
@@ -336,9 +338,13 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
     desktop.window.invoke_action("quick-ws".into());
     assert_eq!(desktop.controller.borrow().ui.text("defaults_tp_entry"), "2300");
     assert!(!desktop.window.get_error_message().is_empty());
+    assert_eq!(desktop.controller.borrow().result_windows().len(), previous_results,
+        "Rejected input edits and busy actions must not open worker-error popups");
     desktop.window.invoke_action("cancel".into());
     finish(&desktop, 2);
     assert_eq!(desktop.controller.borrow().cancelled_jobs, 1);
+    assert_eq!(desktop.controller.borrow().result_windows().len(), previous_results,
+        "Cancelling a worker must not create an error popup");
     assert_eq!(desktop.window.get_damage(), stale_damage);
     assert_eq!(stats(&desktop), stale_stats);
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
@@ -378,6 +384,281 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
     assert_eq!(fs::read(&paths.defaults).unwrap(), b"{corrupt");
     assert_eq!(corrupt.controller.borrow().ui.controls["defaults_tp_entry"].value, json!("1777"));
     assert!(!corrupt.window.get_error_message().is_empty());
+}
+
+#[test]
+fn optimizer_buttons_replace_progress_with_real_results_and_keep_main_usable() {
+    fn displayed_number(text: &str, value: f64, digits: usize, unit: &str) {
+        assert!(value.is_finite() && value >= 0.0, "The optimizer must return a finite nonnegative {unit} value, got {value}");
+        let expected = format!("{value:.digits$}");
+        assert!(text.lines().any(|line| line.split_whitespace().last() == Some(unit) &&
+            line.split_whitespace().any(|word| word == expected)),
+            "The visible report must display the computed {expected} {unit}:\n{text}");
+    }
+
+    i_slint_backend_testing::init_no_event_loop();
+    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let profile = &fixture["input"]["profile_document"]["Ninja"];
+    let sandbox = tempfile::tempdir().unwrap();
+    let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
+        std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
+    paths.defaults = sandbox.path().join("defaults.json");
+    let defaults = serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap();
+    fs::write(&paths.defaults, &defaults).unwrap();
+    let desktop = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() },
+        RandomSources::from_seeds(11, 11)).unwrap();
+    desktop.window.show().unwrap();
+    desktop.window.window().set_size(slint::LogicalSize::new(1152.0, 900.0));
+    desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
+    for (key, value) in [
+        ("defaults_optimizer_seed_entry", "11"), ("defaults_optimizer_iterations_entry", "1"),
+        ("defaults_optimizer_restart_count_entry", "1"), ("defaults_optimizer_workers_entry", "1"),
+        ("defaults_optimizer_swap_slots_combobox", "1"), ("defaults_optimizer_dt_step_entry", "1"),
+        ("optimize_tab.pdt_requirements_entry", "0"), ("optimize_tab.mdt_requirements_entry", "0"),
+    ] {
+        desktop.window.invoke_text_edited(key.into(), value.into());
+    }
+    {
+        let mut state = desktop.controller.borrow_mut();
+        assert_eq!(state.ui.text("defaults_ws_combobox"), profile["defaults_ws_combobox"].as_str().unwrap());
+        let spell = profile["defaults_spell_combobox"].as_str().unwrap();
+        assert_eq!(state.ui.text("defaults_spell_combobox"), spell);
+        assert!(state.ui.controls["defaults_spell_combobox"].choices.iter().any(|choice| choice == spell),
+            "The selected Ninja spell must be a real available spell, not a synthetic restored value");
+        let mut candidates = std::array::from_fn(|_| Vec::new());
+        candidates[Slot::Head.index()] = ["Empty", "Malignance Chapeau", "Hattori Zukin +2", "Ryuo Somen +1 A"].iter()
+            .map(|name| state.ui.engine.catalog.by_name2(name).unwrap()).collect();
+        state.ui.gear.replace_candidates(&candidates);
+    }
+
+    let mut previous_text = None;
+    for (index, (label, metric_key, metric, close_progress)) in [
+        ("Optimize WS", "optimize_tab.ws_metric_combobox", "Damage dealt", false),
+        ("Optimize Spell", "optimize_tab.spell_metric_combobox", "Damage dealt", true),
+        ("Optimize TP", "optimize_tab.tp_metric_combobox", "Time to WS", false),
+        ("Optimize TP", "optimize_tab.tp_metric_combobox", "DPS", false),
+    ].into_iter().enumerate() {
+        desktop.window.set_active_tab(1);
+        desktop.window.invoke_text_edited(metric_key.into(), metric.into());
+        let _ = desktop.window.root_element().visit_descendants(|_| std::ops::ControlFlow::<()>::Continue(()));
+        let previous_windows = desktop.controller.borrow().result_windows().len();
+        let button = ElementHandle::find_by_accessible_label(&desktop.window, label)
+            .find(|element| element.accessible_role() == Some(AccessibleRole::Button)).unwrap();
+        assert_ne!(button.accessible_enabled(), Some(false), "{label} must be usable before starting");
+        button.invoke_accessible_default_action();
+        let progress = {
+            let state = desktop.controller.borrow();
+            assert!(state.is_busy(), "{label} must start a real controller worker");
+            assert!(desktop.window.get_busy());
+            assert_eq!(state.completed_jobs, index);
+            assert_eq!(state.result_windows().len(), previous_windows, "No final result may appear before completion");
+            state.progress_window().expect("Every optimizer action must open progress while working").clone_strong()
+        };
+        assert!(progress.window().is_visible());
+        if close_progress {
+            // Close the production progress window before the controller drains
+            // completion; this must not cancel or suppress the final report.
+            ElementHandle::find_by_accessible_label(&progress, "Close progress")
+                .find(|element| element.accessible_role() == Some(AccessibleRole::Button)).unwrap()
+                .invoke_accessible_default_action();
+            assert!(!progress.window().is_visible());
+            assert!(desktop.controller.borrow().is_busy());
+        }
+        finish(&desktop, index + 1);
+        assert!(!progress.window().is_visible(), "{label} must dismiss progress so it cannot obscure the result");
+
+        let text = {
+            let state = desktop.controller.borrow();
+            assert!(state.last_error.is_none(), "{label}: {:?}", state.last_error);
+            assert!(!desktop.window.get_busy());
+            assert!(state.progress_window().is_none_or(|window| !window.window().is_visible()));
+            assert_eq!(state.result_windows().len(), previous_windows + 1, "Each successful action must show exactly one final report");
+            let window = state.result_windows().last().unwrap();
+            assert!(window.window().is_visible(), "{label} must show its final ResultWindow");
+            let Some(WorkResult::Optimize { result, report }) = state.last_result.as_ref() else {
+                panic!("{label} must return an actual optimizer result");
+            };
+            let player = result.player.as_ref().expect("The small real candidate pool must produce a winning player");
+            assert!(result.feasible && result.scored > 0);
+            assert!(result.metric.is_finite() && result.metric > 0.0);
+            assert_eq!(player.gearset, result.gearset);
+            assert_eq!(state.best_set(), Some(result.gearset));
+            assert_eq!(window.get_report_title().as_str(), report.title);
+            let text = ElementHandle::find_by_accessible_label(window, "Computation result")
+                .find_map(|element| element.accessible_value()).expect("The final report must be exposed by the real text editor").to_string();
+            assert_eq!(text, report.text, "The visible editor must contain this completion's computed report");
+            assert!(text.contains(metric), "{label} must report the explicitly selected metric");
+            if label != "Optimize TP" {
+                let key = if label == "Optimize WS" { "defaults_ws_combobox" } else { "defaults_spell_combobox" };
+                assert!(text.contains(profile[key].as_str().unwrap()), "The final report must identify the selected WS or spell");
+            }
+            for &slot in Slot::ALL {
+                let piece = state.ui.engine.catalog.piece(result.gearset[slot.index()]);
+                if slot == Slot::Head {
+                    assert!(["Empty", "Malignance Chapeau", "Hattori Zukin +2", "Ryuo Somen +1 A"].contains(&piece.name2.as_ref()));
+                } else {
+                    assert_eq!(piece.name2.as_ref(), profile[format!("quicklook_{}_item", slot.name())].as_str().unwrap(),
+                        "The one-slot search must retain the fixture's other equipment");
+                }
+                assert!(text.lines().any(|line| line.trim().strip_prefix(slot.name())
+                    .is_some_and(|name| name.trim() == piece.name2.as_ref())),
+                    "{label} must display the computed winning {}: {}", slot.name(), piece.name2);
+            }
+            if metric == "Time to WS" {
+                displayed_number(&text, result.metric.powi(i32::from(result.invert)), 3, "s");
+            } else {
+                assert!(result.legacy_output[0] > 0.0, "The winning WS, spell or TP round must deal real damage");
+                displayed_number(&text, result.legacy_output[0], if label == "Optimize TP" { 3 } else { 1 }, "damage");
+                if label == "Optimize TP" {
+                    // DPS is a TP metric: its real report displays the winning
+                    // round's damage and duration, not a separate DPS action.
+                    displayed_number(&text, result.legacy_output[2], 1, "s");
+                }
+            }
+            displayed_number(&text, result.legacy_output[1], 1, "TP");
+            text
+        };
+        if let Some(previous) = previous_text {
+            assert_ne!(text, previous, "The newest report must not retain the previous action or TP metric");
+        }
+        previous_text = Some(text);
+    }
+
+    let results: Vec<_> = desktop.controller.borrow().result_windows().iter().map(|window| window.clone_strong()).collect();
+    for window in results {
+        ElementHandle::find_by_accessible_label(&window, "Close result")
+            .find(|element| element.accessible_role() == Some(AccessibleRole::Button)).unwrap()
+            .invoke_accessible_default_action();
+        assert!(!window.window().is_visible());
+        assert!(desktop.window.window().is_visible(), "Closing a final report must not close the main window");
+    }
+    desktop.controller.borrow_mut().drain();
+    assert!(desktop.controller.borrow().result_windows().is_empty());
+    desktop.window.invoke_text_edited("defaults_tp_entry".into(), "1777".into());
+    assert_eq!(desktop.controller.borrow().ui.text("defaults_tp_entry"), "1777");
+    let best = desktop.controller.borrow().best_set().unwrap();
+    ElementHandle::find_by_accessible_label(&desktop.window, "Equip best set")
+        .find(|element| element.accessible_role() == Some(AccessibleRole::Button)).unwrap()
+        .invoke_accessible_default_action();
+    assert_eq!(desktop.controller.borrow().ui.gear.equipped[GearSource::Quicklook.index()], best,
+        "The main window must still accept meaningful actions after final reports close");
+    assert_eq!(desktop.window.get_active_tab(), 0);
+    assert!(desktop.window.window().is_visible());
+    assert_eq!(fs::read(&paths.defaults).unwrap(), defaults, "The workflow must leave its temporary defaults unchanged");
+}
+
+#[test]
+fn optimizer_candidate_failures_show_exact_error_and_preserve_successful_state() {
+    const ERROR: &str = "Optimize: candidate selection: AssertionError: At least two items must be selected in at least one slot to find the best set.";
+
+    i_slint_backend_testing::init_no_event_loop();
+    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let sandbox = tempfile::tempdir().unwrap();
+    let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
+        std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
+    paths.defaults = sandbox.path().join("defaults.json");
+    let defaults = serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap();
+    fs::write(&paths.defaults, &defaults).unwrap();
+    let desktop = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() },
+        RandomSources::from_seeds(11, 11)).unwrap();
+    desktop.window.show().unwrap();
+    desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
+    for (key, value) in [
+        ("defaults_optimizer_seed_entry", "11"), ("defaults_optimizer_iterations_entry", "1"),
+        ("defaults_optimizer_restart_count_entry", "1"), ("defaults_optimizer_workers_entry", "1"),
+        ("defaults_optimizer_swap_slots_combobox", "1"), ("defaults_optimizer_dt_step_entry", "1"),
+        ("optimize_tab.pdt_requirements_entry", "0"), ("optimize_tab.mdt_requirements_entry", "0"),
+    ] {
+        desktop.window.invoke_text_edited(key.into(), value.into());
+    }
+    let valid_candidates = {
+        let state = desktop.controller.borrow();
+        let mut candidates = std::array::from_fn(|_| Vec::new());
+        candidates[Slot::Head.index()] = ["Malignance Chapeau", "Hattori Zukin +2"].iter()
+            .map(|name| state.ui.engine.catalog.by_name2(name).unwrap()).collect();
+        candidates
+    };
+    let visible_text = |window: &wsdist_app::ResultWindow| {
+        ElementHandle::find_by_accessible_label(window, "Computation result")
+            .find(|element| element.accessible_role() == Some(AccessibleRole::TextInput)).unwrap()
+            .accessible_value().expect("The visible result editor must expose its entire contents").to_string()
+    };
+    let snapshot = || {
+        let state = desktop.controller.borrow();
+        let result = state.last_result.as_ref().map(|value| {
+            let WorkResult::Optimize { result, report } = value else { panic!("Expected a real optimizer result"); };
+            (format!("{result:?}"), report.title.clone(), report.text.clone())
+        });
+        (result, state.best_set(), state.ui.gear.equipped, stats(&desktop),
+            desktop.window.get_damage(), desktop.window.get_tp_return(), desktop.window.get_time_to_ws())
+    };
+    let successful_run = |successes| {
+        desktop.controller.borrow_mut().ui.gear.replace_candidates(&valid_candidates);
+        let previous_windows = desktop.controller.borrow().result_windows().len();
+        desktop.window.invoke_action("optimize-ws".into());
+        finish(&desktop, successes);
+        let state = desktop.controller.borrow();
+        assert!(state.last_error.is_none(), "{:?}", state.last_error);
+        assert!(!desktop.window.get_busy());
+        assert!(state.progress_window().is_none());
+        assert_eq!(state.result_windows().len(), previous_windows + 1);
+        let WorkResult::Optimize { result, report } = state.last_result.as_ref().unwrap() else {
+            panic!("Recovery must install an actual successful optimizer result");
+        };
+        assert!(result.feasible && result.player.is_some());
+        assert_eq!(state.best_set(), Some(result.gearset));
+        let window = state.result_windows().last().unwrap();
+        assert!(window.window().is_visible());
+        assert_eq!(visible_text(window), report.text);
+    };
+
+    assert!(desktop.controller.borrow().last_result.is_none());
+    assert!(desktop.controller.borrow().best_set().is_none());
+    for singleton in [false, true] {
+        if singleton { successful_run(1); }
+        {
+            let mut state = desktop.controller.borrow_mut();
+            let quicklook = state.ui.gear.equipped[GearSource::Quicklook.index()];
+            let candidates = std::array::from_fn(|slot| if singleton { vec![quicklook[slot]] } else { Vec::new() });
+            state.ui.gear.replace_candidates(&candidates);
+        }
+        let expected_state = snapshot();
+        for action in ["optimize-ws", "optimize-spell", "optimize-round"] {
+            let previous_windows = desktop.controller.borrow().result_windows().len();
+            desktop.window.invoke_action(action.into());
+            let progress = {
+                let state = desktop.controller.borrow();
+                assert!(state.is_busy(), "{action} must start a real worker");
+                assert!(desktop.window.get_busy());
+                assert_eq!(state.result_windows().len(), previous_windows);
+                state.progress_window().expect("Optimizer work must open progress").clone_strong()
+            };
+            assert!(progress.window().is_visible());
+            finish(&desktop, usize::from(singleton));
+            {
+                let state = desktop.controller.borrow();
+                assert!(!state.is_busy());
+                assert!(!desktop.window.get_busy());
+                assert!(state.progress_window().is_none());
+                assert!(!progress.window().is_visible(), "{action} failure must dismiss progress");
+                assert_eq!(state.cancelled_jobs, 0);
+                assert_eq!(state.last_error.as_deref(), Some(ERROR));
+                assert_eq!(desktop.window.get_error_message().as_str(), ERROR);
+                assert_eq!(state.result_windows().len(), previous_windows + 1,
+                    "Each failed worker must show exactly one final popup");
+                let window = state.result_windows().last().unwrap();
+                assert!(window.window().is_visible());
+                assert_eq!(window.get_report_text().as_str(), ERROR);
+                assert_eq!(visible_text(window), ERROR,
+                    "The real accessible result editor must preserve the original candidate-selection assertion");
+            }
+            assert_eq!(snapshot(), expected_state, "{action} failure must retain the entire last successful result, best set and displayed gear");
+            desktop.controller.borrow_mut().drain();
+            assert_eq!(desktop.controller.borrow().result_windows().len(), previous_windows + 1);
+        }
+    }
+    successful_run(2);
+    assert_eq!(fs::read(&paths.defaults).unwrap(), defaults, "Failed and recovered runs must not alter saved defaults");
 }
 
 fn layout_viewport(desktop: &Desktop, label: &str) -> ElementHandle {

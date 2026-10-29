@@ -18,7 +18,7 @@ use crate::exchange::{BulkAction, BulkFilters, ClipboardOwner, GearSource, IconP
 use crate::jobs::{AnalyticalKind, GuiAction, JobCompletion, WorkRequest, WorkResult, WorkerCoordinator, WorkerEvent};
 use crate::profile_registry::InputKind;
 use crate::profiles::{ProfileError, ProfileStore};
-use crate::reports::{StatGroups, TextReport, optimizer_progress, player_stats};
+use crate::reports::{StatGroups, optimizer_progress, player_stats};
 use crate::resources::{AppPaths, Resources};
 use crate::state::UiState;
 use crate::{AboutWindow, ChartWindow, MainWindow, ProgressWindow, ResultWindow, StatDisplayRow};
@@ -249,7 +249,7 @@ impl DesktopController {
                 return Ok(());
             }
             "show-error" => {
-                if let Some(text) = &self.last_error { self.show_report(&TextReport { title: "Application error".into(), text: text.clone() })?; }
+                if let Some(text) = &self.last_error { self.show_report("Application error", text.as_str().into())?; }
                 return Ok(());
             }
             "about-slint" => return self.show_about(),
@@ -284,7 +284,7 @@ impl DesktopController {
                 spare.catalog = Arc::clone(&self.ui.engine.catalog);
                 spare.state.reset(spare.catalog.pieces().len());
                 self.status = report.to_string();
-                self.show_report(&TextReport { title: "Reload Data".into(), text: self.status.clone() })?;
+                self.show_report("Reload Data", self.status.as_str().into())?;
                 self.sync(true);
             }
             "bulk-all" | "bulk-slot" | "bulk-unselect" => {
@@ -449,6 +449,9 @@ impl DesktopController {
 
     fn complete(&mut self, completion: JobCompletion) {
         self.spare_context = Some(std::mem::replace(&mut self.ui.engine, completion.context));
+        if let Some(progress) = self.progress_window.take() {
+            if let Err(error) = progress.hide() { self.record_error(error); }
+        }
         match completion.outcome {
             Ok(result) => {
                 self.completed_jobs += 1;
@@ -468,7 +471,7 @@ impl DesktopController {
                 };
                 self.status = format!("Finished {}.", report.title);
                 if let Err(error) = report.mirror_stdout() { self.record_error(error); }
-                if let Err(error) = self.show_report(report) { self.record_error(error); }
+                if let Err(error) = self.show_report(&report.title, report.text.as_str().into()) { self.record_error(error); }
                 if let Err(error) = self.show_result_chart(&result) { self.record_error(error); }
                 self.last_result = Some(result);
             }
@@ -476,7 +479,11 @@ impl DesktopController {
                 self.cancelled_jobs += 1;
                 self.status = "Computation cancelled and worker joined; no partial result was installed.".into();
             }
-            Err(error) => self.record_error(error),
+            Err(error) => {
+                self.record_error(error);
+                let text = self.last_error.as_deref().expect("worker error was recorded").into();
+                if let Err(error) = self.show_report("Computation failed", text) { self.record_error(error); }
+            }
         }
         self.sync(true);
     }
@@ -512,10 +519,10 @@ impl DesktopController {
         window.set_stats_haste(rows(&groups.haste)); window.set_stats_defensive(rows(&groups.defensive)); window.set_stats_other(rows(&groups.other));
     }
 
-    fn show_report(&mut self, report: &TextReport) -> AppResult<()> {
+    fn show_report(&mut self, title: &str, text: SharedString) -> AppResult<()> {
         let window = ResultWindow::new()?;
-        window.set_report_title(report.title.as_str().into());
-        window.set_report_text(report.text.as_str().into());
+        window.set_report_title(title.into());
+        window.set_report_text(text);
         hide_on_close(&window);
         window.show()?;
         self.results.push(window);
