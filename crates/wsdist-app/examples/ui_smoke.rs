@@ -1615,7 +1615,7 @@ async fn generated_variants(desktop: &Desktop, output: &Path, screenshots: &mut 
         }
         let choice = choice?;
         let tooltip = choice.accessible_description().ok_or("Generated variant has no tooltip")?;
-        if !tooltip.contains(str_text) || !tooltip.starts_with(name) { return Err(format!("{name}: tooltip lost variant/stat identity").into()); }
+        if !tooltip.contains(str_text) { return Err(format!("{name}: tooltip lost variant stat {str_text}").into()); }
         choice.invoke_accessible_default_action();
         pause(40).await;
         let state = desktop.controller.borrow();

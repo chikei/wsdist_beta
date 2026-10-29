@@ -22,7 +22,7 @@ also needs Xvfb/xauth; archive automation needs Xlib/libpng development headers,
 Desktop Portal backend such as GTK, GNOME or KDE. Windows requires the native
 x64 MSVC Rust build environment and an interactive desktop session.
 
-Current integrated Linux results: **109 core tests** and **61 app tests** passed.
+Original cutover Linux results: **109 core tests** and **61 app tests** passed.
 The release verifier passed **30,192 exercised cases**, one explicitly inert
 provenance case, and zero failed cases. Completed work includes 20 full DPS
 trajectories, 12 full distributions / 240,000 samples, 30 complete optimizer
@@ -77,6 +77,96 @@ inventories, process maps and screenshots remain local evidence.
 Do not widen tolerances, regenerate fixtures to pass a mismatch, or correct a
 known legacy numerical discrepancy. Compatibility and independent internal
 checks do not establish accuracy against live-game observations.
+
+### Multipart fixture storage
+
+Every stored fixture file must be smaller than **50,000,000 bytes**. Three
+captures use `byte-parts-v1` storage instead of a single oversized JSON file.
+Paths below are relative to each crate's `tests/fixtures/legacy/` directory.
+
+| Crate / fixture | Original JSON bytes | Parts |
+| --- | ---: | ---: |
+| core / `search_simulation/000424.json` | 59,282,632 | 4 |
+| core / `search_simulation/000425.json` | 59,312,719 | 4 |
+| app / `ui/000024.json` | 124,796,776 | 8 |
+
+Each original `.json` path now contains a small descriptor whose first top-level
+literal key **must** be `"fixture_format"`, with value `"byte-parts-v1"`.
+Its `sha256` and `byte_length` describe the complete original JSON byte stream.
+The ordered `parts` list supplies descriptor-relative `path` and exact
+`byte_length` for each raw fragment under the adjacent `.parts/` directory.
+Fragments are at most **16 MiB** each and are not standalone JSON documents.
+Keep the descriptor and all its fragments together, including isolated fixture
+mounts used by native/archive proof drivers.
+
+`crates/wsdist-core/tests/support/fixture_json.rs` is shared build-only support
+for core/app tests, numerical verification and native UI smoke. It reconstructs
+the original bytes, checks all lengths and the original SHA-256, and retains
+independent index-hash checks. Ordinary JSON still deserializes directly.
+The case indexes, capture manifests, numerical values and original hashes are
+unchanged; this is storage splitting, not oracle regeneration. `.gitattributes`
+marks `*.part -text` so Git does not convert fragment line endings.
+
+`cargo test --locked -p wsdist-core --test fixture_storage` checks reconstruction
+across token/UTF-8 boundaries, value/order preservation, corruption and length
+failures, independent index hashes and the repository fixture-size ceiling.
+Conversion also reassembled all 16 on-disk fragments and matched the three
+original byte-stream hashes before replacing the original files.
+
+The final `cargo test --locked --workspace --all-targets -- --test-threads=1`
+passed **192 tests**, including the storage regression suite.
+Evidence: `target/fixture-splitting/workspace-tests.log`.
+A size scan covered **30,218 fixture files**; the largest was **48,566,551 bytes**,
+with zero oversized files. Evidence: `target/fixture-splitting/size-report.json`.
+
+The release verifier passed **30,192 exercised cases** with zero failures after
+splitting, including both 20,000-sample multipart distributions and the
+availability case. Evidence: `target/fixture-splitting/numerical-report.json`
+and `target/fixture-splitting/reconstruction-report.json`.
+A focused native Winit/software probe at 100% scale loaded the multipart
+availability case and matched all three Stats sources plus TP/WS/spell displays
+against the frozen Ninja reference. Its rendered screenshots were inspected.
+Evidence: `target/fixture-splitting/native-ui-100/report.json`.
+The disposable probe source was removed after proof.
+This is not a passing rerun of the complete native driver: the earlier full
+`ui_smoke` run stopped at `Visible accessible Combobox "Master level" not found`
+during profile geometry traversal, before this storage change.
+
+#### Unpublished history rewrite
+
+The native migration history was rewritten to store the three large captures
+as multipart fixtures from their introduction. Historical reader versions were
+updated to use the shared loader, rather than deleting evidence or leaving
+intermediate commits unable to read it.
+
+| Reference at rewrite | Original commit | Rewritten commit |
+| --- | --- | --- |
+| Fixture capture | `3094c376` | `8633df12` |
+| Local `rust` tip | `7480fc3e` | `3da4be91` |
+| Local `ui` tip | `ed4fc9fb` | `24101290` |
+
+All 14 rewritten commits, including the reflog-only LFS experiment, retained
+their author/committer records, dates, messages, ordering and parent topology.
+Complete-tree comparisons verified that unrelated paths and file modes stayed
+unchanged. The current working tree was archive-identical after promotion;
+remaining uncommitted documentation and storage tests were preserved.
+
+The three original fixture blobs are no longer reachable from refs, reflogs,
+`ORIG_HEAD` or the index. No blob newly introduced relative to `origin` reaches
+50,000,000 bytes. Published `main`/remote refs, all three stashes and repository
+configuration stayed unchanged; no remote push was performed. Older Windows
+executables already present in published history were deliberately not rewritten.
+Old unreachable local objects were not garbage-collected.
+
+The earliest rewritten Rust snapshot passed 10 original buff/player tests.
+After live promotion, `git fsck --full --no-dangling` passed and the release
+numerical verifier again passed 30,192 exercised cases with zero failures.
+Evidence: `target/history-rewrite/history-report.json` and
+`target/history-rewrite/numerical-report.json`.
+The history report identifies the external recovery directory containing the
+complete original Git archive, tracked/untracked working-tree archive and
+original-to-rewritten commit map. Both archives were compared against their
+original contents before promotion.
 
 ## Coverage
 
@@ -368,6 +458,20 @@ rerun; its previously recorded unrelated popup failure remains outside this chan
 All **66 app tests** passed with
 `cargo test --locked -p wsdist-app -- --test-threads=1`, including the extended
 compact-window alignment and content-height regression checks.
+
+The item-selection details update passed all **66 app tests** with
+`cargo test --locked -p wsdist-app -- --test-threads=1` and focused native
+Winit/software probes at **100% and 150%** scale. Quicklook, Optimize, TP and WS
+were exercised at 760×900, 760×440, 720×440 and 1440×1080. At 760×900, each
+candidate viewport is exactly **40 logical pixels (two 20px rows) shorter** than
+the captured baseline; the details viewport grows from 50px to 96px after the
+grouping caption is removed. Native hover, click, End/Home/Down navigation and
+details-wheel scrolling retained the corresponding item-name heading and exact
+stats-only body, with no repeated name or grouping caption. Compact and high-DPI
+screenshots were inspected. Evidence: `target/item-selection/baseline/report.json`,
+`target/item-selection/final-100/report.json` and
+`target/item-selection/final-150/report.json`. The disposable probe was removed
+after proof. This focused run did not repeat the full numerical UI workflow.
 
 The Optimize result-popup update passed all **67 app tests** with
 `cargo test --locked -p wsdist-app -- --test-threads=1` and focused native

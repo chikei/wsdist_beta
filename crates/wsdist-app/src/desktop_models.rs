@@ -218,8 +218,7 @@ pub fn gear_tooltip(piece: &GearPiece) -> String {
     const BASE: &[&str] = &["STR", "DEX", "VIT", "AGI", "INT", "MND", "CHR"];
     const MAIN: &[&str] = &["Accuracy", "Attack", "Ranged Accuracy", "Ranged Attack", "Magic Accuracy", "Magic Damage", "Magic Attack"];
     const DEF: &[&str] = &["Evasion", "Magic Evasion", "Magic Defense", "DT", "MDT", "PDT", "MDT2", "PDT2", "Subtle Blow", "Subtle Blow II"];
-    let mut tooltip = String::from(piece.name2.as_ref());
-    tooltip.push('\n');
+    let mut tooltip = String::new();
     let mut newline = false;
     for (key, value) in [("DMG", piece.dmg), ("Delay", piece.delay)] {
         if value != 0.0 { write!(tooltip, "{key}:{value},").expect("String formatting"); newline = true; }

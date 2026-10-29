@@ -400,13 +400,12 @@ export component GearPanel inherits Rectangle {
                         }
                 }
                 GroupBox {
-                    title: "Item details — hover or focus";
                     content-padding: 0px;
                     min-width: 680px - root.equipped-width - 4px;
                     max-width: self.min-width;
                     horizontal-stretch: 0;
-                    min-height: 60px;
-                    preferred-height: 80px;
+                    min-height: 60px + 2 * root.choice-height;
+                    preferred-height: 80px + 2 * root.choice-height;
                     vertical-stretch: 0;
                     details-scroll := ScrollView {
                         viewport-width: self.visible-width;

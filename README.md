@@ -80,6 +80,9 @@ Drag the thumb, click the track to page, or use the mouse wheel; report text ret
 native selection and copying.
 The preferred window size is 760×900; the minimum remains 720×440.
 
+Candidate lists use 20px rows and reserve an extra two-row (40px) height budget
+for item details. Details show the item name once above stats-only text, without
+a separate grouping caption.
 The three equipment sets have independent slot grids, variant lists, icons and
 item details. Copy actions support Quicklook ↔ TP and Quicklook ↔ WS;
 clipboard exports use the actual selected source. Closing a result/chart window
@@ -141,9 +144,13 @@ archive checksums; it does not ship reference fixtures, capture tools or caches.
 
 [VERIFY.md](VERIFY.md) documents the complete test commands, executable numerical
 verifier, real-backend screenshot smoke and extracted-archive proof. Frozen JSON
-fixtures record the reviewed original implementation. Legacy numerical results
-are preserved, including known analytical/sampled discrepancies; parity and
-independent internal checks do **not** establish accuracy against live-game data.
+fixtures record the reviewed original implementation. Oversized captures use
+byte-exact multipart storage; tests and verification reassemble the original
+JSON and retain its original hashes. See the
+[multipart storage layout](VERIFY.md#multipart-fixture-storage).
+Legacy numerical results are preserved, including known analytical/sampled
+discrepancies; parity and independent internal checks do **not** establish
+accuracy against live-game data.
 
 ## Provenance
 
