@@ -166,8 +166,10 @@ fixtures record the reviewed original implementation. Oversized captures use
 byte-exact multipart storage; tests and verification reassemble the original
 JSON. Runtime content checks use XXH3-128; original SHA-256 provenance and exact
 capture indexes remain preserved. Shared build-only decoding is optimized
-without optimizing application or parity-test logic. See the
-[fixture integrity and storage contract](VERIFY.md#fixture-ingestion-and-content-equality).
+without optimizing application or parity-test logic. The test profile also
+optimizes only the native `rand_chacha` dependency among RNG packages. See the
+[fixture integrity and storage contract](VERIFY.md#fixture-ingestion-and-content-equality)
+and [native RNG test profile](VERIFY.md#native-rng-test-profile-optimization).
 Legacy formulas and recorded-draw numerical results are preserved, including
 known analytical/sampled discrepancies. Generator-dependent searches and
 simulations use separately hash-checked native fixed-seed goldens. Parity and

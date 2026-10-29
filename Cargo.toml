@@ -42,3 +42,7 @@ opt-level = 3
 
 [profile.test.package.serde_json]
 opt-level = 3
+
+# Optimize native sampling without optimizing core calculation or parity code.
+[profile.test.package.rand_chacha]
+opt-level = 3

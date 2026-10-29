@@ -138,6 +138,45 @@ Do not widen tolerances, regenerate fixtures to pass a mismatch, or correct a
 known legacy numerical discrepancy. Compatibility and independent internal
 checks do not establish accuracy against live-game observations.
 
+### Native RNG test-profile optimization
+
+`Cargo.toml` sets `opt-level = 3` only for `rand_chacha` among RNG packages in
+the test profile. `ppv-lite86`, `rand_core`, core/app calculation code and
+parity/test targets remain at optimization level zero. The generator, stream
+IDs, seed layout, draw order, sample counts and assertions are unchanged.
+The override does not change ordinary development or release profiles.
+
+Three interleaved trials per variant exercised the same 18-million-sample gate
+with matching workspace features; these intrinsic test timers exclude builds:
+
+| Test-profile RNG override | Median gate time |
+| --- | ---: |
+| None | 66.79 s |
+| `rand_chacha` opt-level 3 | 21.38 s |
+| `ppv-lite86` opt-level 3 | 64.00 s |
+| Both opt-level 3 | 21.20 s |
+
+Keep only the `rand_chacha` override: its 3.12x speedup captures the measured
+benefit; the additional 0.17 s median improvement from `ppv-lite86` is within
+the observed trial variation. Workspace features matter: app dependencies
+enable `rand_chacha/std` and `ppv-lite86/std`; a core-only build is not the same
+SIMD-dispatch control.
+
+The candidate passed all **206 workspace tests**, including 12 RNG protocol
+tests and formula/native-golden checks. Complete baseline/candidate numerical
+reports matched exactly after excluding only `started_unix_seconds`,
+`elapsed_seconds` and `canonical_parity.cases[*].elapsed_ms`. This preserves
+all 18 scenarios, 720 batch records, category counts, seeds, means, variances
+and tolerances, plus all 30,184 exercised corpus cases and comparison/work counts.
+Summed test execution fell from 203.87 s to 154.50 s in that experiment.
+
+The persisted profile then passed all **206 tests** without `--config`:
+159.49 s warm wall time, 0.33 s compilation and 156.40 s summed test execution;
+the statistical gate took 21.58 s. Compiler-artifact output confirms the scoped
+optimization levels and matching workspace features.
+Evidence: `target/rng-dependency-experiment-20261029/{findings,matrix,numerical-invariance}.json`
+and `target/rng-profile-adoption-20261030/verification.json`.
+
 ### Fixture ingestion and content equality
 
 Active legacy, formula-boundary and native case indexes use schema version **2**
@@ -159,16 +198,18 @@ archives are not runtime fallback indexes.
 `wsdist-fixtures` is a shared dev-dependency, not shipped application code.
 Its non-generic `read_value` keeps concrete JSON decoding inside the optimized
 helper crate rather than monomorphizing it in every unoptimized test target.
-Only the helper/hash packages and test-profile `serde_json` are optimized;
-compiler-artifact output confirms core/app and parity/test targets remain at
-optimization level zero. Genuine typed reads remain available. Previously
+The fixture helper/hash packages and test-profile `serde_json` are optimized,
+alongside the test-only `rand_chacha` override described above. Compiler artifacts
+confirm core/app and parity/test targets remain at optimization level zero.
+Genuine typed reads remain available. Previously
 full-document index readers still validate a complete `Value` before typed
 conversion, including invalid Unicode, UTF-8, overflowing numbers and excessive
 nesting in discarded fields. UI workflows select the Ninja index entry before
 loading its fixture rather than decoding all 23 profiles.
 
-Pinned serial debug-workspace execution passed **206 tests**, including all
-18 storage regressions. Compilation is excluded from these intrinsic test timers:
+The fixture-ingestion change passed **206 tests**, including all 18 storage
+regressions, in the pinned serial debug workspace. These historical timers
+exclude compilation and precede the RNG dependency optimization above:
 
 | Workload | Before | After |
 | --- | ---: | ---: |
