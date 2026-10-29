@@ -10,6 +10,26 @@ use wsdist_core::weaponskills::{CritScaling, DStatFormula, TpScaling, WS_TABLE, 
 
 use ws_support::{NoSetupDraws, assert_number, boundary_enemy, boundary_player, document, evaluate_case, fixture_root, helper_event, index, number, resource_root, verify_case};
 
+#[test]
+fn index_rejects_invalid_json_in_unused_fields() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("combat.json");
+    let discarded_fields = [
+        ("invalid Unicode", br#""\uDC00""#.to_vec()),
+        ("invalid UTF-8", vec![b'"', 0xff, b'"']),
+        ("overflowing number", b"1e100000".to_vec()),
+        ("excessive nesting", format!("{}0{}", "[".repeat(129), "]".repeat(129)).into_bytes()),
+    ];
+    for (label, discarded) in discarded_fields {
+        let mut source = br#"{"cases":[],"unused":"#.to_vec();
+        source.extend_from_slice(&discarded);
+        source.push(b'}');
+        std::fs::write(&path, source).unwrap();
+        assert!(std::panic::catch_unwind(|| index(directory.path())).is_err(),
+            "{label}: invalid discarded JSON must reject the entire index");
+    }
+}
+
 fn exact_number(label: &str, actual: f64, expected: &Value) {
     assert_eq!(actual.to_bits(), number(expected).to_bits(), "{label}: immutable static value");
 }

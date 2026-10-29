@@ -1,6 +1,6 @@
 {
-  "fixture_format": "byte-parts-v1",
-  "sha256": "650b27a04a5b9b688c3c2f6a7237e207f8d50a22b0d8344e633fb4351458aafe",
+  "fixture_format": "byte-parts-v2",
+  "content_xxh3_128": "d9a4c1da1d54b5ba27680f940aae28e7",
   "byte_length": 59312719,
   "parts": [
     {

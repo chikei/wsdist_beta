@@ -9,9 +9,6 @@ use wsdist_core::model::{
 };
 use wsdist_core::{Catalog, Stat, Stats};
 
-#[path = "../support/fixture_json.rs"]
-mod fixture_json;
-
 #[path = "../support/observation.rs"]
 pub mod observation;
 
@@ -45,12 +42,12 @@ pub fn app_fixtures() -> PathBuf {
 }
 
 pub fn document(path: &Path) -> Value {
-    fixture_json::read::<Value>(path, None).unwrap_or_else(|error| panic!("{error}"))
+    wsdist_fixtures::read_value(path, None).unwrap_or_else(|error| panic!("{error}"))
 }
 
 pub fn fixture(root: &Path, entry: &Value) -> Value {
     let path = root.join(entry["path"].as_str().unwrap());
-    fixture_json::read::<Value>(&path, Some(entry["sha256"].as_str().unwrap()))
+    wsdist_fixtures::read_value(&path, Some(entry["content_xxh3_128"].as_str().unwrap()))
         .unwrap_or_else(|error| panic!("{error}"))
 }
 

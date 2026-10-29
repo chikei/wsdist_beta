@@ -138,10 +138,99 @@ Do not widen tolerances, regenerate fixtures to pass a mismatch, or correct a
 known legacy numerical discrepancy. Compatibility and independent internal
 checks do not establish accuracy against live-game observations.
 
+### Fixture ingestion and content equality
+
+Active legacy, formula-boundary and native case indexes use schema version **2**
+and `content_xxh3_128`: XXH3-128 over the exact logical JSON bytes, including
+whitespace and the final newline. Digests are the numeric `u128` rendered as
+exactly 32 lowercase hexadecimal digits, independent of host endianness.
+This detects accidental content changes; it is not cryptographic authenticity.
+Legacy entries retain their original SHA-256 as `source_sha256` for provenance
+and native-source joins. Source/runtime/catalog, RNG-word, observation-projection
+and delivery SHA-256 contracts are unchanged.
+
+Before conversion, all **30,585** indexed legacy, boundary and native documents
+were checked against their original SHA-256. No logical case JSON or raw fragment
+bytes changed. The seven original indexes are preserved across the core/app
+`tests/fixtures/original-indexes.zip` archives, with member paths relative to that fixtures
+directory. Frozen capture manifests still describe that original evidence;
+archives are not runtime fallback indexes.
+
+`wsdist-fixtures` is a shared dev-dependency, not shipped application code.
+Its non-generic `read_value` keeps concrete JSON decoding inside the optimized
+helper crate rather than monomorphizing it in every unoptimized test target.
+Only the helper/hash packages and test-profile `serde_json` are optimized;
+compiler-artifact output confirms core/app and parity/test targets remain at
+optimization level zero. Genuine typed reads remain available. Previously
+full-document index readers still validate a complete `Value` before typed
+conversion, including invalid Unicode, UTF-8, overflowing numbers and excessive
+nesting in discarded fields. UI workflows select the Ninja index entry before
+loading its fixture rather than decoding all 23 profiles.
+
+Pinned serial debug-workspace execution passed **206 tests**, including all
+18 storage regressions. Compilation is excluded from these intrinsic test timers:
+
+| Workload | Before | After |
+| --- | ---: | ---: |
+| All test execution | 625.35 s | 201.07 s |
+| Complete corpus parity | 187.54 s | 39.20 s |
+| WS setup parity | 37.35 s | 6.85 s |
+| Controller-transition replay | 31.44 s | 7.00 s |
+| Compact-window geometry | 25.89 s | 14.81 s |
+| Separate 18-million-sample gate | 66.71 s | 67.20 s |
+
+Hash controls processed the same **30,185 cases / 2,682,609,015 bytes**.
+The SHA stage includes its existing formatting/integrity checks; other columns
+time the digest alone. Optimized-package controls are separate from algorithm
+choice, so the combined speedup is not attributed to XXH3 alone.
+
+| Algorithm | Ordinary debug | Optimized package |
+| --- | ---: | ---: |
+| SHA-256 | 38.304 s | 1.206 s |
+| XXH3-128 | 12.993 s | 0.169 s |
+| XXH3-64 | 12.981 s | 0.168 s |
+| CRC32 | 2.121 s | 0.050 s |
+
+Keep one integrity/verification unit per complete case and the existing 16 MiB
+physical parts. Bulk reads/reconstruction across **30,201 files** took 1.05 s,
+versus 122.62 s for the original owned-JSON decoding. The 29,622 documents no
+larger than 64 KiB accounted for 68.54 s of that decoding; the 13 documents above
+16 MiB accounted for 21.62 s. Reconstructing identical availability bytes from
+1, 8, 120 or 1,905 warm files took approximately 0.269–0.273 s per trial.
+Repartitioning files does not remove the full-document tree allocations.
+
+MessagePack was tested with optimized concrete slice decoders, complete-input
+checks, and exact recursive equivalence for every source field, map/array order,
+integer/float distinction and binary64 bit pattern. Encoding and equivalence
+work are excluded from decode times:
+
+| Format | Encoded bytes | Full-corpus decode |
+| --- | ---: | ---: |
+| JSON | 2,682,609,015 | 16.543 s |
+| MessagePack | 1,994,249,028 | 15.952 s |
+
+MessagePack was slightly slower for the large availability and distribution
+captures. Keep inspectable JSON: the observed total decode saving was only
+0.59 s, with essentially unchanged owned-tree destruction cost. No MessagePack
+dependency or second runtime storage format is retained.
+
+The executable release verifier passed **30,184 exercised cases**, one inert
+case and all **18 million statistical samples**. The updated native generator
+produced **137 byte-identical observation documents** and matching ordered index
+metadata without rewriting the active observations. The discarded-index
+validation regression was observed failing before its fix and passing after.
+Completed workload, operation counts and the complete numerical-comparison
+summary are identical to the preceding numerical report.
+Evidence: `target/fixture-ingestion-optimization/`, especially
+`test-comparison.json`, `hash-and-granularity.json`, `codec-decision.json`,
+`source-byte-audit.json`, `native-generator-compatibility.json`,
+`compile-profile-verification.json`, `numerical-work-invariance.json` and
+`numerical-report.json`.
+
 ### Multipart fixture storage
 
 Every stored fixture file must be smaller than **50,000,000 bytes**. Three
-captures use `byte-parts-v1` storage instead of a single oversized JSON file.
+captures use `byte-parts-v2` storage instead of a single oversized JSON file.
 Paths below are relative to each crate's `tests/fixtures/legacy/` directory.
 
 | Crate / fixture | Original JSON bytes | Parts |
@@ -151,29 +240,30 @@ Paths below are relative to each crate's `tests/fixtures/legacy/` directory.
 | app / `ui/000024.json` | 124,796,776 | 8 |
 
 Each original `.json` path now contains a small descriptor whose first top-level
-literal key **must** be `"fixture_format"`, with value `"byte-parts-v1"`.
-Its `sha256` and `byte_length` describe the complete original JSON byte stream.
+literal key **must** be `"fixture_format"`, with value `"byte-parts-v2"`.
+Its `content_xxh3_128` and `byte_length` describe the complete original JSON byte stream.
 The ordered `parts` list supplies descriptor-relative `path` and exact
 `byte_length` for each raw fragment under the adjacent `.parts/` directory.
 Fragments are at most **16 MiB** each and are not standalone JSON documents.
 Keep the descriptor and all its fragments together, including isolated fixture
 mounts used by native/archive proof drivers.
 
-`crates/wsdist-core/tests/support/fixture_json.rs` is shared build-only support
-for core/app tests, numerical verification and native UI smoke. It reconstructs
-the original bytes, checks all lengths and the original SHA-256, and retains
-independent index-hash checks. Ordinary JSON still deserializes directly.
-The case indexes, capture manifests, numerical values and original hashes are
-unchanged; this is storage splitting, not oracle regeneration. `.gitattributes`
-marks `*.part -text` so Git does not convert fragment line endings.
+`crates/wsdist-fixtures/src/lib.rs` is shared build-only support for core/app
+tests, numerical verification and native UI smoke. It reconstructs the original
+bytes, checks all lengths and one whole-document XXH3-128 digest, and compares
+that digest independently with descriptor and index expectations. Ordinary JSON
+deserializes directly through the same reader. There is no old-format or SHA
+fallback. Capture manifests, numerical values and original SHA provenance are
+unchanged; active index metadata is versioned separately as described above.
+`.gitattributes` marks `*.part` and original-index `*.zip` archives as `-text`.
 
 `cargo test --locked -p wsdist-core --test fixture_storage` checks reconstruction
 across token/UTF-8 boundaries, value/order preservation, corruption and length
 failures, independent index hashes and the repository fixture-size ceiling.
-Conversion also reassembled all 16 on-disk fragments and matched the three
-original byte-stream hashes before replacing the original files.
+The original splitting conversion reassembled all 16 on-disk fragments and
+matched the three original SHA-256 byte-stream hashes before replacing the files.
 
-The final `cargo test --locked --workspace --all-targets -- --test-threads=1`
+The original splitting run of `cargo test --locked --workspace --all-targets -- --test-threads=1`
 passed **192 tests**, including the storage regression suite.
 Evidence: `target/fixture-splitting/workspace-tests.log`.
 A size scan covered **30,218 fixture files**; the largest was **48,566,551 bytes**,

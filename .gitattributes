@@ -1,5 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Multipart fixture hashes cover exact bytes, including checkout line endings.
+# Binary fixture evidence is byte-exact, including checkout line endings.
 *.part -text
+*.zip -text

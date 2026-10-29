@@ -164,8 +164,10 @@ archive checksums; it does not ship reference fixtures, capture tools or caches.
 verifier, real-backend screenshot smoke and extracted-archive proof. Frozen JSON
 fixtures record the reviewed original implementation. Oversized captures use
 byte-exact multipart storage; tests and verification reassemble the original
-JSON and retain its original hashes. See the
-[multipart storage layout](VERIFY.md#multipart-fixture-storage).
+JSON. Runtime content checks use XXH3-128; original SHA-256 provenance and exact
+capture indexes remain preserved. Shared build-only decoding is optimized
+without optimizing application or parity-test logic. See the
+[fixture integrity and storage contract](VERIFY.md#fixture-ingestion-and-content-equality).
 Legacy formulas and recorded-draw numerical results are preserved, including
 known analytical/sampled discrepancies. Generator-dependent searches and
 simulations use separately hash-checked native fixed-seed goldens. Parity and

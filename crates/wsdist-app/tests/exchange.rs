@@ -14,9 +14,6 @@ use wsdist_app::{AppPaths, ResourceError};
 use wsdist_core::model::{CandidatePools, ModelState, PieceKind};
 use wsdist_core::{CalcError, Catalog, GearId, Job, SkillType, Slot, Stat};
 
-#[path = "../../wsdist-core/tests/support/fixture_json.rs"]
-mod fixture_json;
-
 const REQUIRED_FILES: [&str; 5] = [
     "data/gear.json", "data/enemies.json", "data/buffs.json",
     "data/pup-attachments.json", "item_list.csv",
@@ -55,11 +52,11 @@ fn save_json(path: &Path, value: &Value) {
 
 fn fixture(id: &str) -> Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy");
-    let index = load_json(&root.join("ui.json"));
+    let index = wsdist_fixtures::read_value(&root.join("ui.json"), None).unwrap();
     let row = index["cases"].as_array().unwrap().iter()
         .find(|row| row["id"] == id).unwrap();
     let path = root.join(row["path"].as_str().unwrap());
-    fixture_json::read::<Value>(&path, Some(row["sha256"].as_str().unwrap()))
+    wsdist_fixtures::read_value(&path, Some(row["content_xxh3_128"].as_str().unwrap()))
         .unwrap_or_else(|error| panic!("{error}"))
 }
 

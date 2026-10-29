@@ -2,7 +2,6 @@
 //! production crate; these modules only decode frozen inputs and compare output.
 pub mod catalog;
 pub mod independent;
-mod fixture_json;
 mod kernels;
 mod search;
 mod specs;
@@ -20,7 +19,7 @@ use wsdist_core::Catalog;
 use crate::{buffs_support, combat_support, kernel_support, player_support, simulation_support, support, ws_support};
 
 #[derive(Deserialize)]
-struct Entry { id: String, operation: String, path: String, sha256: String }
+struct Entry { id: String, operation: String, path: String, content_xxh3_128: String }
 #[derive(Deserialize)]
 struct Index { schema_version: u64, cases: Vec<Entry> }
 
@@ -118,7 +117,7 @@ fn load_case(root: &Path, entry: &Entry) -> Value {
     let relative = Path::new(&entry.path);
     assert!(relative.components().all(|component| matches!(component, Component::Normal(_))), "{}: fixture path is not relative", entry.id);
     let path = root.join(relative);
-    let case = fixture_json::read::<Value>(&path, Some(&entry.sha256)).unwrap_or_else(|error| panic!("{error}"));
+    let case = wsdist_fixtures::read_value(&path, Some(&entry.content_xxh3_128)).unwrap_or_else(|error| panic!("{error}"));
     assert_eq!(case["id"], entry.id, "{}: index identity", path.display());
     assert_eq!(case["operation"], entry.operation, "{}: operation", path.display());
     assert_eq!(case["expected"]["outcome"], "result", "{}: capture process must have completed", path.display());
@@ -286,7 +285,7 @@ pub fn verify_corpus(root: &Path) -> CorpusReport {
         let mut identities = BTreeSet::new();
         for (name, count_name) in [("players.json", "capture_players"), ("combat.json", "capture_combat"), ("search_simulation.json", "capture_search_simulation")] {
             let index: Index = serde_json::from_value(player_support::document(&root.join(name))).unwrap();
-            assert_eq!(index.schema_version, 1, "{name}: supported fixture schema");
+            assert_eq!(index.schema_version, 2, "{name}: supported fixture schema");
             assert_eq!(index.cases.len() as u64, manifest["fixture_counts"][count_name].as_u64().unwrap(), "{name}: complete frozen family");
             for entry in index.cases {
                 assert!(identities.insert(entry.id.clone()), "{}: duplicate fixture identity", entry.id);

@@ -22,9 +22,6 @@ use wsdist_core::model::{CalcError, Slot};
 use wsdist_core::rng::RandomSources;
 use wsdist_core::stats::Stats;
 
-#[path = "../../wsdist-core/tests/support/fixture_json.rs"]
-mod fixture_json;
-
 type Result<T, E = Box<dyn Error>> = std::result::Result<T, E>;
 
 fn main() -> Result<()> {
@@ -42,7 +39,8 @@ fn main() -> Result<()> {
     let paths = AppPaths::from_parts(Some(sandbox.path().as_os_str()), Path::new("/unused"), Path::new("/"))?;
     copy_resources(&source, &paths)?;
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy");
-    let index: Value = serde_json::from_slice(&fs::read(fixtures.join("ui.json"))?)?;
+    let index = wsdist_fixtures::read_value(&fixtures.join("ui.json"), None)
+        .map_err(|error| -> Box<dyn Error> { error })?;
     let ninja = fixture(&fixtures, &index, "ui.profile.10.ninja")?;
     // The original worktree is untouched, even when the workflow saves/reloads.
     fs::write(&paths.defaults, serde_json::to_vec(&ninja["input"]["profile_document"])?)?;
@@ -71,7 +69,8 @@ fn main() -> Result<()> {
 fn fixture(root: &Path, index: &Value, id: &str) -> Result<Value> {
     let entry = index["cases"].as_array().ok_or("Invalid UI index")?.iter()
         .find(|entry| entry["id"] == id).ok_or_else(|| format!("Missing fixture {id}"))?;
-    fixture_json::read::<Value>(&root.join(entry["path"].as_str().ok_or("Fixture path missing")?), Some(entry["sha256"].as_str().ok_or("Fixture SHA-256 missing")?))
+    wsdist_fixtures::read_value(&root.join(entry["path"].as_str().ok_or("Fixture path missing")?), Some(entry["content_xxh3_128"].as_str().ok_or("Fixture XXH3-128 content hash missing")?))
+        .map_err(|error| -> Box<dyn Error> { error })
 }
 
 fn copy_resources(source: &AppPaths, destination: &AppPaths) -> Result<()> {
@@ -2041,7 +2040,8 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Val
     quick_input_geometry(desktop, &mut profile_baseline, &mut initial_rectangles).await?;
     profile_geometry.push(json!({"profile": "default", "geometry": initial_rectangles}));
     for entry in index["cases"].as_array().ok_or("Cases missing")?.iter().filter(|entry| entry["id"].as_str().is_some_and(|id| id.starts_with("ui.profile."))) {
-        let document = fixture_json::read::<Value>(&fixtures.join(entry["path"].as_str().ok_or("Profile fixture path")?), Some(entry["sha256"].as_str().ok_or("Profile fixture SHA-256")?))?;
+        let document = wsdist_fixtures::read_value(&fixtures.join(entry["path"].as_str().ok_or("Profile fixture path")?), Some(entry["content_xxh3_128"].as_str().ok_or("Profile fixture XXH3-128 content hash")?))
+            .map_err(|error| -> Box<dyn Error> { error })?;
         let job = document["input"]["profile_name"].as_str().ok_or("Profile name")?;
         if job == "default" { continue; } // Default was compared at startup.
         desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), job.into());

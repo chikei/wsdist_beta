@@ -28,8 +28,6 @@ mod verification;
 #[path = "../tests/native_support/mod.rs"]
 #[allow(dead_code)]
 mod native_support;
-#[path = "../tests/support/fixture_json.rs"]
-mod fixture_json;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -37,7 +35,6 @@ use std::process::ExitCode;
 
 use rayon::prelude::*;
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 use wsdist_core::actions::sample_ws;
 use wsdist_core::model::{EvaluationContext, Metric, WsRequest, WsType};
 use wsdist_core::weaponskills::resolve_name;
@@ -109,14 +106,14 @@ fn seed(case: &Value) -> Value {
 }
 
 fn compute(legacy: &Path, entry: &IndexedCase) -> Result<(Value, Vec<u8>), String> {
-    let case: Value = fixture_json::read(&legacy.join(&entry.path), Some(&entry.sha256))
+    let case = wsdist_fixtures::read_value(&legacy.join(&entry.path), Some(&entry.content_xxh3_128))
         .map_err(|error| error.to_string())?;
     assert_eq!(case["id"], entry.id);
     assert_eq!(case["operation"], entry.operation);
     let cat = FrozenCatalog::from_input(&case["input"]);
     let doc = json!({
         "id": entry.id, "operation": entry.operation,
-        "legacy_case": {"path": entry.path, "sha256": entry.sha256},
+        "legacy_case": {"path": entry.path, "sha256": entry.source_sha256},
         "seed": seed(&case), "observation": observation(&case, &cat),
     });
     let mut bytes = serde_json::to_vec(&doc).unwrap();
@@ -125,8 +122,8 @@ fn compute(legacy: &Path, entry: &IndexedCase) -> Result<(Value, Vec<u8>), Strin
     let path = format!("{}/{ordinal}", entry.operation);
     let index_entry = json!({
         "id": entry.id, "operation": entry.operation, "path": path,
-        "sha256": format!("{:x}", Sha256::digest(&bytes)),
-        "legacy_path": entry.path, "legacy_sha256": entry.sha256,
+        "content_xxh3_128": format!("{:032x}", wsdist_fixtures::content_hash(&bytes)),
+        "legacy_path": entry.path, "legacy_sha256": entry.source_sha256,
     });
     Ok((index_entry, bytes))
 }
@@ -139,12 +136,12 @@ fn run(legacy: PathBuf, out: PathBuf) -> Result<(), String> {
     if out.try_exists().map_err(|error| format!("{}: {error}", out.display()))? {
         return Err(format!("Refusing to overwrite existing native goldens: {}", out.display()));
     }
-    let search: support::FixtureIndex = fixture_json::read(&legacy.join("search_simulation.json"), None)
+    let search: support::FixtureIndex = wsdist_fixtures::read(&legacy.join("search_simulation.json"), None)
         .map_err(|error| error.to_string())?;
     let mut cases: Vec<_> = search.cases.into_iter().filter(|entry| matches!(entry.operation.as_str(),
         "optimizer_neighborhood" | "optimizer_pass" | "optimizer_build" | "optimizer_sequence" |
         "simulation_dps" | "simulation_distribution" | "simulation_nonprogress")).collect();
-    let combat: support::FixtureIndex = fixture_json::read(&legacy.join("combat.json"), None)
+    let combat: support::FixtureIndex = wsdist_fixtures::read(&legacy.join("combat.json"), None)
         .map_err(|error| error.to_string())?;
     cases.push(combat.cases.into_iter().find(|entry| entry.id == COMBAT_ID).ok_or("missing native combat WS source case")?);
     assert_eq!(cases.len(), 137, "native golden case selection");
@@ -166,7 +163,7 @@ fn run(legacy: PathBuf, out: PathBuf) -> Result<(), String> {
         entries.push(entry);
     }
     let index = json!({
-        "schema_version": 1,
+        "schema_version": 2,
         "generator": "rand_chacha 0.9.0 ChaCha8Rng",
         "seed_layout": "u64 little-endian in key bytes 0..8, zero bytes 8..32; Primary stream 0, Pdif stream 1",
         "cases": entries,

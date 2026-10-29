@@ -13,7 +13,7 @@ fn expect_native(case: &Value, actual: &Value) {
     static INDEX: LazyLock<support::FixtureIndex> = LazyLock::new(support::index);
     let id = case["id"].as_str().unwrap();
     let entry = INDEX.cases.iter().find(|entry| entry.id == id).unwrap();
-    native_support::expect_native(id, &entry.sha256, actual);
+    native_support::expect_native(id, &entry.source_sha256, actual);
 }
 
 /// Case-level entry point over the same production probes and shared native

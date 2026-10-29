@@ -28,7 +28,7 @@ fn traced_fixture(id: &str) -> (support::FrozenCatalog, OptimizeResult, SearchTr
     let catalog = support::FrozenCatalog::from_input(input);
     let baseline_run = adapter::run_build(&fixture, &catalog);
     adapter::assert_build_legacy(&fixture, &baseline_run, &catalog);
-    native_support::expect_native(id, &entry.sha256, &adapter::project_build(&baseline_run, &catalog));
+    native_support::expect_native(id, &entry.source_sha256, &adapter::project_build(&baseline_run, &catalog));
     let baseline = baseline_run.result.as_ref().unwrap();
     assert!(baseline.calculation.is_empty());
     assert!(baseline_run.engine.calculation_trace.is_none());

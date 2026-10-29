@@ -3,8 +3,6 @@ mod combat_support;
 #[path = "numerical_boundaries/support.rs"]
 #[allow(dead_code)]
 mod kernel_support;
-#[path = "support/fixture_json.rs"]
-mod fixture_json;
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -16,7 +14,7 @@ use wsdist_core::Catalog;
 #[test]
 fn formula_boundaries_match_python_at_every_threshold() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/boundaries");
-    let manifest: Value = fixture_json::read(&root.join("manifest.json"), None).unwrap();
+    let manifest = wsdist_fixtures::read_value(&root.join("manifest.json"), None).unwrap();
     let groups = manifest["groups"].as_array().unwrap();
     assert_eq!(groups.len() + manifest["rejected_groups"].as_array().unwrap().len(), 89);
     let catalog = Arc::new(Catalog::load(&combat_support::resource_root()).unwrap());
@@ -24,11 +22,11 @@ fn formula_boundaries_match_python_at_every_threshold() {
     let mut replay_failures = Vec::new();
 
     for index_name in ["combat.json", "kernels.json"] {
-        let index: Value = fixture_json::read(&root.join(index_name), None).unwrap();
+        let index = wsdist_fixtures::read_value(&root.join(index_name), None).unwrap();
         for entry in index["cases"].as_array().unwrap() {
-            let case: Value = fixture_json::read(
+            let case = wsdist_fixtures::read_value(
                 &root.join(entry["path"].as_str().unwrap()),
-                Some(entry["sha256"].as_str().unwrap()),
+                Some(entry["content_xxh3_128"].as_str().unwrap()),
             ).unwrap();
             assert_eq!(case["id"], entry["id"]);
             assert_eq!(case["operation"], entry["operation"]);

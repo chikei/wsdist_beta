@@ -13,8 +13,9 @@ csv.workspace = true
 rayon.workspace = true
 rand_chacha.workspace = true
 getrandom.workspace = true
-sha2.workspace = true
 parking_lot.workspace = true
 
 [dev-dependencies]
+wsdist-fixtures.workspace = true
+sha2.workspace = true
 tempfile.workspace = true

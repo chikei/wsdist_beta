@@ -8,9 +8,6 @@ use wsdist_core::rng::RandomSources;
 
 use crate::support::FrozenCatalog;
 
-#[path = "../support/fixture_json.rs"]
-mod fixture_json;
-
 #[derive(Clone, Debug)]
 pub struct CountingRandom {
     pub inner: RandomSources,
@@ -168,13 +165,13 @@ pub const NATIVE_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtur
 
 pub fn expect_native(id: &str, legacy_sha256: &str, actual: &Value) {
     static INDEX: LazyLock<Value> = LazyLock::new(|| {
-        fixture_json::read(&Path::new(NATIVE_ROOT).join("index.json"), None).expect("native golden index")
+        wsdist_fixtures::read_value(&Path::new(NATIVE_ROOT).join("index.json"), None).expect("native golden index")
     });
     let entry = INDEX["cases"].as_array().unwrap().iter().find(|entry| entry["id"].as_str() == Some(id))
         .unwrap_or_else(|| panic!("no native golden for {id}; regenerate with examples/regenerate_native_goldens"));
     assert_eq!(entry["legacy_sha256"].as_str().unwrap(), legacy_sha256, "{id}: native golden legacy provenance");
-    let doc: Value = fixture_json::read(&Path::new(NATIVE_ROOT).join(entry["path"].as_str().unwrap()),
-        Some(entry["sha256"].as_str().unwrap())).unwrap();
+    let doc = wsdist_fixtures::read_value(&Path::new(NATIVE_ROOT).join(entry["path"].as_str().unwrap()),
+        Some(entry["content_xxh3_128"].as_str().unwrap())).unwrap();
     assert_json_eq(actual, &doc["observation"], id);
 }
 

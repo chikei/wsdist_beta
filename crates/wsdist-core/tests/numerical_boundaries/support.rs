@@ -6,22 +6,19 @@ use sha2::{Digest, Sha256};
 use wsdist_core::math::*;
 use wsdist_core::model::{CalcError, Job, LegacyF64, RandomSource, RandomStream};
 
-#[path = "../support/fixture_json.rs"]
-mod fixture_json;
-
 #[path = "../support/observation.rs"]
 pub mod observation;
 
 pub fn fixtures() -> &'static [Value] {
     static FIXTURES: LazyLock<Vec<Value>> = LazyLock::new(|| {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy");
-        let index = fixture_json::read::<Value>(&root.join("players.json"), None).unwrap();
+        let index = wsdist_fixtures::read_value(&root.join("players.json"), None).unwrap();
         index["cases"].as_array().unwrap().iter().filter(|entry| {
             matches!(entry["operation"].as_str().unwrap(), "kernel_group" | "kernel_tapes" | "kernel_tables" | "rounding")
                 && !entry["id"].as_str().unwrap().starts_with("kernel.create_player.")
         }).map(|entry| {
             let path = root.join(entry["path"].as_str().unwrap());
-            let fixture = fixture_json::read::<Value>(&path, Some(entry["sha256"].as_str().unwrap()))
+            let fixture = wsdist_fixtures::read_value(&path, Some(entry["content_xxh3_128"].as_str().unwrap()))
                 .unwrap_or_else(|error| panic!("{error}"));
             assert_eq!(fixture["id"], entry["id"]);
             fixture

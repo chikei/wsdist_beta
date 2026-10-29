@@ -338,7 +338,7 @@ fn expect_case_native(case: &Value, observation: &Value) {
     let entry = INDEX.cases.iter().find(|entry| entry.id == label)
         .unwrap_or_else(|| panic!("{label}: no hash-bearing legacy index entry"));
     assert_eq!(case["operation"], entry.operation, "{label}: indexed operation");
-    expect_native(label, &entry.sha256, observation);
+    expect_native(label, &entry.source_sha256, observation);
 }
 
 pub fn replay_dps(case: &Value) { replay_dps_measured(case); }

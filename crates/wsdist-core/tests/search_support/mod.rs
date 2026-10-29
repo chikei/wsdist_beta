@@ -10,9 +10,6 @@ use wsdist_core::model::{Abilities, CalcError, Enemy, EvaluationContext, GearId,
 use wsdist_core::rng::RandomSources;
 use wsdist_core::Catalog;
 
-#[path = "../support/fixture_json.rs"]
-mod fixture_json;
-
 #[path = "../legacy_player/support.rs"]
 #[allow(dead_code)]
 mod player_support;
@@ -20,7 +17,7 @@ pub use player_support::{assert_number, document, number};
 pub use player_support::observation;
 
 #[derive(Deserialize)]
-pub struct IndexedCase { pub id: String, pub operation: String, pub path: String, pub sha256: String }
+pub struct IndexedCase { pub id: String, pub operation: String, pub path: String, pub source_sha256: String, pub content_xxh3_128: String }
 #[derive(Deserialize)]
 pub struct FixtureIndex { pub cases: Vec<IndexedCase> }
 
@@ -28,7 +25,7 @@ pub fn resource_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("
 pub fn fixture_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy") }
 pub fn index() -> FixtureIndex { serde_json::from_value(document(&fixture_root().join("search_simulation.json"))).unwrap() }
 pub fn fixture(root: &Path, entry: &IndexedCase) -> Value {
-    fixture_json::read::<Value>(&root.join(&entry.path), Some(&entry.sha256))
+    wsdist_fixtures::read_value(&root.join(&entry.path), Some(&entry.content_xxh3_128))
         .unwrap_or_else(|error| panic!("{error}"))
 }
 

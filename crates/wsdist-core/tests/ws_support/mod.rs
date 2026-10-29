@@ -8,9 +8,6 @@ use wsdist_core::model::{Abilities, CalcError, Enemy, EvaluationContext, Job, Le
 use wsdist_core::stats::{Stat, Stats};
 use wsdist_core::weaponskills::{WsScaling, resolve_name, weaponskill_info};
 
-#[path = "../support/fixture_json.rs"]
-mod fixture_json;
-
 #[path = "../support/observation.rs"]
 pub mod observation;
 
@@ -43,7 +40,7 @@ pub fn resource_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("
 pub fn fixture_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy") }
 
 pub fn document(path: &Path) -> Value {
-    fixture_json::read::<Value>(path, None).unwrap_or_else(|error| panic!("{error}"))
+    wsdist_fixtures::read_value(path, None).unwrap_or_else(|error| panic!("{error}"))
 }
 
 pub fn index(root: &Path) -> FixtureIndex {

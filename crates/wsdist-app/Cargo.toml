@@ -25,6 +25,7 @@ slint-build.workspace = true
 winresource.workspace = true
 
 [dev-dependencies]
+wsdist-fixtures.workspace = true
 sha2.workspace = true
 image.workspace = true
 i-slint-backend-testing.workspace = true

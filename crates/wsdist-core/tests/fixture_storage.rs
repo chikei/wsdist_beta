@@ -1,13 +1,9 @@
-#[path = "support/fixture_json.rs"]
-mod fixture_json;
-
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use serde_json::{Number, Value, json};
-use sha2::{Digest, Sha256};
 use tempfile::TempDir;
 
 const ORIGINAL: &str = r#"{"z":"é雪🦀\\quoted\"","nested":{"second":2,"first":1},"numbers":[18446744073709551615,-9223372036854775808,1,1.0,-0,-0.0,1.2345678901234567,2.55,1e-20],"array":["last","first",{"b":false,"a":true}]}"#;
@@ -28,8 +24,29 @@ impl StoredFixture {
     }
 }
 
-fn sha256(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+fn content_hash(bytes: &[u8]) -> String {
+    format!("{:032x}", wsdist_fixtures::content_hash(bytes))
+}
+
+#[test]
+fn content_hash_checks_the_full_reference_digest_and_canonical_representation() {
+    // Reference xxHash 0.8.4 XXH3_128bits over the four bytes b"null".
+    const EXPECTED: &str = "dc32537e27486e2c652e7b35ccc22eda";
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("reference.json");
+    fs::write(&path, b"null").unwrap();
+    assert_eq!(wsdist_fixtures::read_value(&path, Some(EXPECTED)).unwrap(), Value::Null);
+    let high_half_changed = u128::from_str_radix(EXPECTED, 16).unwrap() ^ (1_u128 << 64);
+    for (label, invalid) in [
+        ("high half", format!("{high_half_changed:032x}")),
+        ("uppercase", EXPECTED.to_ascii_uppercase()),
+        ("short", EXPECTED[..31].to_owned()),
+        ("padded", format!("{:064x}", u128::from_str_radix(EXPECTED, 16).unwrap())),
+        ("nonhex", format!("g{}", &EXPECTED[1..])),
+    ] {
+        assert!(wsdist_fixtures::read_value(&path, Some(&invalid)).is_err(),
+            "{label}: noncanonical or mismatched content hash must reject the fixture");
+    }
 }
 
 fn multipart(source: &[u8], width: usize) -> StoredFixture {
@@ -45,8 +62,8 @@ fn multipart(source: &[u8], width: usize) -> StoredFixture {
         path: parent.join("case.json"),
         _directory: directory,
         descriptor: json!({
-            "fixture_format": "byte-parts-v1",
-            "sha256": sha256(source),
+            "fixture_format": "byte-parts-v2",
+            "content_xxh3_128": content_hash(source),
             "byte_length": source.len(),
             "parts": parts,
         }),
@@ -89,7 +106,7 @@ fn assert_original(value: &Value) {
 }
 
 fn assert_document_error(stored: &StoredFixture) -> String {
-    let message = fixture_json::read::<Value>(&stored.path, None).unwrap_err().to_string();
+    let message = wsdist_fixtures::read_value(&stored.path, None).unwrap_err().to_string();
     assert!(message.contains(stored.path.to_str().unwrap()), "{message}");
     message
 }
@@ -100,19 +117,19 @@ fn ordinary_json_keeps_exact_values_and_order_and_hashes_original_bytes() {
     let path = directory.path().join("ordinary.json");
     let source = format!("\n {ORIGINAL} \r\n");
     fs::write(&path, source.as_bytes()).unwrap();
-    assert_original(&fixture_json::read::<Value>(&path, None).unwrap());
-    assert_original(&fixture_json::read::<Value>(&path, Some(&sha256(source.as_bytes()))).unwrap());
-    let error = fixture_json::read::<Value>(&path, Some(&sha256(ORIGINAL.as_bytes()))).unwrap_err().to_string();
+    assert_original(&wsdist_fixtures::read_value(&path, None).unwrap());
+    assert_original(&wsdist_fixtures::read_value(&path, Some(&content_hash(source.as_bytes()))).unwrap());
+    let error = wsdist_fixtures::read_value(&path, Some(&content_hash(ORIGINAL.as_bytes()))).unwrap_err().to_string();
     assert!(error.contains(path.to_str().unwrap()), "{error}");
 }
 
 #[test]
 fn multipart_reconstructs_across_every_token_escape_and_utf8_byte_boundary() {
     let stored = multipart(ORIGINAL.as_bytes(), 1);
-    assert_original(&fixture_json::read::<Value>(&stored.path, None).unwrap());
-    assert_original(&fixture_json::read::<Value>(&stored.path, Some(&sha256(ORIGINAL.as_bytes()))).unwrap());
-    let physical_hash = sha256(&fs::read(&stored.path).unwrap());
-    let error = fixture_json::read::<Value>(&stored.path, Some(&physical_hash)).unwrap_err().to_string();
+    assert_original(&wsdist_fixtures::read_value(&stored.path, None).unwrap());
+    assert_original(&wsdist_fixtures::read_value(&stored.path, Some(&content_hash(ORIGINAL.as_bytes()))).unwrap());
+    let physical_hash = content_hash(&fs::read(&stored.path).unwrap());
+    let error = wsdist_fixtures::read_value(&stored.path, Some(&physical_hash)).unwrap_err().to_string();
     assert!(error.contains(stored.path.to_str().unwrap()), "{error}");
 }
 
@@ -129,7 +146,7 @@ fn typed_documents_deserialize_original_bytes_for_ordinary_and_multipart_storage
     let ordinary = stored.path.parent().unwrap().join("ordinary.json");
     fs::write(&ordinary, source).unwrap();
     for path in [&ordinary, &stored.path] {
-        let value: TypedCase = fixture_json::read(path, None).unwrap();
+        let value: TypedCase = wsdist_fixtures::read(path, None).unwrap();
         assert_eq!(value.id, "é🦀");
         assert_eq!(value.numbers.len(), 4);
         assert_eq!(value.numbers[0].as_u64(), Some(u64::MAX));
@@ -146,7 +163,7 @@ fn canonical_descriptor_prefix_allows_leading_json_whitespace() {
     let stored = multipart(ORIGINAL.as_bytes(), 7);
     let descriptor = serde_json::to_string_pretty(&stored.descriptor).unwrap();
     fs::write(&stored.path, format!(" \r\n\t{descriptor}\n")).unwrap();
-    assert_original(&fixture_json::read::<Value>(&stored.path, None).unwrap());
+    assert_original(&wsdist_fixtures::read_value(&stored.path, None).unwrap());
 }
 
 #[test]
@@ -155,7 +172,7 @@ fn nested_format_keys_are_ordinary_data() {
     let path = directory.path().join("ordinary.json");
     let source = br#"[{"fixture_format":"not-a-storage-descriptor"},{"text":"fixture_format"}]"#;
     fs::write(&path, source).unwrap();
-    let value = fixture_json::read::<Value>(&path, None).unwrap();
+    let value = wsdist_fixtures::read_value(&path, None).unwrap();
     assert_eq!(value[0]["fixture_format"], "not-a-storage-descriptor");
     assert_eq!(value[1]["text"], "fixture_format");
 }
@@ -186,7 +203,7 @@ fn extra_part_bytes_are_not_silently_ignored() {
 }
 
 #[test]
-fn reordered_equal_length_parts_fail_source_hash_verification() {
+fn reordered_equal_length_parts_fail_content_hash_verification() {
     let mut stored = multipart(b"[1,2]", 1);
     stored.descriptor["parts"].as_array_mut().unwrap().swap(1, 3);
     stored.save_descriptor();
@@ -194,7 +211,7 @@ fn reordered_equal_length_parts_fail_source_hash_verification() {
 }
 
 #[test]
-fn same_length_valid_json_corruption_fails_source_hash_verification() {
+fn same_length_valid_json_corruption_fails_content_hash_verification() {
     let stored = multipart(br#"{"x":1}"#, 8);
     fs::write(stored.part_path(0), br#"{"x":2}"#).unwrap();
     assert_document_error(&stored);
@@ -233,10 +250,12 @@ fn descriptor_part_paths_must_stay_relative_to_the_descriptor() {
 #[test]
 fn unknown_versions_and_malformed_descriptors_are_not_returned_as_case_values() {
     let mut stored = multipart(ORIGINAL.as_bytes(), 8);
+    for version in ["byte-parts-v1", "byte-parts-v3"] {
+        stored.descriptor["fixture_format"] = json!(version);
+        stored.save_descriptor();
+        assert_document_error(&stored);
+    }
     stored.descriptor["fixture_format"] = json!("byte-parts-v2");
-    stored.save_descriptor();
-    assert_document_error(&stored);
-    stored.descriptor["fixture_format"] = json!("byte-parts-v1");
     stored.descriptor.as_object_mut().unwrap().remove("parts");
     stored.save_descriptor();
     assert_document_error(&stored);
@@ -253,15 +272,15 @@ fn edited_descriptor_and_parts_cannot_bypass_the_independent_index_hash() {
     let original = br#"{"id":"original","value":-0.0}"#;
     let replacement = br#"{"id":"modified","value":-0.0}"#;
     assert_eq!(original.len(), replacement.len());
-    let index_sha256 = sha256(original);
+    let index_content_hash = content_hash(original);
     let mut stored = multipart(original, 5);
     for (index, chunk) in replacement.chunks(5).enumerate() {
         fs::write(stored.part_path(index), chunk).unwrap();
     }
-    stored.descriptor["sha256"] = json!(sha256(replacement));
+    stored.descriptor["content_xxh3_128"] = json!(content_hash(replacement));
     stored.save_descriptor();
-    assert_eq!(fixture_json::read::<Value>(&stored.path, None).unwrap()["id"], "modified");
-    let error = fixture_json::read::<Value>(&stored.path, Some(&index_sha256)).unwrap_err().to_string();
+    assert_eq!(wsdist_fixtures::read_value(&stored.path, None).unwrap()["id"], "modified");
+    let error = wsdist_fixtures::read_value(&stored.path, Some(&index_content_hash)).unwrap_err().to_string();
     assert!(error.contains(stored.path.to_str().unwrap()), "{error}");
 }
 

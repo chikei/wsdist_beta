@@ -4,16 +4,13 @@ use serde_json::Value;
 use wsdist_core::model::{Abilities, Ability, BuffInputs, EnemyInput, RollInput};
 use wsdist_core::Stats;
 
-#[path = "../support/fixture_json.rs"]
-mod fixture_json;
-
 #[path = "../support/observation.rs"]
 pub mod observation;
 
 pub fn root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("../..") }
 pub fn ui_fixtures() -> PathBuf { root().join("crates/wsdist-app/tests/fixtures/legacy") }
 pub fn read_json(path: &Path) -> Value {
-    fixture_json::read::<Value>(path, None).unwrap_or_else(|error| panic!("{error}"))
+    wsdist_fixtures::read_value(path, None).unwrap_or_else(|error| panic!("{error}"))
 }
 
 pub fn controls(state: &Value) -> BuffInputs {

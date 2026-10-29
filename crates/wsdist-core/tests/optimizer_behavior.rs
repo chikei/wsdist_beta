@@ -74,7 +74,7 @@ fn frozen_neighborhoods_preserve_duplicates_skip_each_unchanged_axis_and_replay_
         let catalog = FrozenCatalog::from_input(&fixture["input"]);
         let run = adapter::run_neighborhood(&fixture, &catalog);
         adapter::assert_neighborhood_legacy(&fixture, &run, &catalog);
-        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_neighborhood(&run, &catalog));
+        native_support::expect_native(&entry.id, &entry.source_sha256, &adapter::project_neighborhood(&run, &catalog));
     }
 }
 
@@ -120,7 +120,7 @@ fn frozen_first_improvement_passes_cover_batch_replay_seed11_ties_modulo_and_unu
         let catalog = FrozenCatalog::from_input(&fixture["input"]);
         let run = adapter::run_pass(&fixture, &catalog);
         adapter::assert_pass_legacy(&fixture, &run, &catalog);
-        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_pass(&run, &catalog));
+        native_support::expect_native(&entry.id, &entry.source_sha256, &adapter::project_pass(&run, &catalog));
     }
 }
 
@@ -131,7 +131,7 @@ fn frozen_builds_preserve_initialization_stages_restarts_final_earring_order_and
         let catalog = FrozenCatalog::from_input(&fixture["input"]);
         let run = adapter::run_build(&fixture, &catalog);
         adapter::assert_build_legacy(&fixture, &run, &catalog);
-        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_build(&run, &catalog));
+        native_support::expect_native(&entry.id, &entry.source_sha256, &adapter::project_build(&run, &catalog));
     }
 }
 
@@ -161,7 +161,7 @@ fn frozen_h2h_sequence_preserves_shared_empty_metadata_without_cross_session_mut
         let catalog = FrozenCatalog::from_input(&fixture["input"]);
         let run = adapter::run_sequence(&fixture, &catalog);
         adapter::assert_sequence_legacy(&fixture, &run, &catalog);
-        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_sequence(&run, &catalog));
+        native_support::expect_native(&entry.id, &entry.source_sha256, &adapter::project_sequence(&run, &catalog));
     }
 }
 
@@ -181,7 +181,7 @@ fn production_optimizer_matches_native_seed11_build_across_worker_counts() {
         let baseline_run = adapter::run_build(&fixture, &catalog);
         adapter::assert_build_legacy(&fixture, &baseline_run, &catalog);
         let baseline = adapter::project_build(&baseline_run, &catalog);
-        native_support::expect_native(id, &entry.sha256, &baseline);
+        native_support::expect_native(id, &entry.source_sha256, &baseline);
         let actual = adapter::project_build_result(&result, &catalog);
         assert_eq!(actual, baseline["result"], "{id}: public optimizer matches shared native build");
         results.push(actual);
@@ -260,7 +260,7 @@ fn consumer_metadata_distinguishes_no_candidate_output_from_unsatisfied_dt() {
         let baseline_run = adapter::run_build(&fixture, &catalog);
         adapter::assert_build_legacy(&fixture, &baseline_run, &catalog);
         let baseline = adapter::project_build(&baseline_run, &catalog);
-        native_support::expect_native(id, &entry.sha256, &baseline);
+        native_support::expect_native(id, &entry.source_sha256, &baseline);
         assert_eq!(adapter::project_build_result(&result, &catalog), baseline["result"],
             "{id}: public optimizer matches shared native build");
         assert_eq!(result.termination, termination, "{id}: explicit termination metadata");

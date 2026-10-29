@@ -165,6 +165,15 @@ fn stats(desktop: &Desktop) -> Value {
     Value::Object(rows.into_iter().flat_map(|model| model.iter().map(|row| (row.label.to_string(), Value::String(row.value.to_string()))).collect::<Vec<_>>()).collect())
 }
 
+fn ninja_profile_fixture() -> Value {
+    let entry = ui_support::case_entries("ui.profile").into_iter()
+        .find(|entry| entry["id"] == "ui.profile.10.ninja")
+        .expect("Ninja profile fixture must be listed in ui.profile cases");
+    let fixture = ui_support::fixture(&entry);
+    assert_eq!(fixture["id"], entry["id"], "UI profile fixture identity must match its index entry");
+    fixture
+}
+
 #[test]
 fn combo_popup_selection_reaches_controller_and_retains_unlisted_restored_values() {
     fn realize(desktop: &Desktop) {
@@ -216,7 +225,7 @@ fn combo_popup_selection_reaches_controller_and_retains_unlisted_restored_values
     }
 
     i_slint_backend_testing::init_no_event_loop();
-    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let fixture = ninja_profile_fixture();
     let sandbox = tempfile::tempdir().unwrap();
     let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
@@ -290,7 +299,7 @@ fn combo_popup_selection_reaches_controller_and_retains_unlisted_restored_values
 #[test]
 fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corrupt_profiles() {
     i_slint_backend_testing::init_no_event_loop();
-    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let fixture = ninja_profile_fixture();
     let sandbox = tempfile::tempdir().unwrap();
     let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
@@ -397,7 +406,7 @@ fn optimizer_buttons_replace_progress_with_real_results_and_keep_main_usable() {
     }
 
     i_slint_backend_testing::init_no_event_loop();
-    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let fixture = ninja_profile_fixture();
     let profile = &fixture["input"]["profile_document"]["Ninja"];
     let sandbox = tempfile::tempdir().unwrap();
     let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
@@ -552,7 +561,7 @@ fn optimizer_candidate_failures_show_exact_error_and_preserve_successful_state()
     const ERROR: &str = "Optimize: candidate selection: AssertionError: At least two items must be selected in at least one slot to find the best set.";
 
     i_slint_backend_testing::init_no_event_loop();
-    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let fixture = ninja_profile_fixture();
     let sandbox = tempfile::tempdir().unwrap();
     let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
@@ -919,7 +928,7 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
     let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
 
-    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let fixture = ninja_profile_fixture();
     fs::write(&desktop.controller.borrow().paths.defaults, serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap()).unwrap();
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
     desktop.window.invoke_action("stats-quicklook".into());
@@ -1088,7 +1097,7 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
     }
 
     i_slint_backend_testing::init_no_event_loop();
-    let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
+    let fixture = ninja_profile_fixture();
     let sandbox = tempfile::tempdir().unwrap();
     let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
