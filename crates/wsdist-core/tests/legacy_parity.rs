@@ -13,9 +13,8 @@ mod ws_support;
 #[path = "buffs_support/mod.rs"]
 #[allow(dead_code)]
 mod buffs_support;
-#[path = "rng_support/mod.rs"]
 #[allow(dead_code)]
-mod rng_support;
+mod native_support;
 #[path = "search_support/mod.rs"]
 #[allow(dead_code)]
 mod support;
@@ -38,8 +37,6 @@ fn entire_frozen_corpus_preserves_stats_actions_search_trajectories_distribution
     assert_eq!(report.observed_work.distribution_samples, 240_000);
     assert_eq!(report.observed_work.full_optimizer_builds, 30);
     assert_eq!(report.observed_work.public_seed11_optimizer_runs, 3);
-    assert_eq!(report.observed_work.direct_rng_cases, 8);
-    assert_eq!(report.observed_work.direct_rng_twist_crossings, 8);
     assert_eq!(report.observed_work.profile_player_builds, 577);
     assert_eq!(report.observed_work.scripted_actions, 112);
 }
@@ -65,7 +62,7 @@ fn million_sample_isolated_legacy_samplers_match_independent_expectations_with_s
     for result in &results {
         assert_eq!(result["completed"], true, "{}: incomplete sampler: {result}", result["id"]);
         assert_eq!(result["n"], 1_000_000, "{}: independent fixed-seed sample size", result["id"]);
-        assert_eq!(result["batch_count"], 40, "{}: independent seed pairs", result["id"]);
+        assert_eq!(result["batch_count"], 40, "{}: fixed batch seeds", result["id"]);
         assert_eq!(result["passed"], true, "{}: independent expectation/gate mismatch: {result}", result["id"]);
     }
 }

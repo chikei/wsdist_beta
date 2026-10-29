@@ -49,7 +49,7 @@ fn main() -> Result<()> {
     let resources = load_resources_at(paths)?;
     let default = fixture(&fixtures, &index, "ui.profile.22.default")?;
     let missing_icon = remove_requested_icon(&resources, &default)?;
-    let desktop = Rc::new(Desktop::with_random(resources, RandomSources::from_seeds(11, 11))?);
+    let desktop = Rc::new(Desktop::with_random(resources, RandomSources::from_seed(11))?);
     desktop.window.show()?;
     let outcome = Rc::new(RefCell::new(None));
     let completed = Rc::clone(&outcome);
@@ -1079,6 +1079,17 @@ async fn quick_input_geometry(desktop: &Desktop, baseline: &mut HorizontalBaseli
         return Err("Enemy values clip or the final enemy field needs inner scrolling".into());
     }
     quicklook_content_height_geometry(desktop, rectangles).await?;
+    // The height proof wheels Active Buffs to the top, clipping Basic Inputs.
+    // Restore the outer viewport before the next profile's spacing checks.
+    let content = element(&desktop.window, "Quicklook content", AccessibleRole::List)?;
+    let before = scroll_state(&content, "Quicklook content vertical scrollbar", ScrollSurface::Standard)?;
+    let master_visible_before = element(&desktop.window, "Master level", AccessibleRole::Combobox).is_ok();
+    scroll_content(desktop, 10000.0).await?;
+    let after = scroll_state(&content, "Quicklook content vertical scrollbar", ScrollSurface::Standard)?;
+    let master = element(&desktop.window, "Master level", AccessibleRole::Combobox)?;
+    rectangles.push(json!({"key": "Quicklook/restore-first-row", "before": before.geometry,
+        "master_level_visible_before": master_visible_before, "after": after.geometry,
+        "master_level_after": rectangle(&master)}));
     Ok(())
 }
 
@@ -1535,7 +1546,7 @@ async fn buff_workflows(desktop: &Desktop, output: &Path, fixtures: &Path, index
     ] {
         let mut paths = desktop.controller.borrow().paths.clone();
         paths.defaults = paths.root.join("absent-buff-profile.json");
-        let buff = Desktop::with_random(load_resources_at(paths)?, RandomSources::from_seeds(11, 11))?;
+        let buff = Desktop::with_random(load_resources_at(paths)?, RandomSources::from_seed(11))?;
         buff.window.show()?;
         let document = fixture(fixtures, index, id)?;
         for step in document["input"]["setup"].as_array().ok_or("Buff setup is missing")? {
@@ -1796,7 +1807,7 @@ async fn native_scrollbars(desktop: &Desktop, output: &Path, width: f32, height:
     // Length/virtualization stress lives in a disposable native Desktop, never
     // in the controller/fixtures used by the comprehensive calculation workflow.
     let paths = desktop.controller.borrow().paths.clone();
-    let proof = Desktop::with_random(load_resources_at(paths)?, RandomSources::from_seeds(11, 11))?;
+    let proof = Desktop::with_random(load_resources_at(paths)?, RandomSources::from_seed(11))?;
     proof.window.show()?;
     // Newly shown Winit windows publish their monitor scale during native
     // mapping. Wait for that real event before converting logical dimensions.
@@ -2165,7 +2176,7 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Val
     if !desktop.window.get_error_message().is_empty() { return Err("Save Defaults failed".into()); }
     let paths = desktop.controller.borrow().paths.clone();
     let saved = desktop.controller.borrow().ui.effective_profile();
-    let relaunched = Desktop::with_random(load_resources_at(paths.clone())?, RandomSources::from_seeds(11,11))?;
+    let relaunched = Desktop::with_random(load_resources_at(paths.clone())?, RandomSources::from_seed(11))?;
     if relaunched.controller.borrow().ui.effective_profile() != saved { return Err("Save/relaunch lost effective widget/gear state".into()); }
     drop(relaunched);
     let original = fs::read(paths.data.join("gear.json"))?;

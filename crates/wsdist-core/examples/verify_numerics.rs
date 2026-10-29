@@ -13,9 +13,9 @@ mod ws_support;
 #[path = "../tests/buffs_support/mod.rs"]
 #[allow(dead_code)]
 mod buffs_support;
-#[path = "../tests/rng_support/mod.rs"]
+#[path = "../tests/native_support/mod.rs"]
 #[allow(dead_code)]
-mod rng_support;
+mod native_support;
 #[path = "../tests/search_support/mod.rs"]
 #[allow(dead_code)]
 mod support;
@@ -91,7 +91,7 @@ fn run(fixtures: PathBuf, report_path: PathBuf) -> ExitCode {
             }
             let observed_n = rows.iter().filter_map(|row| row["n"].as_u64()).sum::<u64>();
             json!({"passed": passed, "observed_samples": observed_n, "scenarios": rows,
-                "seed_contract": {"numpy_host": "20240101+i", "numba_python": "40480202+i", "i": [0, 39]},
+                "seed_contract": {"generator": "ChaCha8Rng", "seed": "20240101+i", "primary_stream": 0, "pdif_stream": 1, "i": [0, 39]},
                 "gate": "mean: max(1e-9,6*sample_stddev(batch_means)/sqrt(40)); categorical: 6*sqrt(p*(1-p)/1000000), endpoints exact"})
         }
         Err(error) => {
@@ -123,15 +123,10 @@ fn run(fixtures: PathBuf, report_path: PathBuf) -> ExitCode {
         "provenance": corpus.provenance,
         "canonical_parity": corpus,
         "exact_and_tape_results": {"passed": corpus.passed,
-            "direct_mt_cases": corpus.observed_work.direct_rng_cases,
-            "direct_mt_events": corpus.observed_work.direct_rng_events,
-            "tempered_words": corpus.observed_work.direct_rng_tempered_words,
-            "twist_crossings": corpus.observed_work.direct_rng_twist_crossings,
-            "seeded_actions": corpus.observed_work.compiled_actions,
+            "recorded_actions": corpus.observed_work.recorded_actions,
             "scripted_actions": corpus.observed_work.scripted_actions,
             "strict_kernel_tape_rows": corpus.observed_work.strict_kernel_tape_rows,
-            "seeded_kernel_rows": corpus.observed_work.seeded_kernel_rows,
-            "note": "Case statuses and diagnostics are in canonical_parity.cases; full simulations and search adapters compare every observed ordered draw/decision and final stream continuation."},
+            "note": "Legacy combat and kernel results replay frozen Python draws; native simulation and search adapters compare Rust fixed-seed goldens. Case statuses and diagnostics are in canonical_parity.cases."},
         "independent_discrepancies": independent,
         "statistical_results": statistical,
         "failing_case_paths": failing,

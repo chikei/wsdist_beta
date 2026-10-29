@@ -176,7 +176,7 @@ pub fn intern_pieces<'a>(catalog: &Catalog, state: &ModelState, groups: impl Int
 }
 
 pub fn shuffle<R: RandomSource, T>(random: &mut R, values: &mut [T]) {
-    for index in (1..values.len()).rev() { let selected = random.bounded_numpy(index + 1); values.swap(index, selected); }
+    for index in (1..values.len()).rev() { let selected = random.bounded(index + 1); values.swap(index, selected); }
 }
 
 /// Borrowed, ordered shares: splitting a group does not copy its candidates.

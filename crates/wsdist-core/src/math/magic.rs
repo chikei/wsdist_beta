@@ -150,12 +150,12 @@ pub fn get_magic_hit_rate(player_macc: f64, enemy_meva: f64) -> Result<f64, Calc
 }
 
 /// nuking.py:270–291. Success is >=, not >. Draw only until the first success;
-/// zero/one hit rate still consumes the source's first NumPy-host uniform.
+/// zero/one hit rate still consumes the first Primary uniform.
 #[inline]
 pub fn get_resist_state(magic_hit_rate: f64, random: &mut impl RandomSource) -> f64 {
     let mut resist_state = 1.0;
     for _ in 0..3 {
-        if magic_hit_rate >= random.uniform(RandomStream::NumpyHost, 0.0, 1.0) { break; }
+        if magic_hit_rate >= random.uniform(RandomStream::Primary, 0.0, 1.0) { break; }
         resist_state *= 0.5;
     }
     resist_state

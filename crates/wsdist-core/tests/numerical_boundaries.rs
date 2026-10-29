@@ -31,7 +31,7 @@ fn analytical_pdif_keeps_legacy_midpoint_and_critical_correlation() {
 }
 
 #[test]
-fn sampled_pdif_replays_compiled_seed_pairs_and_strict_endpoint_tapes() {
+fn sampled_pdif_replays_recorded_compiled_draws_and_strict_endpoint_tapes() {
     support::replay_where(|fixture| module(fixture, "get_pdif") && !fixture["input"]["function"].as_str().unwrap().starts_with("get_avg_"));
 }
 

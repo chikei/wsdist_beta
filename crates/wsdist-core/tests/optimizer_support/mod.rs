@@ -4,33 +4,13 @@ use std::sync::atomic::AtomicBool;
 use serde_json::{Value, json};
 use wsdist_core::model::*;
 use wsdist_core::optimizer::probe::*;
-use wsdist_core::rng::RandomSources;
+use crate::native_support::{self as native, CountingRandom};
 
 use super::support;
 use support::{FrozenCatalog, assert_number, number};
 
-#[derive(Clone, Debug)]
-pub struct Draw { stream: RandomStream, low: f64, high: f64, value: f64 }
-#[derive(Clone, Debug)]
-pub struct RecordedRandom { pub random: RandomSources, pub draws: Vec<Draw> }
-impl RecordedRandom {
-    pub fn seeded(seeds: &Value) -> Self {
-        Self { random: RandomSources::from_seeds(seeds["numpy_host"].as_u64().unwrap() as u32,
-            seeds["numba_python"].as_u64().unwrap() as u32), draws: Vec::new() }
-    }
-}
-impl RandomSource for RecordedRandom {
-    fn uniform(&mut self, stream: RandomStream, low: f64, high: f64) -> f64 {
-        let value = self.random.uniform(stream, low, high);
-        self.draws.push(Draw { stream, low, high, value });
-        value
-    }
-    fn bounded_numpy(&mut self, upper: usize) -> usize { self.random.bounded_numpy(upper) }
-    fn reseed_numpy(&mut self, seed: u32) { self.random.reseed_numpy(seed); }
-}
-
-pub fn context(catalog: &FrozenCatalog, seeds: &Value) -> EvaluationContext<RecordedRandom> {
-    EvaluationContext::new(catalog.catalog.clone(), RecordedRandom::seeded(seeds))
+pub fn context(catalog: &FrozenCatalog, seeds: &Value) -> EvaluationContext<CountingRandom> {
+    EvaluationContext::new(catalog.catalog.clone(), CountingRandom::seeded(seeds["numpy_host"].as_u64().unwrap()))
 }
 
 pub fn raw_action(input: &Value) -> RawAction {
@@ -124,10 +104,10 @@ pub fn assert_similar(actual: &[SimilarSwap], expected: &Value, catalog: &Frozen
     }
 }
 
-fn event_kind(event: &TraceEvent) -> &'static str {
+pub fn event_kind(event: &TraceEvent) -> &'static str {
     match event {
-        TraceEvent::Neighborhood { .. } => "neighborhood", TraceEvent::Shuffle { .. } => "numpy_shuffle",
-        TraceEvent::Choice { .. } => "numpy_choice", TraceEvent::PoolOrders { .. } => "pool_orders",
+        TraceEvent::Neighborhood { .. } => "neighborhood", TraceEvent::Shuffle { .. } => "shuffle",
+        TraceEvent::Choice { .. } => "choice", TraceEvent::PoolOrders { .. } => "pool_orders",
         TraceEvent::Take { .. } => "take", TraceEvent::Seek { .. } => "seek", TraceEvent::Legality { .. } => "legality",
         TraceEvent::FastDtRejection { .. } => "fast_dt_rejection", TraceEvent::FullPlayerDt { .. } => "full_player_dt_verification",
         TraceEvent::Metric { .. } => "evaluate_metric", TraceEvent::Rescore { .. } => "rescore_with_output",
@@ -140,16 +120,24 @@ fn event_kind(event: &TraceEvent) -> &'static str {
     }
 }
 
+fn legacy_event_kind(kind: &str) -> &str {
+    match kind {
+        "numpy_shuffle" => "shuffle",
+        "numpy_choice" => "choice",
+        kind => kind,
+    }
+}
+
 pub fn assert_trace(actual: &SearchTrace, evidence: &Value, catalog: &FrozenCatalog, label: &str) {
-    let expected: Vec<_> = evidence["ordered_events"].as_array().unwrap().iter().filter(|event| matches!(event["kind"].as_str().unwrap(),
-        "neighborhood" | "numpy_shuffle" | "numpy_choice" | "pool_orders" | "take" | "seek" | "legality" | "fast_dt_rejection" |
+    let expected: Vec<_> = evidence["ordered_events"].as_array().unwrap().iter().filter(|event| matches!(legacy_event_kind(event["kind"].as_str().unwrap()),
+        "neighborhood" | "shuffle" | "choice" | "pool_orders" | "take" | "seek" | "legality" | "fast_dt_rejection" |
         "full_player_dt_verification" | "evaluate_metric" | "rescore_with_output" | "score_chunk" | "mapper_selection" |
         "explicit_mapper" | "mapper_scores" | "pass_start" | "accepted" | "pass_return" | "dt_stage" | "dt_stage_end" |
         "unsatisfied_dt_termination" | "restart_comparison" | "build_return")).collect();
     assert_eq!(actual.events.len(), expected.len(), "{label}: full ordered decision trace");
     for (index, (actual, expected)) in actual.events.iter().zip(expected).enumerate() {
         let path = format!("{label}.events[{index}] {}", event_kind(actual));
-        let kind = expected["kind"].as_str().unwrap();
+        let kind = legacy_event_kind(expected["kind"].as_str().unwrap());
         assert!(event_kind(actual) == kind || (event_kind(actual) == "mapper_selection" && kind == "explicit_mapper"), "{path}: expected {kind}");
         match actual {
             TraceEvent::Neighborhood { combos, pools } => { exact(combos, &expected["combos"], &path); exact(pools, &expected["pools"], &path); }
@@ -231,20 +219,10 @@ pub fn assert_trace(actual: &SearchTrace, evidence: &Value, catalog: &FrozenCata
     }
 }
 
-pub fn assert_draws(actual: &RecordedRandom, evidence: &Value, label: &str) {
-    let expected: Vec<_> = evidence["ordered_events"].as_array().unwrap().iter().filter(|event| event["kind"] == "unused_or_used_action_draw").map(|event| &event["draw"]).collect();
-    assert_eq!(actual.draws.len(), expected.len(), "{label}: unused/used action draw count");
-    for (index, (draw, expected)) in actual.draws.iter().zip(expected).enumerate() {
-        let path = format!("{label}.draw[{index}]");
-        assert_eq!(match draw.stream { RandomStream::NumpyHost => "NumpyHost", RandomStream::NumbaPython => "NumbaPython" }, expected[0].as_str().unwrap(), "{path}: random stream");
-        assert_eq!(expected[1], "uniform", "{path}: random operation");
-        let parameters = expected[2].as_array().unwrap();
-        let (low, high) = if parameters.is_empty() { (0.0, 1.0) } else { (number(&parameters[0]), number(&parameters[1])) };
-        assert_eq!(draw.low.to_bits(), low.to_bits(), "{path}: interval lower"); assert_eq!(draw.high.to_bits(), high.to_bits(), "{path}: interval upper");
-        support::observation::record(draw.value, number(&expected[4]), true, &path);
-        assert_eq!(draw.value.to_bits(), number(&expected[4]).to_bits(), "{path}: exact random variate");
-    }
-    support::assert_numpy_state(&actual.random, &evidence["numpy_host_final_state"], label);
+pub fn assert_draw_count(actual: &CountingRandom, evidence: &Value, label: &str) {
+    let expected = evidence["ordered_events"].as_array().unwrap().iter()
+        .filter(|event| event["kind"] == "unused_or_used_action_draw").count();
+    assert_eq!(actual.uniforms(), expected, "{label}: unused/used action draw count");
 }
 
 pub fn assert_changes(catalog: &FrozenCatalog, before: &ModelState, after: &ModelState, expected: &Value, label: &str) {
@@ -258,75 +236,17 @@ pub fn assert_changes(catalog: &FrozenCatalog, before: &ModelState, after: &Mode
     }
 }
 
-fn restore_host(random: &mut RandomSources, seed: u32, snapshot: &Value, max_words: usize, label: &str) {
-    random.reseed_numpy(seed);
-    if support::numpy_state_matches(random, snapshot) { return; }
-    let position = snapshot["position"].as_u64().unwrap() as usize;
-    for _ in 0..position { random.next_u32(RandomStream::NumpyHost); }
-    for _ in 0..=max_words.div_ceil(624) {
-        if support::numpy_state_matches(random, snapshot) { return; }
-        for _ in 0..624 { random.next_u32(RandomStream::NumpyHost); }
-    }
-    panic!("{label}: captured worker state is unreachable from recorded seed/draw bound");
-}
-
-pub fn mapper(catalog: &FrozenCatalog, input: &Value, evidence: &Value, ctx: Arc<ScoreContext>, ids: InternedSet,
-    engine: &EvaluationContext<RecordedRandom>, trace: &mut Option<SearchTrace>, label: &str) -> (Mapper<RecordedRandom>, Vec<Value>) {
+pub fn mapper(input: &Value, evidence: &Value, ctx: Arc<ScoreContext>, ids: InternedSet,
+    trace: &mut Option<SearchTrace>) -> Mapper<CountingRandom> {
     let spec = &input["mapper"];
-    let events = evidence["ordered_events"].as_array().unwrap();
-    let selection = events.iter().find(|event| event["kind"] == "explicit_mapper" || event["kind"] == "mapper_selection").unwrap();
+    let selection = evidence["ordered_events"].as_array().unwrap().iter()
+        .find(|event| event["kind"] == "explicit_mapper" || event["kind"] == "mapper_selection").unwrap();
     let workers = selection["workers"].as_u64().unwrap() as usize;
     let config = MapperConfig { workers, candidate_estimate: spec.get("candidate_estimate").and_then(Value::as_u64).unwrap_or(0) as usize,
         force_pool: spec.get("force_pool").and_then(Value::as_bool).unwrap_or(false),
         batch_floor: spec.get("batch_floor").and_then(Value::as_u64).unwrap_or(8) as usize,
         batch_ceiling: spec.get("batch_ceiling").and_then(Value::as_u64).unwrap_or(64) as usize };
-    let mut mapper = Mapper::new(ctx.clone(), ids, config, trace);
-    let expected_jobs: Vec<_> = events.iter().filter(|event| event["kind"] == "worker_logical_job").cloned().collect();
-    if !expected_jobs.is_empty() {
-        let max_words = expected_jobs.iter().map(|job| {
-            job["evidence"]["ordered_events"].as_array().unwrap().iter().filter(|event| event["kind"] == "unused_or_used_action_draw").count()
-                + job["warmup"]["ordered_events"].as_array().unwrap().iter().filter(|event| event["kind"] == "unused_or_used_action_draw").count()
-        }).sum::<usize>() * 2;
-        let mut jobs = Vec::new();
-        for (index, expected) in expected_jobs.iter().enumerate() {
-            let path = format!("{label}.worker[{index}]");
-            let mut worker = context(catalog, &expected["seeds"]);
-            worker.state = engine.state.clone();
-            let mut scratch = ScoreScratch::new(&ctx);
-            let mut warmup = Some(SearchTrace::default());
-            let candidates = vec![Group { combo: Tuple::new(&[0]), candidates: vec![Tuple::new(&[ids[0]])] }];
-            scratch.score(&ctx, &ids, &candidates, [f64::INFINITY; 2], &mut worker, &AtomicBool::new(false), &mut warmup).unwrap();
-            assert_trace(warmup.as_ref().unwrap(), &expected["warmup"], catalog, &path);
-            assert_draws(&worker.random, &expected["warmup"], &path);
-            restore_host(&mut worker.random.random, expected["seeds"]["numpy_host"].as_u64().unwrap() as u32,
-                &expected["numpy_host_initial_state"], max_words, &path);
-            worker.random.draws.clear();
-            jobs.push(WorkerInput { engine: worker });
-        }
-        mapper.replay_workers(jobs);
-    }
-    (mapper, expected_jobs)
-}
-
-pub fn assert_workers(mapper: &Mapper<RecordedRandom>, expected: &[Value], catalog: &FrozenCatalog, label: &str) {
-    assert_eq!(mapper.unconsumed_workers(), 0, "{label}: all captured logical jobs consumed");
-    assert_eq!(mapper.completed_workers().len(), expected.len(), "{label}: ordered worker shares");
-    for (index, (actual, expected)) in mapper.completed_workers().iter().zip(expected).enumerate() {
-        let path = format!("{label}.worker[{index}]");
-        assert_floats(&actual.metrics, &expected["metrics"], &path);
-        assert_trace(actual.trace.as_ref().unwrap(), &expected["evidence"], catalog, &path);
-        assert_draws(&actual.engine.random, &expected["evidence"], &path);
-    }
-}
-
-pub fn assert_build(actual: &OptimizeResult, expected: &Value, catalog: &FrozenCatalog, state: &ModelState, label: &str) {
-    let result = &expected["result"];
-    if result["player"].is_null() { assert!(actual.player.is_none(), "{label}: no fabricated restart winner"); }
-    else { catalog.assert_player(actual.player.as_ref().unwrap(), state, &result["player"], label); }
-    assert_floats(&actual.legacy_output, &result["legacy_output"], label);
-    if !result["achieved_dt_from_original_helper"].is_null() { assert_floats(&[actual.pdt, actual.mdt], &result["achieved_dt_from_original_helper"], label); }
-    assert_eq!(Some(actual.feasible), result["requirements_satisfied"].as_bool(), "{label}: feasibility metadata");
-    assert_eq!(actual.accepted.len() as u64, result["observed_accepted_candidates"].as_u64().unwrap(), "{label}: accepted candidate count");
+    Mapper::new(ctx, ids, config, trace)
 }
 
 pub fn product_groups(slots: &[usize], pools: &[Vec<usize>]) -> Vec<Group> {
@@ -337,8 +257,253 @@ pub fn product_groups(slots: &[usize], pools: &[Vec<usize>]) -> Vec<Group> {
     vec![Group { combo: Tuple::new(slots), candidates: tuples.into_iter().map(|ids| Tuple::new(&ids)).collect() }]
 }
 
-pub fn orders_value(orders: &[Option<Vec<Vec<usize>>>]) -> Value {
-    let mut result = serde_json::Map::new();
-    for (index, orders) in orders.iter().enumerate() { if let Some(orders) = orders { result.insert(index.to_string(), json!(orders)); } }
-    Value::Object(result)
+pub fn assert_options(actual: &OptimizeOptions, expected: &Value, label: &str) {
+    assert_eq!(actual.iterations, expected["iterations"].as_i64().unwrap(), "{label}: pass limit");
+    assert_eq!(actual.max_swap_slots, expected["max_swap_slots"].as_i64().unwrap(), "{label}: swap limit");
+    assert_eq!(actual.restart_count, expected["restart_count"].as_i64().unwrap(), "{label}: restart count");
+    assert_eq!(actual.seed.map(u64::from), expected["seed"].as_u64(), "{label}: seed");
+    assert_number(actual.dt_step, &expected["dt_step"], label);
+    assert_eq!(actual.workers, expected["workers"].as_i64().unwrap(), "{label}: requested workers");
+}
+
+fn assert_outcome<T>(actual: &Result<T, CalcError>, expected: &Value, label: &str) {
+    assert_eq!(actual.is_ok(), expected["status"] == "returned", "{label}: captured return/error status");
+    if let Err(error) = actual { support::assert_error(error, &expected["error"], label); }
+}
+
+fn error_value(error: &CalcError) -> Value {
+    match error {
+        CalcError::Data { path, json_path, message } =>
+            json!({"kind": "data", "path": path, "json_path": json_path, "message": message}),
+        CalcError::Legacy { operation, field, category, message } =>
+            json!({"kind": "legacy", "operation": operation, "field": field, "category": category, "message": message}),
+        CalcError::Input { operation, field, message } =>
+            json!({"kind": "input", "operation": operation, "field": field, "message": message}),
+        CalcError::Interrupted { operation } => json!({"kind": "interrupted", "operation": operation}),
+        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => json!({
+            "kind": "nonprogress", "operation": operation, "starting_tp": native::num(*starting_tp),
+            "threshold": native::num(*threshold), "upper_bound": native::num(*upper_bound),
+        }),
+    }
+}
+
+fn accepted_value(accepted: &[AcceptedCandidate], catalog: &FrozenCatalog) -> Value {
+    Value::Array(accepted.iter().map(|candidate| json!({
+        "gearset": native::gearset_value(catalog, &candidate.gearset),
+        "metric": native::num(candidate.metric), "legacy_output": native::nums(&candidate.legacy_output),
+        "pdt": native::num(candidate.pdt), "mdt": native::num(candidate.mdt),
+    })).collect())
+}
+
+pub struct NeighborhoodRun {
+    pub combos: Vec<Tuple>,
+    pub ordered_candidates: Vec<Value>,
+    pub exhausted_cursor: Cursor,
+    pub replay_count: usize,
+    pub replay_start: Cursor,
+    pub replayed_tail: Vec<Group>,
+    pub rewind_prefix: Vec<Group>,
+    pub rewind_prefix_count: usize,
+    pub trace: SearchTrace,
+    pub random: CountingRandom,
+}
+
+pub fn run_neighborhood(case: &Value, _catalog: &FrozenCatalog) -> NeighborhoodRun {
+    let input = &case["input"];
+    let combos = if input["combos"].is_null() {
+        slot_combos(input["pools"].as_array().unwrap().len(), input["max_swap_slots"].as_u64().unwrap() as usize)
+    } else { input["combos"].as_array().unwrap().iter().map(tuple).collect() };
+    let pools: Vec<_> = input["pools"].as_array().unwrap().iter().map(integers).collect();
+    let base = integers(&input["base_ids"]);
+    let mut random = CountingRandom::seeded(input["seeds"]["numpy_host"].as_u64().unwrap());
+    let mut trace = Some(SearchTrace::default());
+    let mut neighborhood = Neighborhood::new(combos.clone(), pools, &mut trace);
+    let mut ordered_candidates = Vec::new();
+    while !neighborhood.exhausted() {
+        let (groups, count) = neighborhood.take(&base, input["batch"].as_u64().unwrap() as usize, &mut random, &mut trace);
+        for group in groups {
+            for ids in group.candidates { ordered_candidates.push(json!([group.combo, ids])); }
+        }
+        if count == 0 { break; }
+    }
+    let exhausted_cursor = neighborhood.position();
+    neighborhood.seek(Cursor { combo_index: 0, odometer: Vec::new(), entered: false }, &mut trace);
+    let (rewind_prefix, rewind_prefix_count) = neighborhood.take(&base,
+        input["rewind_after"].as_u64().unwrap() as usize, &mut random, &mut trace);
+    let replay_start = neighborhood.position();
+    let (replayed_tail, replay_count) = neighborhood.take(&base, 100000, &mut random, &mut trace);
+    NeighborhoodRun { combos, ordered_candidates, exhausted_cursor, replay_count, replay_start, replayed_tail,
+        rewind_prefix, rewind_prefix_count, trace: trace.unwrap(), random }
+}
+
+pub fn assert_neighborhood_legacy(case: &Value, run: &NeighborhoodRun, _catalog: &FrozenCatalog) {
+    assert_eq!(json!(run.combos), case["expected"]["value"]["combos"], "{}: combo walk", case["id"]);
+}
+
+pub fn project_neighborhood(run: &NeighborhoodRun, catalog: &FrozenCatalog) -> Value {
+    json!({
+        "result": {
+            "ordered_candidates": run.ordered_candidates, "exhausted_cursor": run.exhausted_cursor,
+            "replay_count": run.replay_count, "replay_start": run.replay_start, "replayed_tail": run.replayed_tail,
+            "rewind_prefix": run.rewind_prefix, "rewind_prefix_count": run.rewind_prefix_count,
+        },
+        "trace": native::trace_value(&run.trace, catalog), "random": native::random_value(&run.random),
+    })
+}
+
+pub struct PassRun {
+    pub initial_ids: InternedSet,
+    pub result: Result<PassResult, CalcError>,
+    pub before: ModelState,
+    pub state: ModelState,
+    pub trace: SearchTrace,
+    pub random: CountingRandom,
+}
+
+fn run_pass_in_context(input: &Value, expected: &Value, catalog: &FrozenCatalog,
+    engine: &mut EvaluationContext<CountingRandom>, baseline: Option<&ModelState>, label: &str) -> PassRun {
+    let before = baseline.cloned().unwrap_or_else(|| engine.state.clone());
+    let mut trace = Some(SearchTrace::default());
+    let (ctx, ids, pools) = score_context(catalog, input, &engine.state, label);
+    let mut mapper = mapper(input, &expected["evidence"], ctx.clone(), ids, &mut trace);
+    let swappable = pools.iter().enumerate().filter_map(|(index, pool)| (!pool.is_empty()).then_some(index)).collect::<Vec<_>>();
+    let combos = slot_combos(swappable.len(), input["max_swap_slots"].as_u64().unwrap() as usize).iter().map(|combo|
+        Tuple::new(&combo.as_slice().iter().map(|&axis| swappable[axis]).collect::<Vec<_>>())).collect();
+    let mut neighborhood = Neighborhood::new(combos, pools, &mut trace);
+    let result = optimize_pass(&ctx, &mut mapper, &mut neighborhood, PassInput {
+        ids, metric: number(&input["initial_metric"]), output: floats(&input["initial_output"]), invert: 1,
+        next_best_percent: number(&input["next_best_percent"]), thresholds: thresholds(&input["thresholds"]),
+        stage: 1, pass: 1, scored_before: 0, verbose_swaps: input["verbose_swaps"].as_bool().unwrap(),
+    }, engine, &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut |_| {}, &mut trace);
+    PassRun { initial_ids: ids, result, before, state: engine.state.clone(), trace: trace.unwrap(), random: engine.random.clone() }
+}
+
+pub fn run_pass(case: &Value, catalog: &FrozenCatalog) -> PassRun {
+    let input = &case["input"];
+    let mut engine = context(catalog, &input["seeds"]);
+    run_pass_in_context(input, &case["expected"]["value"], catalog, &mut engine, None, case["id"].as_str().unwrap())
+}
+
+fn assert_pass_observation(expected: &Value, run: &PassRun, catalog: &FrozenCatalog, label: &str) {
+    assert_outcome(&run.result, expected, label);
+    if run.result.is_ok() {
+        assert_eq!(json!(run.initial_ids), expected["result"]["initial_ids"], "{label}: initial interned ids");
+    }
+    assert_changes(catalog, &run.before, &run.state, &expected["catalog_metadata_changes"], label);
+}
+
+pub fn assert_pass_legacy(case: &Value, run: &PassRun, catalog: &FrozenCatalog) {
+    assert_pass_observation(&case["expected"]["value"], run, catalog, case["id"].as_str().unwrap());
+}
+
+pub fn project_pass(run: &PassRun, catalog: &FrozenCatalog) -> Value {
+    let mut observation = json!({"trace": native::trace_value(&run.trace, catalog), "random": native::random_value(&run.random)});
+    match &run.result {
+        Ok(result) => observation["result"] = json!({
+            "ids": result.ids, "metric": native::num(result.metric), "output": native::nums(&result.output),
+            "accepted": accepted_value(&result.accepted, catalog), "similar": native::similar_value(catalog, &result.similar),
+            "scored": result.scored,
+        }),
+        Err(error) => { observation["result"] = Value::Null; observation["error"] = error_value(error); }
+    }
+    observation
+}
+
+pub struct BuildRun {
+    pub engine: EvaluationContext<CountingRandom>,
+    pub before: ModelState,
+    pub request: RawOptimizeRequest,
+    pub trace: SearchTrace,
+    pub result: Result<OptimizeResult, CalcError>,
+}
+
+pub fn run_build(case: &Value, catalog: &FrozenCatalog) -> BuildRun {
+    let input = &case["input"];
+    let mut engine = context(catalog, &input["seeds"]);
+    let before = engine.state.clone();
+    let mut trace = Some(SearchTrace::default());
+    let mut request = raw_request(catalog, input, &engine.state, case["id"].as_str().unwrap());
+    if request.options.workers == 0 {
+        request.automatic_workers = Some(case["expected"]["value"]["evidence"]["ordered_events"].as_array().unwrap().iter()
+            .find(|event| event["kind"] == "resolved_workers").unwrap()["resolved"].as_u64().unwrap() as usize);
+    }
+    let result = optimize_raw(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}, &mut trace);
+    BuildRun { engine, before, request, trace: trace.unwrap(), result }
+}
+
+pub fn assert_build_legacy(case: &Value, run: &BuildRun, catalog: &FrozenCatalog) {
+    let label = case["id"].as_str().unwrap();
+    let expected = &case["expected"]["value"];
+    assert_options(&run.request.options, &case["input"]["options"], label);
+    assert_outcome(&run.result, expected, label);
+    assert_changes(catalog, &run.before, &run.engine.state, &expected["catalog_metadata_changes"], label);
+    if let Ok(result) = &run.result {
+        assert_eq!(result.restarts as i64, normalize_options(Some(&run.request.options)).restart_count, "{label}: completed restarts");
+        assert_eq!(result.stages, run.trace.events.iter().filter(|event| matches!(event, TraceEvent::DtStage { .. })).count(), "{label}: completed stages");
+        assert_eq!(result.passes, run.trace.events.iter().filter(|event| matches!(event, TraceEvent::PassStart { .. })).count(), "{label}: completed passes");
+        let scored: usize = run.trace.events.iter().filter_map(|event| match event {
+            TraceEvent::MapperScores { total, .. } => Some(*total), _ => None,
+        }).sum();
+        assert_eq!(result.scored, scored, "{label}: ordered scored candidate count");
+    }
+}
+
+pub fn project_build_result(result: &OptimizeResult, catalog: &FrozenCatalog) -> Value {
+    json!({
+        "gearset": native::gearset_value(catalog, &result.gearset),
+        "player": result.player.as_ref().map(|player| native::player_value(catalog, player)),
+        "metric": native::num(result.metric), "legacy_output": native::nums(&result.legacy_output),
+        "pdt": native::num(result.pdt), "mdt": native::num(result.mdt), "feasible": result.feasible,
+        "termination": result.termination, "accepted": accepted_value(&result.accepted, catalog),
+        "similar": native::similar_value(catalog, &result.similar), "stages": result.stages,
+        "passes": result.passes, "scored": result.scored, "restarts": result.restarts, "invert": result.invert,
+        "warnings": result.warnings,
+    })
+}
+
+pub fn project_build(run: &BuildRun, catalog: &FrozenCatalog) -> Value {
+    let mut observation = json!({"trace": native::trace_value(&run.trace, catalog), "random": native::random_value(&run.engine.random)});
+    match &run.result {
+        Ok(result) => observation["result"] = project_build_result(result, catalog),
+        Err(error) => { observation["result"] = Value::Null; observation["error"] = error_value(error); }
+    }
+    observation
+}
+
+pub struct SequenceRun {
+    pub steps: Vec<PassRun>,
+    pub before: ModelState,
+    pub state: ModelState,
+    pub isolated: ModelState,
+}
+
+pub fn run_sequence(case: &Value, catalog: &FrozenCatalog) -> SequenceRun {
+    let steps = case["input"]["steps"].as_array().unwrap();
+    let mut engine = context(catalog, &steps[0]["seeds"]);
+    let before = engine.state.clone();
+    let mut observations = Vec::with_capacity(steps.len());
+    for (index, step) in steps.iter().enumerate() {
+        engine.random = CountingRandom::seeded(step["seeds"]["numpy_host"].as_u64().unwrap());
+        observations.push(run_pass_in_context(step, &case["expected"]["value"]["steps"][index], catalog, &mut engine,
+            Some(&before), &format!("{}.step[{index}]", case["id"].as_str().unwrap())));
+    }
+    let isolated = context(catalog, &steps[0]["seeds"]).state;
+    SequenceRun { steps: observations, before, state: engine.state, isolated }
+}
+
+pub fn assert_sequence_legacy(case: &Value, run: &SequenceRun, catalog: &FrozenCatalog) {
+    let label = case["id"].as_str().unwrap();
+    let expected = &case["expected"]["value"];
+    assert_eq!(run.steps.len(), expected["steps"].as_array().unwrap().len(), "{label}: complete shared-state sequence");
+    for (index, step) in run.steps.iter().enumerate() {
+        assert_pass_observation(&expected["steps"][index], step, catalog, &format!("{label}.step[{index}]"));
+    }
+    assert_changes(catalog, &run.before, &run.state, &expected["catalog_metadata_changes"], label);
+    let empty = catalog.catalog.piece(catalog.catalog.by_symbol("Empty").unwrap());
+    assert_eq!(run.state.skill(empty), SkillType::HandToHand, "{label}: sequential shared Empty override");
+    assert_eq!(run.isolated.skill(empty), SkillType::None, "{label}: independent session override boundary");
+}
+
+pub fn project_sequence(run: &SequenceRun, catalog: &FrozenCatalog) -> Value {
+    json!({"steps": run.steps.iter().map(|step| project_pass(step, catalog)).collect::<Vec<_>>()})
 }

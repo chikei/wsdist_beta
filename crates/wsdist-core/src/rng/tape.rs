@@ -10,7 +10,7 @@ use crate::model::{CalcError, LegacyF64, RandomSource, RandomStream};
 pub enum TapeRecord {
     Uniform { stream: RandomStream, low: f64, high: f64, value: f64 },
     Bounded { stream: RandomStream, upper_exclusive: usize, value: usize },
-    Reseed { stream: RandomStream, seed: u32 },
+    Reseed { stream: RandomStream, seed: u64 },
 }
 
 impl TapeRecord {
@@ -22,15 +22,15 @@ impl TapeRecord {
         Self::Bounded { stream, upper_exclusive, value }
     }
 
-    pub const fn reseed(stream: RandomStream, seed: u32) -> Self {
+    pub const fn reseed(stream: RandomStream, seed: u64) -> Self {
         Self::Reseed { stream, seed }
     }
 
     fn from_json(value: &Value, index: usize) -> Result<Self, CalcError> {
         let record = value.as_object().ok_or_else(|| record_error(index, "record", "expected an object"))?;
         let stream = match required(record, index, "stream")?.as_str() {
-            Some("NumpyHost") => RandomStream::NumpyHost,
-            Some("NumbaPython") => RandomStream::NumbaPython,
+            Some("NumpyHost") => RandomStream::Primary,
+            Some("NumbaPython") => RandomStream::Pdif,
             other => return Err(record_error(index, "stream", format!("unsupported stream {other:?}"))),
         };
         match required(record, index, "operation")?.as_str() {
@@ -49,8 +49,8 @@ impl TapeRecord {
                 Ok(Self::bounded(stream, upper, result))
             }
             Some("reseed") => {
-                let seed = integer(parameter(record, index, 0, 1, "seed")?, index, "seed")?;
-                let seed = u32::try_from(seed).map_err(|_| record_error(index, "seed", "seed is outside u32"))?;
+                let seed = parameter(record, index, 0, 1, "seed")?.as_u64()
+                    .ok_or_else(|| record_error(index, "seed", "expected a nonnegative u64 integer"))?;
                 if record.get("value").is_some_and(|value| !value.is_null()) {
                     return Err(record_error(index, "value", "reseed has no return value"));
                 }
@@ -120,7 +120,7 @@ impl ScriptedTape {
         Err(record_error(self.cursor, "bounded", format!("expected {expected:?}; got {stream:?} bounded({upper_exclusive})")))
     }
 
-    pub fn try_reseed(&mut self, stream: RandomStream, seed: u32) -> Result<(), CalcError> {
+    pub fn try_reseed(&mut self, stream: RandomStream, seed: u64) -> Result<(), CalcError> {
         let expected = self.record()?;
         if let TapeRecord::Reseed { stream: recorded_stream, seed: recorded_seed } = expected {
             if stream == recorded_stream && seed == recorded_seed {
@@ -144,12 +144,12 @@ impl RandomSource for ScriptedTape {
     }
 
     #[inline]
-    fn bounded_numpy(&mut self, upper_exclusive: usize) -> usize {
-        self.try_bounded(RandomStream::NumpyHost, upper_exclusive).unwrap_or_else(|error| panic!("{error}"))
+    fn bounded(&mut self, upper_exclusive: usize) -> usize {
+        self.try_bounded(RandomStream::Primary, upper_exclusive).unwrap_or_else(|error| panic!("{error}"))
     }
 
-    fn reseed_numpy(&mut self, seed: u32) {
-        self.try_reseed(RandomStream::NumpyHost, seed).unwrap_or_else(|error| panic!("{error}"));
+    fn reseed(&mut self, seed: u64) {
+        self.try_reseed(RandomStream::Primary, seed).unwrap_or_else(|error| panic!("{error}"));
     }
 }
 

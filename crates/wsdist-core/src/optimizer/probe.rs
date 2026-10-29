@@ -1,4 +1,4 @@
-//! Narrow numerical probes for the frozen helper, cursor and logical-worker corpus.
+//! Narrow numerical probes for the frozen helper and cursor corpus.
 //! These use the same scorer and first-improvement driver as production.
 
 use std::sync::Arc;
@@ -12,7 +12,7 @@ pub use super::helpers::{DtVector, Group, GroupSlice, InternedPieces, InternedSe
     restart_options, slot_combos, split_groups};
 pub use super::legality::{LegalityRules, RESTRICTED_WS, SearchKind, WS_MENUS, jse_ear_names, optimizer_ws_type};
 pub use super::neighborhood::{Cursor, Neighborhood};
-pub use super::scoring::{CompletedWorker, LegacyEvaluation, Mapper, MapperConfig, ScoreContext, ScoreScratch, WorkerInput};
+pub use super::scoring::{LegacyEvaluation, Mapper, MapperConfig, ScoreContext, ScoreScratch};
 pub use super::search::{PassInput, PassResult, RawOptimizeRequest, optimize_pass, optimize_raw};
 
 #[derive(Clone, Debug)]

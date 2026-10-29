@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -209,9 +208,6 @@ impl MapperConfig {
     }
 }
 
-pub struct WorkerInput<R: RandomSource> { pub engine: EvaluationContext<R> }
-pub struct CompletedWorker<R: RandomSource> { pub engine: EvaluationContext<R>, pub trace: Option<SearchTrace>, pub metrics: Vec<f64> }
-
 struct Worker<R: RandomSource> { engine: EvaluationContext<R>, scratch: ScoreScratch, warmed: bool }
 
 pub struct Mapper<R: RandomSource> {
@@ -219,8 +215,6 @@ pub struct Mapper<R: RandomSource> {
     pool: Option<rayon::ThreadPool>,
     workers: Vec<Mutex<Worker<R>>>,
     warmup_ids: InternedSet,
-    logical_jobs: Option<VecDeque<WorkerInput<R>>>,
-    completed: Vec<CompletedWorker<R>>,
     pub width: usize,
     pub batch_floor: usize,
     pub batch_ceiling: usize,
@@ -243,17 +237,10 @@ impl<R: RandomSource> Mapper<R> {
         let ceiling = if parallel { 256 * width } else { config.batch_ceiling };
         record(trace, || TraceEvent::MapperSelection { workers: config.workers, candidate_estimate: config.candidate_estimate,
             parallel, width, floor, ceiling });
-        Self { context, pool, workers: Vec::new(), warmup_ids, logical_jobs: None, completed: Vec::new(),
+        Self { context, pool, workers: Vec::new(), warmup_ids,
             width, batch_floor: floor, batch_ceiling: ceiling, warning }
     }
 
-    /// Replay actual captured logical worker contexts, without substituting scores.
-    pub fn replay_workers(&mut self, jobs: Vec<WorkerInput<R>>) {
-        assert!(self.pool.is_some(), "logical worker contexts require a pool mapper");
-        self.logical_jobs = Some(jobs.into());
-    }
-    pub fn completed_workers(&self) -> &[CompletedWorker<R>] { &self.completed }
-    pub fn unconsumed_workers(&self) -> usize { self.logical_jobs.as_ref().map_or(0, VecDeque::len) }
     pub fn is_parallel(&self) -> bool { self.pool.is_some() }
 
     pub fn score(&mut self, base: &InternedSet, groups: &[Group], total: usize, thresholds: [f64; 2],
@@ -266,51 +253,36 @@ impl<R: RandomSource> Mapper<R> {
         } else {
             let parts = (4 * self.width).min((total / 24).max(1));
             let shares = split_groups(groups, total, parts);
-            if let Some(jobs) = &mut self.logical_jobs {
-                let mut metrics = Vec::with_capacity(total);
-                for share in shares {
-                    interrupted(stop)?;
-                    let mut job = jobs.pop_front().ok_or_else(|| CalcError::Input { operation: "optimize.probe",
-                        field: "logical worker contexts", message: "missing captured worker job".into() })?;
-                    let mut worker_trace = trace.as_ref().map(|_| SearchTrace::default());
-                    let mut worker_scratch = ScoreScratch::new(&self.context);
-                    let result = worker_scratch.score_slices(&self.context, base, &share, thresholds, &mut job.engine, stop, &mut worker_trace)?;
-                    metrics.extend_from_slice(&result);
-                    self.completed.push(CompletedWorker { engine: job.engine, trace: worker_trace, metrics: result });
-                }
-                metrics
-            } else {
-                // ProcessPoolExecutor serializes initializer inputs at its first
-                // dispatched batch, after any preceding local model mutations.
-                if self.workers.is_empty() {
-                    self.workers = (0..self.width).map(|_| {
-                        let engine = EvaluationContext {
-                            catalog: coordinator.catalog.clone(), state: coordinator.state.clone(), random: coordinator.random.clone(),
-                            scratch: EvaluationScratch::default(), player_stages: None, action_trace: None, calculation_trace: None,
-                        };
-                        Mutex::new(Worker { engine, scratch: ScoreScratch::new(&self.context), warmed: false })
-                    }).collect();
-                }
-                let pool = self.pool.as_ref().expect("pool selected");
-                let context = &self.context;
-                let workers = &self.workers;
-                let warmup_ids = self.warmup_ids;
-                let results: Vec<Result<Vec<f64>, CalcError>> = pool.install(|| shares.par_iter().map(|share| {
-                    let index = rayon::current_thread_index().expect("per-job pool worker");
-                    let mut worker = workers[index].lock();
-                    let Worker { engine, scratch, warmed } = &mut *worker;
-                    if !*warmed {
-                        let candidates = [Tuple::new(&[warmup_ids[0]])];
-                        let group = [GroupSlice { combo: Tuple::new(&[0]), candidates: &candidates }];
-                        scratch.score_slices(context, &warmup_ids, &group, [f64::INFINITY; 2], engine, stop, &mut None)?;
-                        *warmed = true;
-                    }
-                    scratch.score_slices(context, base, share, thresholds, engine, stop, &mut None)
-                }).collect());
-                let mut metrics = Vec::with_capacity(total);
-                for result in results { metrics.extend(result?); }
-                metrics
+            // ProcessPoolExecutor serializes initializer inputs at its first
+            // dispatched batch, after any preceding local model mutations.
+            if self.workers.is_empty() {
+                self.workers = (0..self.width).map(|_| {
+                    let engine = EvaluationContext {
+                        catalog: coordinator.catalog.clone(), state: coordinator.state.clone(), random: coordinator.random.clone(),
+                        scratch: EvaluationScratch::default(), player_stages: None, action_trace: None, calculation_trace: None,
+                    };
+                    Mutex::new(Worker { engine, scratch: ScoreScratch::new(&self.context), warmed: false })
+                }).collect();
             }
+            let pool = self.pool.as_ref().expect("pool selected");
+            let context = &self.context;
+            let workers = &self.workers;
+            let warmup_ids = self.warmup_ids;
+            let results: Vec<Result<Vec<f64>, CalcError>> = pool.install(|| shares.par_iter().map(|share| {
+                let index = rayon::current_thread_index().expect("per-job pool worker");
+                let mut worker = workers[index].lock();
+                let Worker { engine, scratch, warmed } = &mut *worker;
+                if !*warmed {
+                    let candidates = [Tuple::new(&[warmup_ids[0]])];
+                    let group = [GroupSlice { combo: Tuple::new(&[0]), candidates: &candidates }];
+                    scratch.score_slices(context, &warmup_ids, &group, [f64::INFINITY; 2], engine, stop, &mut None)?;
+                    *warmed = true;
+                }
+                scratch.score_slices(context, base, share, thresholds, engine, stop, &mut None)
+            }).collect());
+            let mut metrics = Vec::with_capacity(total);
+            for result in results { metrics.extend(result?); }
+            metrics
         };
         record(trace, || TraceEvent::MapperScores { base: *base, groups: groups.to_vec(), total, thresholds, metrics: metrics.clone(),
             parallel: self.pool.is_some() && total >= 192 });

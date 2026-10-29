@@ -248,13 +248,14 @@ pub struct EnemyInput {
 mod player;
 pub use player::{build_player, get_skill_accuracy};
 
+/// Primary: action rolls, resist, optimizer choice/shuffle. Pdif: pDIF kernel rolls.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RandomStream { NumpyHost, NumbaPython }
+pub enum RandomStream { Primary, Pdif }
 
 pub trait RandomSource: Clone + Send + 'static {
     fn uniform(&mut self, stream: RandomStream, low: f64, high: f64) -> f64;
-    fn bounded_numpy(&mut self, upper_exclusive: usize) -> usize;
-    fn reseed_numpy(&mut self, seed: u32);
+    fn bounded(&mut self, upper_exclusive: usize) -> usize;
+    fn reseed(&mut self, seed: u64);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

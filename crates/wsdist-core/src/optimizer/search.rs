@@ -133,7 +133,7 @@ pub fn optimize_raw<R: RandomSource>(request: &RawOptimizeRequest, engine: &mut 
     interrupted(stop)?;
     let options = normalize_options(Some(&request.options));
     // The recursive source reseeds once before dispatching its individually seeded starts.
-    if let Some(seed) = options.seed { engine.random.reseed_numpy(seed); }
+    if let Some(seed) = options.seed { engine.random.reseed(u64::from(seed)); }
     if options.restart_count > 1 {
         let mut best = None;
         let mut best_metric = 0.0001;
@@ -142,7 +142,7 @@ pub fn optimize_raw<R: RandomSource>(request: &RawOptimizeRequest, engine: &mut 
         for index in 0..options.restart_count as usize {
             interrupted(stop)?;
             let single = restart_options(&options, index)?;
-            if let Some(seed) = single.seed { engine.random.reseed_numpy(seed); }
+            if let Some(seed) = single.seed { engine.random.reseed(u64::from(seed)); }
             let mut result = single_start(request, &single, engine, stop, progress, trace)?;
             stages += result.stages; passes += result.passes; scored += result.scored;
             all_accepted.extend_from_slice(&result.accepted);
@@ -225,7 +225,7 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
         let index = slot.index();
         if !engine.catalog.piece(starting[index]).eligible_for(request.player.main_job) { starting[index] = empty; }
         if !candidates[index].is_empty() {
-            let selected = candidates[index][engine.random.bounded_numpy(candidates[index].len())];
+            let selected = candidates[index][engine.random.bounded(candidates[index].len())];
             let state = state_snapshot(trace, &engine.state);
             record(trace, || TraceEvent::Choice { pool: candidates[index].clone(), selected, state: state.expect("enabled trace snapshot") });
             starting[index] = selected;

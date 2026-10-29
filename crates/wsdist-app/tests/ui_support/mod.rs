@@ -46,7 +46,7 @@ pub fn cases(operation: &str) -> Vec<Value> {
 }
 
 pub fn seeded(profiles: Option<&ProfileStore>) -> UiState {
-    UiState::new(catalog(), RandomSources::from_seeds(11, 11), profiles)
+    UiState::new(catalog(), RandomSources::from_seed(11), profiles)
 }
 
 pub fn names(state: &UiState, ids: &[GearId]) -> Vec<String> {

@@ -2,6 +2,8 @@
 #[allow(dead_code)]
 mod support;
 mod optimizer_support;
+#[allow(dead_code)]
+mod native_support;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -10,31 +12,22 @@ use wsdist_core::model::*;
 use wsdist_core::optimizer::{optimize, probe::*};
 
 use optimizer_support as adapter;
-use support::{FrozenCatalog, assert_number, document, number};
+use support::FrozenCatalog;
 
-fn fixtures(operation: &str) -> Vec<Value> {
+fn fixtures(operation: &str) -> Vec<(support::IndexedCase, Value)> {
     support::index().cases.into_iter().filter(|case| case.operation == operation).map(|case| {
-        let fixture = document(&support::fixture_root().join(case.path));
+        let fixture = support::fixture(&support::fixture_root(), &case);
         assert_eq!(fixture["id"], case.id, "frozen index identity");
         assert_eq!(fixture["expected"]["outcome"], "result", "captured operation outcome");
-        fixture
+        (case, fixture)
     }).collect()
-}
-
-fn assert_options(actual: &OptimizeOptions, expected: &Value, label: &str) {
-    assert_eq!(actual.iterations, expected["iterations"].as_i64().unwrap(), "{label}: pass limit");
-    assert_eq!(actual.max_swap_slots, expected["max_swap_slots"].as_i64().unwrap(), "{label}: swap limit");
-    assert_eq!(actual.restart_count, expected["restart_count"].as_i64().unwrap(), "{label}: restart count");
-    assert_eq!(actual.seed.map(u64::from), expected["seed"].as_u64(), "{label}: seed");
-    assert_number(actual.dt_step, &expected["dt_step"], label);
-    assert_eq!(actual.workers, expected["workers"].as_i64().unwrap(), "{label}: requested workers");
 }
 
 #[test]
 fn frozen_helper_walk_splitting_normalization_and_full_record_interning() {
     let cases = fixtures("optimizer_helpers");
     assert_eq!(cases.len(), 48);
-    for fixture in cases {
+    for (_, fixture) in cases {
         let label = fixture["id"].as_str().unwrap();
         let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
         match input["helper"].as_str().unwrap() {
@@ -43,8 +36,8 @@ fn frozen_helper_walk_splitting_normalization_and_full_record_interning() {
             "options" => {
                 let options: Option<OptimizeOptions> = serde_json::from_value(input["options"].clone()).unwrap();
                 let normalized = normalize_options(options.as_ref());
-                assert_options(&normalized, &expected["normalized"], label);
-                for index in 0..3 { assert_options(&restart_options(&normalized, index).unwrap(), &expected["restart_options"][index], label); }
+                adapter::assert_options(&normalized, &expected["normalized"], label);
+                for index in 0..3 { adapter::assert_options(&restart_options(&normalized, index).unwrap(), &expected["restart_options"][index], label); }
             }
             "split_groups" => {
                 let groups = adapter::groups(&input["groups"]);
@@ -77,57 +70,33 @@ fn frozen_helper_walk_splitting_normalization_and_full_record_interning() {
 #[test]
 fn frozen_neighborhoods_preserve_duplicates_skip_each_unchanged_axis_and_replay_cursor() {
     let cases = fixtures("optimizer_neighborhood"); assert_eq!(cases.len(), 44);
-    for fixture in cases {
-        let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
-        let combos = if input["combos"].is_null() { slot_combos(input["pools"].as_array().unwrap().len(), input["max_swap_slots"].as_u64().unwrap() as usize) }
-            else { input["combos"].as_array().unwrap().iter().map(adapter::tuple).collect() };
-        let pools: Vec<Vec<usize>> = input["pools"].as_array().unwrap().iter().map(adapter::integers).collect();
-        let base = adapter::integers(&input["base_ids"]);
-        let mut random = adapter::RecordedRandom::seeded(&input["seeds"]);
-        let mut trace = Some(SearchTrace::default());
-        let mut neighborhood = Neighborhood::new(combos.clone(), pools, &mut trace);
-        let mut candidates = Vec::new();
-        while !neighborhood.exhausted() {
-            let (groups, count) = neighborhood.take(&base, input["batch"].as_u64().unwrap() as usize, &mut random, &mut trace);
-            for group in groups { for ids in group.candidates { candidates.push(json!([group.combo, ids])); } }
-            if count == 0 { break; }
-        }
-        assert_eq!(json!(combos), expected["combos"], "{label}: combo walk");
-        assert_eq!(json!(candidates), expected["ordered_candidates"], "{label}: candidate order/duplicates");
-        assert_eq!(json!(neighborhood.position()), expected["exhausted_cursor"], "{label}: exhausted cursor");
-        neighborhood.seek(Cursor { combo_index: 0, odometer: Vec::new(), entered: false }, &mut trace);
-        let (prefix, count) = neighborhood.take(&base, input["rewind_after"].as_u64().unwrap() as usize, &mut random, &mut trace);
-        assert_eq!(json!(prefix), expected["rewind_prefix"], "{label}: rewind prefix");
-        assert_eq!(count as u64, expected["rewind_prefix_count"].as_u64().unwrap(), "{label}: rewind count");
-        assert_eq!(json!(neighborhood.position()), expected["replay_start"], "{label}: replay cursor");
-        let (tail, count) = neighborhood.take(&base, 100000, &mut random, &mut trace);
-        assert_eq!(json!(tail), expected["replayed_tail"], "{label}: replay without reshuffling");
-        assert_eq!(count as u64, expected["replay_count"].as_u64().unwrap(), "{label}: replay count");
-        let catalog = FrozenCatalog::from_input(input);
-        adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
-        adapter::assert_draws(&random, &expected["evidence"], label);
+    for (entry, fixture) in cases {
+        let catalog = FrozenCatalog::from_input(&fixture["input"]);
+        let run = adapter::run_neighborhood(&fixture, &catalog);
+        adapter::assert_neighborhood_legacy(&fixture, &run, &catalog);
+        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_neighborhood(&run, &catalog));
     }
 }
 
 #[test]
 fn frozen_legality_preserves_name_checks_record_equality_and_literal_ws_restrictions() {
     let cases = fixtures("optimizer_legality"); assert_eq!(cases.len(), 182);
-    for fixture in cases {
+    for (_, fixture) in cases {
         let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
-        let catalog = FrozenCatalog::from_input(input); let engine = catalog.context(&input["seeds"]);
+        let catalog = FrozenCatalog::from_input(input); let engine = adapter::context(&catalog, &input["seeds"]);
         let rules = adapter::legality(&catalog, input, &engine.state, label);
         let gearset = catalog.gearset(&input["player"]["gearset"]);
         assert_eq!(Some(rules.is_valid(&gearset, &catalog.catalog, &engine.state)), expected["valid"].as_bool(), "{label}: legality result");
         assert_eq!(json!(jse_ear_names()), expected["jse_ears"], "{label}: literal JSE restrictions");
         catalog.assert_gearset(&gearset, &engine.state, &expected["effective_gearset"], label);
-        support::assert_numpy_state(&engine.random, &expected["evidence"]["numpy_host_final_state"], label);
+        assert_eq!(engine.random.uniforms() + engine.random.bounded + engine.random.reseeds, 0, "{label}: legality consumes no randomness");
     }
 }
 
 #[test]
 fn frozen_fast_dt_gate_full_player_verification_type_ii_and_aftermath_scores() {
     let cases = fixtures("optimizer_score"); assert_eq!(cases.len(), 58);
-    for fixture in cases {
+    for (_, fixture) in cases {
         let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
         let catalog = FrozenCatalog::from_input(input); let mut engine = adapter::context(&catalog, &input["seeds"]);
         let before = engine.state.clone(); let mut trace = Some(SearchTrace::default());
@@ -139,84 +108,41 @@ fn frozen_fast_dt_gate_full_player_verification_type_ii_and_aftermath_scores() {
         adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
         assert_eq!(Some(ctx.fast_gate), expected["result"]["fast_gate"].as_bool(), "{label}: aftermath fast-gate eligibility");
         adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
-        adapter::assert_draws(&engine.random, &expected["evidence"], label);
+        adapter::assert_draw_count(&engine.random, &expected["evidence"], label);
         adapter::assert_changes(&catalog, &before, &engine.state, &expected["catalog_metadata_changes"], label);
     }
-}
-
-fn replay_pass(input: &Value, expected: &Value, catalog: &FrozenCatalog, engine: &mut EvaluationContext<adapter::RecordedRandom>,
-    baseline: Option<&ModelState>, label: &str) {
-    let before = baseline.cloned().unwrap_or_else(|| engine.state.clone()); let mut trace = Some(SearchTrace::default());
-    let (ctx, ids, pools) = adapter::score_context(catalog, input, &engine.state, label);
-    let (mut mapper, workers) = adapter::mapper(catalog, input, &expected["evidence"], ctx.clone(), ids, engine, &mut trace, label);
-    let swappable = pools.iter().enumerate().filter_map(|(index, pool)| (!pool.is_empty()).then_some(index)).collect::<Vec<_>>();
-    let combos = slot_combos(swappable.len(), input["max_swap_slots"].as_u64().unwrap() as usize).iter().map(|combo|
-        Tuple::new(&combo.as_slice().iter().map(|&axis| swappable[axis]).collect::<Vec<_>>())).collect();
-    let mut neighborhood = Neighborhood::new(combos, pools, &mut trace);
-    let result = optimize_pass(&ctx, &mut mapper, &mut neighborhood, PassInput { ids, metric: number(&input["initial_metric"]),
-        output: adapter::floats(&input["initial_output"]), invert: 1, next_best_percent: number(&input["next_best_percent"]),
-        thresholds: adapter::thresholds(&input["thresholds"]), stage: 1, pass: 1, scored_before: 0,
-        verbose_swaps: input["verbose_swaps"].as_bool().unwrap() }, engine, &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut |_| {}, &mut trace).unwrap();
-    let output = &expected["result"];
-    assert_eq!(json!(ids), output["initial_ids"], "{label}: initial interned ids");
-    assert_eq!(json!(result.ids), output["winning_ids"], "{label}: exact winner");
-    assert_number(result.metric, &output["legacy_metric"], label);
-    adapter::assert_floats(&result.output, &output["legacy_output"], label);
-    catalog.assert_gearset(&ctx.gearset(&result.ids), &engine.state, &output["winning_gearset"], label);
-    adapter::assert_similar(&result.similar, &output["similar_swaps"], catalog, label);
-    assert_eq!(json!(neighborhood.position()), output["final_cursor"], "{label}: winner cursor");
-    assert_eq!(adapter::orders_value(neighborhood.orders()), output["pool_orders"], "{label}: cached independent pool orders");
-    assert_eq!(result.accepted.len() as u64, output["observed_accepted_candidates"].as_u64().unwrap(), "{label}: exact accepted moves");
-    adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], catalog, label);
-    adapter::assert_draws(&engine.random, &expected["evidence"], label);
-    adapter::assert_workers(&mapper, &workers, catalog, label);
-    adapter::assert_changes(catalog, &before, &engine.state, &expected["catalog_metadata_changes"], label);
 }
 
 #[test]
 fn frozen_first_improvement_passes_cover_batch_replay_seed11_ties_modulo_and_unused_draws() {
     let cases = fixtures("optimizer_pass"); assert_eq!(cases.len(), 28);
-    for fixture in cases {
-        let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"];
-        let catalog = FrozenCatalog::from_input(input); let mut engine = adapter::context(&catalog, &input["seeds"]);
-        replay_pass(input, &fixture["expected"]["value"], &catalog, &mut engine, None, label);
+    for (entry, fixture) in cases {
+        let catalog = FrozenCatalog::from_input(&fixture["input"]);
+        let run = adapter::run_pass(&fixture, &catalog);
+        adapter::assert_pass_legacy(&fixture, &run, &catalog);
+        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_pass(&run, &catalog));
     }
 }
 
 #[test]
 fn frozen_builds_preserve_initialization_stages_restarts_final_earring_order_and_sentinels() {
     let cases = fixtures("optimizer_build"); assert_eq!(cases.len(), 30);
-    for fixture in cases {
-        let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
-        let catalog = FrozenCatalog::from_input(input); let mut engine = adapter::context(&catalog, &input["seeds"]);
-        let before = engine.state.clone(); let mut trace = Some(SearchTrace::default());
-        let mut request = adapter::raw_request(&catalog, input, &engine.state, label);
-        if request.options.workers == 0 {
-            request.automatic_workers = Some(expected["evidence"]["ordered_events"].as_array().unwrap().iter()
-                .find(|event| event["kind"] == "resolved_workers").unwrap()["resolved"].as_u64().unwrap() as usize);
-        }
-        let result = optimize_raw(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}, &mut trace).unwrap();
-        adapter::assert_build(&result, expected, &catalog, &engine.state, label);
-        adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
-        adapter::assert_draws(&engine.random, &expected["evidence"], label);
-        adapter::assert_changes(&catalog, &before, &engine.state, &expected["catalog_metadata_changes"], label);
-        assert_eq!(result.restarts as i64, normalize_options(Some(&request.options)).restart_count, "{label}: completed restart count");
-        let events = expected["evidence"]["ordered_events"].as_array().unwrap();
-        assert_eq!(result.stages, events.iter().filter(|event| event["kind"] == "dt_stage").count(), "{label}: completed stages");
-        assert_eq!(result.passes, events.iter().filter(|event| event["kind"] == "pass_start").count(), "{label}: completed passes");
-        let scored: usize = events.iter().filter(|event| event["kind"] == "mapper_scores").map(|event| event["total"].as_u64().unwrap() as usize).sum();
-        assert_eq!(result.scored, scored, "{label}: ordered scored candidate count");
+    for (entry, fixture) in cases {
+        let catalog = FrozenCatalog::from_input(&fixture["input"]);
+        let run = adapter::run_build(&fixture, &catalog);
+        adapter::assert_build_legacy(&fixture, &run, &catalog);
+        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_build(&run, &catalog));
     }
 }
 
 #[test]
-fn frozen_pool_dispatches_replay_real_worker_warmup_ordered_shares_and_local_boundaries() {
+fn frozen_pool_dispatches_preserve_ordered_shares_and_local_boundaries() {
     let cases = fixtures("optimizer_dispatch"); assert_eq!(cases.len(), 8);
-    for fixture in cases {
+    for (_, fixture) in cases {
         let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
         let catalog = FrozenCatalog::from_input(input); let mut engine = adapter::context(&catalog, &input["seeds"]); let mut trace = Some(SearchTrace::default());
         let (ctx, ids, pools) = adapter::score_context(&catalog, input, &engine.state, label);
-        let (mut mapper, workers) = adapter::mapper(&catalog, input, &expected["evidence"], ctx.clone(), ids, &engine, &mut trace, label);
+        let mut mapper = adapter::mapper(input, &expected["evidence"], ctx.clone(), ids, &mut trace);
         let head = Slot::Head.index(); let available = pools[head].iter().copied().filter(|&id| id != ids[head]).collect::<Vec<_>>();
         let total = input["dispatch_count"].as_u64().unwrap() as usize;
         let groups = vec![Group { combo: Tuple::new(&[head]), candidates: (0..total).map(|index| Tuple::new(&[available[index % available.len()]])).collect() }];
@@ -224,55 +150,49 @@ fn frozen_pool_dispatches_replay_real_worker_warmup_ordered_shares_and_local_bou
             &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut trace).unwrap();
         assert_eq!(json!(groups), expected["result"]["groups"], "{label}: original dispatch payload"); adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
         adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
-        adapter::assert_draws(&engine.random, &expected["evidence"], label);
-        adapter::assert_workers(&mapper, &workers, &catalog, label);
+        adapter::assert_draw_count(&engine.random, &expected["evidence"], label);
     }
 }
 
 #[test]
 fn frozen_h2h_sequence_preserves_shared_empty_metadata_without_cross_session_mutation() {
     let cases = fixtures("optimizer_sequence"); assert_eq!(cases.len(), 1);
-    for fixture in cases {
-        let label = fixture["id"].as_str().unwrap(); let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
-        let catalog = FrozenCatalog::from_input(input);
-        let steps = input["steps"].as_array().unwrap(); let mut engine = adapter::context(&catalog, &steps[0]["seeds"]);
-        let before = engine.state.clone();
-        for (index, step) in steps.iter().enumerate() {
-            engine.random = adapter::RecordedRandom::seeded(&step["seeds"]);
-            replay_pass(step, &expected["steps"][index], &catalog, &mut engine, Some(&before), &format!("{label}.step[{index}]"));
-        }
-        adapter::assert_changes(&catalog, &before, &engine.state, &expected["catalog_metadata_changes"], label);
-        let isolated = adapter::context(&catalog, &steps[0]["seeds"]);
-        let empty = catalog.catalog.by_symbol("Empty").unwrap();
-        assert_eq!(engine.state.skill(catalog.catalog.piece(empty)), SkillType::HandToHand, "{label}: sequential shared Empty override");
-        assert_eq!(isolated.state.skill(catalog.catalog.piece(empty)), SkillType::None, "{label}: independent session override boundary");
+    for (entry, fixture) in cases {
+        let catalog = FrozenCatalog::from_input(&fixture["input"]);
+        let run = adapter::run_sequence(&fixture, &catalog);
+        adapter::assert_sequence_legacy(&fixture, &run, &catalog);
+        native_support::expect_native(&entry.id, &entry.sha256, &adapter::project_sequence(&run, &catalog));
     }
 }
 
-fn build_fixture(id: &str) -> Value {
-    fixtures("optimizer_build").into_iter().find(|fixture| fixture["id"] == id).unwrap()
+fn build_fixture(id: &str) -> (support::IndexedCase, Value) {
+    fixtures("optimizer_build").into_iter().find(|(entry, _)| entry.id == id).unwrap()
 }
 
 #[test]
-fn production_optimizer_returns_exact_seed11_set_metric_and_raw_output() {
+fn production_optimizer_matches_native_seed11_build_across_worker_counts() {
+    let mut results = Vec::new();
     for id in ["search-simulation/seed11-complete-build-workers1", "search-simulation/seed11-complete-build-workers2",
         "search-simulation/seed11-complete-build-workers0"] {
-        let fixture = build_fixture(id); let input = &fixture["input"];
+        let (entry, fixture) = build_fixture(id); let input = &fixture["input"];
         let catalog = FrozenCatalog::from_input(input); let mut engine = catalog.context(&input["seeds"]);
         let request = adapter::request(&catalog, input, &engine.state, id);
         let result = optimize(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}).unwrap();
-        adapter::assert_build(&result, &fixture["expected"]["value"], &catalog, &engine.state, id);
-        assert_number(result.metric, &json!(3244.8594084927004), "production exact seed11 build metric");
-        for (slot, name) in [(Slot::Head, "Hattori Zukin +2"), (Slot::Hands, "Hattori Tekko +2"), (Slot::Feet, "Hattori Kyahan +2")] {
-            assert_eq!(catalog.catalog.piece(result.gearset[slot.index()]).name2.as_ref(), name, "{id}: exact {}", slot.name());
-        }
-        support::assert_numpy_state(&engine.random, &fixture["expected"]["value"]["evidence"]["numpy_host_final_state"], id);
+        let baseline_run = adapter::run_build(&fixture, &catalog);
+        adapter::assert_build_legacy(&fixture, &baseline_run, &catalog);
+        let baseline = adapter::project_build(&baseline_run, &catalog);
+        native_support::expect_native(id, &entry.sha256, &baseline);
+        let actual = adapter::project_build_result(&result, &catalog);
+        assert_eq!(actual, baseline["result"], "{id}: public optimizer matches shared native build");
+        results.push(actual);
     }
+    assert_eq!(results[0], results[1], "explicit worker counts retain identical native results");
+    assert_eq!(results[0], results[2], "automatic workers retain the same native result");
 }
 
 #[test]
 fn cancellation_before_start_and_after_a_bounded_batch_never_returns_a_partial_best_set() {
-    let fixture = build_fixture("search-simulation/seed11-complete-build-workers1"); let input = &fixture["input"];
+    let (_, fixture) = build_fixture("search-simulation/seed11-complete-build-workers1"); let input = &fixture["input"];
     let catalog = FrozenCatalog::from_input(input); let mut engine = catalog.context(&input["seeds"]);
     let request = adapter::request(&catalog, input, &engine.state, "cancellation");
     let before = engine.random.clone();
@@ -287,7 +207,7 @@ fn cancellation_before_start_and_after_a_bounded_batch_never_returns_a_partial_b
 
 #[test]
 fn raw_helper_unknown_ws_is_a_scoring_error_not_a_fake_id_or_rejected_candidate() {
-    let fixture = fixtures("optimizer_pass").remove(0); let input = &fixture["input"];
+    let (_, fixture) = fixtures("optimizer_pass").remove(0); let input = &fixture["input"];
     let catalog = FrozenCatalog::from_input(input); let mut engine = catalog.context(&input["seeds"]);
     let player = catalog.player(&input["player"], &engine.state, "unknown raw WS");
     let gear = catalog.gear(&input["candidate_pools"]["head"][1]);
@@ -309,12 +229,13 @@ fn raw_helper_unknown_ws_is_a_scoring_error_not_a_fake_id_or_rejected_candidate(
 
 #[test]
 fn actual_rayon_workers_preserve_captured_ordered_deterministic_scores() {
-    let fixture = fixtures("optimizer_dispatch").into_iter().find(|fixture|
-        fixture["id"] == "search-simulation/real-pool-local-dispatch-boundary-192").unwrap();
+    let (_, fixture) = fixtures("optimizer_dispatch").into_iter().find(|(entry, _)|
+        entry.id == "search-simulation/real-pool-local-dispatch-boundary-192").unwrap();
     let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
     let catalog = FrozenCatalog::from_input(input);
     for workers in [1, 2, 4] {
         let mut engine = catalog.context(&input["seeds"]);
+        let before = engine.random.clone();
         let (ctx, ids, _) = adapter::score_context(&catalog, input, &engine.state, "real Rayon dispatch");
         let groups = adapter::groups(&expected["result"]["groups"]);
         let mut mapper = Mapper::new(ctx.clone(), ids, MapperConfig::production(workers, 20_000), &mut None);
@@ -322,7 +243,7 @@ fn actual_rayon_workers_preserve_captured_ordered_deterministic_scores() {
         let metrics = mapper.score(&ids, &groups, 192, adapter::thresholds(&input["thresholds"]), &mut engine,
             &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut None).unwrap();
         adapter::assert_floats(&metrics, &expected["result"]["metrics"], "real ordered Rayon scores");
-        support::assert_numpy_state(&engine.random, &expected["evidence"]["numpy_host_final_state"], "worker draws remain off coordinator");
+        assert_eq!(engine.random, before, "worker draws remain off coordinator");
     }
 }
 
@@ -332,11 +253,16 @@ fn consumer_metadata_distinguishes_no_candidate_output_from_unsatisfied_dt() {
         ("search-simulation/complete-empty-frozen-build", OptimizeTermination::NoWinner, true),
         ("search-simulation/unsatisfied-dt-three-unchanged-stages", OptimizeTermination::UnchangedDtStages, false),
     ] {
-        let fixture = build_fixture(id); let input = &fixture["input"];
+        let (entry, fixture) = build_fixture(id); let input = &fixture["input"];
         let catalog = FrozenCatalog::from_input(input); let mut engine = catalog.context(&input["seeds"]);
         let request = adapter::request(&catalog, input, &engine.state, id);
         let result = optimize(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}).unwrap();
-        adapter::assert_build(&result, &fixture["expected"]["value"], &catalog, &engine.state, id);
+        let baseline_run = adapter::run_build(&fixture, &catalog);
+        adapter::assert_build_legacy(&fixture, &baseline_run, &catalog);
+        let baseline = adapter::project_build(&baseline_run, &catalog);
+        native_support::expect_native(id, &entry.sha256, &baseline);
+        assert_eq!(adapter::project_build_result(&result, &catalog), baseline["result"],
+            "{id}: public optimizer matches shared native build");
         assert_eq!(result.termination, termination, "{id}: explicit termination metadata");
         assert_eq!(result.feasible, feasible, "{id}: no fabricated feasibility");
     }
@@ -344,7 +270,7 @@ fn consumer_metadata_distinguishes_no_candidate_output_from_unsatisfied_dt() {
 
 #[test]
 fn optimizer_cast_dispatch_keeps_divine_and_barrage_legacy_key_errors() {
-    let fixture = build_fixture("search-simulation/metric-spell-Damage dealt"); let input = &fixture["input"];
+    let (_, fixture) = build_fixture("search-simulation/metric-spell-Damage dealt"); let input = &fixture["input"];
     let catalog = FrozenCatalog::from_input(input);
     for name in ["Banish", "Barrage"] {
         let mut engine = catalog.context(&input["seeds"]);
@@ -358,7 +284,7 @@ fn optimizer_cast_dispatch_keeps_divine_and_barrage_legacy_key_errors() {
 
 #[test]
 fn raw_build_unknown_action_keeps_its_pre_evaluation_metric_format_error() {
-    let fixture = build_fixture("search-simulation/zero-stage-default-output"); let input = &fixture["input"];
+    let (_, fixture) = build_fixture("search-simulation/zero-stage-default-output"); let input = &fixture["input"];
     let catalog = FrozenCatalog::from_input(input); let mut engine = catalog.context(&input["seeds"]);
     let mut request = adapter::raw_request(&catalog, input, &engine.state, "unknown build action");
     request.action.action_type = "".into();
@@ -368,7 +294,7 @@ fn raw_build_unknown_action_keeps_its_pre_evaluation_metric_format_error() {
 
 #[test]
 fn zero_time_reciprocal_is_a_legacy_error_in_search_and_candidate_scoring() {
-    let fixture = build_fixture("search-simulation/seed11-complete-build-workers1");
+    let (_, fixture) = build_fixture("search-simulation/seed11-complete-build-workers1");
     let input = &fixture["input"];
     let catalog = FrozenCatalog::from_input(input);
     let expected = json!({"class": "ZeroDivisionError", "message": "0.0 cannot be raised to a negative power"});

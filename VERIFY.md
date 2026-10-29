@@ -7,8 +7,10 @@ Use the pinned Rust **1.92.0** toolchain, edition-2024 workspace and committed
 fixture regeneration or golden acceptance is part of a build.
 
 ```sh
+cargo test --locked -p wsdist-core --test formula_boundaries
+cargo test --locked -p wsdist-core --test rng_protocol
 cargo test --locked -p wsdist-core
-cargo test --locked -p wsdist-app -- --test-threads=1
+env -u SLINT_SCALE_FACTOR cargo test --locked -p wsdist-app -- --test-threads=1
 cargo run --locked --release -p wsdist-core --example verify_numerics -- \
   --fixtures crates/wsdist-core/tests/fixtures/legacy \
   --report target/numerical-report.json
@@ -40,6 +42,33 @@ error was `1.1368683772161603e-13`; maximum tolerance fraction was
 Windows execution was explicitly waived for the local cutover. Windows build,
 parity, real-backend UI and extracted-archive gates remain in CI; no local
 Windows runtime result is claimed.
+
+### Native RNG migration proof
+
+The ChaCha8 cutover passed **136 core tests** and **68 app tests** on Linux,
+including `fixture_storage`, the bit-exact Python formula-boundary gate, native
+protocol pins, worker invariance, cancellation and trace-on/off checks. The
+release numerical verifier passed **30,184 exercised cases**, one inert
+provenance case and zero failures, with all **18 statistical scenarios**
+(18,000,000 samples) passing unchanged distribution gates.
+
+`target/numerical-report.json` records 23,193 `recorded_actions`, 112 scripted
+action replays and 10,053 strict kernel tape rows. It has no `direct_mt_*` or
+`seeded_*` keys; `statistical_results.seed_contract.generator` is `ChaCha8Rng`.
+All 137 native goldens were regenerated twice with no byte differences.
+No production formula changes were needed to match the Python boundaries.
+
+The complete real-backend UI smoke passed at 100% scale using Xvfb and the
+native focus helper. `target/ui-smoke-native-rng-fixed/report.json` records
+165 screenshots and the seed-11 optimizer, actual **Equip best set**, full
+7200-second DPS and 20000-sample / 300-bin histogram workflows. Optimizer,
+DPS and histogram surfaces were inspected.
+
+The first smoke exposed a driver precondition: a Quicklook height proof left
+the outer viewport at its bottom, hiding Master level from the next profile's
+spacing check. The driver now restores the first row through the existing
+native wheel path after that proof. All 23 profile records show offset 93 → 0;
+no production UI behavior, geometry assertions or workflow coverage changed.
 
 ### UI-test geometry traversal
 
@@ -85,6 +114,12 @@ icons, `.gitattributes` and `.venv/pyvenv.cfg` remained byte-identical; user
 environment/editor directories and unrelated files were left in place.
 Temporary chooser/isolation proof drivers were removed after proof; their JSON,
 inventories, process maps and screenshots remain local evidence.
+
+Python formula evidence and native generator goldens have separate contracts.
+The original integer/continuous tolerances below apply to replayed Python
+evidence; native golden projections compare every JSON value exactly. The
+formula-boundary suite additionally compares all scripted result fields and
+kernel results bit-for-bit.
 
 - Integer stages, identities, sparse presence/order, branch and proc decisions,
   exceptions, accepted optimizer candidates, final equipment and histogram
@@ -212,16 +247,70 @@ supplemental pinned-runtime probe matched both bit-for-bit for 20,470 finite
 inputs across all binary64 exponents, signed zeros and scaled overflow.
 
 Permanent suites include `legacy_player`, `legacy_ws`, `buff_effects`,
-`numerical_boundaries`, `rng_compat`, `legacy_round`, `legacy_spell`,
+`numerical_boundaries`, `formula_boundaries`, `rng_protocol`, `legacy_round`, `legacy_spell`,
 `legacy_ws_action` and the complete `legacy_parity` driver. Action coverage
-includes all 816 round, 9,565 spell and 12,812 WS cases and 112 strict scripted
+includes all 816 round, 9,565 spell and 12,812 WS recorded-draw cases and 112 strict scripted
 counterparts. All 184 WS specifications and literal setup/hooks are checked.
 GUI and optimizer spell dispatch remain intentionally distinct.
 
-Independent NumPy-host and Numba-Python MT19937 states match 368 direct
-operations, 12,547 tempered words, 12 expected errors and eight twist-crossing
-runs. Singleton choice/rejection behavior and unused draws are preserved;
-blank production seeds use OS entropy.
+The 23,193 combat cases replay their frozen Python compiled draws through
+`ScriptedTape`, checking exact stream/parameter/value order and exhaustion,
+including captured action errors. Kernel cases likewise replay recorded draws.
+The small exception decoder reads already-frozen Python words; it is not a
+generator. Eight unconsumed direct-MT fixtures were removed; all remaining
+legacy case documents retain their original bytes and hashes.
+
+### Native random protocol and formula boundaries
+
+`rand_chacha =0.9.0` supplies `ChaCha8Rng`. One `u64` seed occupies key bytes
+`0..8` in little-endian order; bytes `8..32` are zero. `Primary` uses stream 0
+for action/resist rolls and optimizer choice/shuffle; `Pdif` uses stream 1 for
+pDIF kernels. Clones own both continuations, and reseeding resets both streams.
+Blank optimizer seeds do not reseed; production startup uses OS entropy.
+
+Each uniform consumes one `u64`, takes its upper 53 bits, and scales by
+`2^-53` before `low + (high - low) * unit`. Zero-width intervals still consume a
+draw. Bounded integers use masked rejection on Primary; a singleton returns
+zero without consuming, and a zero bound panics. `rng_protocol` pins these
+invariants, full-width tape reseeds, and seed-0 output bits for both streams.
+Legacy tape JSON keeps its `NumpyHost`/`NumbaPython` labels, decoded only as
+`Primary`/`Pdif`; native fixtures contain no tape records.
+
+`tests/fixtures/boundaries/` records 89 accepted Python threshold groups
+(49 round, 38 WS, 2 pDIF kernel), with zero rejected groups. The 261 combat
+cases cover the adjacent binary64 values below/equal/above each threshold;
+two kernel cases each contain those three rows. Hash-checked replays preserve
+both strict tape consumption and the expected branch pattern. Mutation proofs
+changing resist `>=` to `>` and QA `<` to `<=` failed on the intended groups;
+both changes were reverted. Capture provenance includes the pinned runtime,
+source snapshot and capture-program hashes. The local untracked capture tool
+is `target/migration/capture_boundaries.py`; its second run was byte-identical.
+
+Native generator-dependent evidence lives separately in
+`tests/fixtures/native/`: 137 cases (44 neighborhoods, 28 passes, 30 builds,
+one sequence, 20 DPS trajectories, 12 distributions, one nonprogress
+diagnostic, and one sampled WS). Each index entry binds the native bytes to the
+source legacy path and SHA-256. Projections include complete search decisions,
+results, draw-call counts and four-uniform continuations per stream; simulation
+hit buffers retain their length and serialized SHA-256. No model-state address
+or worker scheduling identity is projected.
+
+To regenerate deliberately after reviewing a generator/projection change,
+remove the native fixture directory first; the tool refuses an existing output
+directory. Normal builds and tests never regenerate evidence.
+
+```sh
+cargo run --locked --release -p wsdist-core --example regenerate_native_goldens -- \
+  --legacy crates/wsdist-core/tests/fixtures/legacy \
+  --out crates/wsdist-core/tests/fixtures/native
+cargo run --locked --release -p wsdist-core --example regenerate_native_goldens -- \
+  --legacy crates/wsdist-core/tests/fixtures/legacy --out target/native-regen-check
+diff -r crates/wsdist-core/tests/fixtures/native target/native-regen-check
+```
+
+The two generation runs were byte-identical. The largest native case is
+1,283,069 bytes, below the 50,000,000-byte repository fixture limit. Usage,
+missing-input I/O and existing-output refusal paths each exited 2.
 
 ### Ordered optimizer and full simulations
 
@@ -229,15 +318,15 @@ blank production seeds use OS entropy.
 432 search/simulation cases: 399 optimizer cases, 20 complete DPS trajectories,
 one nonprogress diagnostic and 12 complete distributions. Checks include
 ordered combinations, full-value gear equality, legality, first strict
-improvement, DT stages, restarts/ties, worker/coordinator contexts, every
-captured draw and final stream continuation.
-
-The complete seed-11 fixture selects Hattori Zukin +2, Hattori Tekko +2 and
-Hattori Kyahan +2, with metric `3244.8594084927004` and five accepted swaps.
-The helper-only sweep starts at another RNG position: Ryuo Somen +1 A,
-`3071.314537892103`, six accepts. These are not interchangeable goldens.
-Unsatisfied DT/no-winner results and zero-time inverse-metric errors remain
-explicit, not fabricated feasible/infinite winners.
+improvement, DT stages, restarts/ties, and worker/coordinator contexts.
+Generator-independent options, initial IDs, combinations, legality, score
+results, player sheets, bound checks, metadata transitions and errors still
+compare against Python. Generator-dependent order, selected gear, outputs,
+trajectories and continuations compare against native goldens instead of MT.
+The public seed-11 optimizer result is checked across workers 1/2/auto, without
+pinning the former MT-specific equipment or metric literals. Unsatisfied
+DT/no-winner results and zero-time inverse-metric errors remain explicit, not
+fabricated feasible/infinite winners.
 
 DPS finishes its final TP/WS cycle after the 7200-second horizon, retaining
 unclamped TP, set-dependent timing and one-decimal Regain. Distributions retain
@@ -261,11 +350,11 @@ staged physical/Ninjutsu truncation. Expected discrepancies include:
 - Eight-attempt sampling versus the analytical expected-landed-hit approximation.
 
 Each of 18 isolated legacy-sampler scenarios runs 40 batches of 25,000 samples.
-Batch `i=0..39` uses host seed `20240101+i` and compiled-pDIF seed `40480202+i`.
+Batch `i=0..39` uses one native seed `20240101+i` with independent Primary/Pdif streams.
 Means must meet `max(1e-9, 6 * standard_error)`; categorical frequencies meet
 `6 * sqrt(p * (1-p) / 1000000)`, with p=0/1 exact. The report retains sample
 counts, seeds, batch variances, errors, expectations and pass/fail gates.
-Full mixed-combat seeded/tape parity remains separately required.
+Full mixed-combat recorded/tape parity remains separately required.
 
 ### Profiles, exchange and controller state
 
@@ -294,7 +383,7 @@ mkdir -p target
 cc -std=c11 -O2 tools/native-window-x11.c -o target/native-window-x11 \
   $(pkg-config --cflags --libs x11 libpng)
 xvfb-run -a -n 198 -s '-screen 0 2560x1800x24' \
-  env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET WSDIST_DATA_DIR="$PWD" \
+  env -u SLINT_SCALE_FACTOR -u WAYLAND_DISPLAY -u WAYLAND_SOCKET WSDIST_DATA_DIR="$PWD" \
   SLINT_BACKEND=winit-software SLINT_EMIT_DEBUG_INFO=1 \
   target/native-window-x11 --focus-main \
   cargo run --locked -p wsdist-app --example ui_smoke -- --output target/ui-smoke-100

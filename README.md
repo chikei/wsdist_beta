@@ -109,6 +109,12 @@ there is no exit autosave. **Settings** retains the unpersisted Damage Limit
 (DPS) and Verbose Swaps toggles. **Help > About Slint** supplies framework
 attribution.
 
+Sampled actions, simulations and optimizer ordering use native ChaCha8 random
+streams. An optimizer seed in `0–2000000000` resets both the action/choice stream
+and the independent pDIF stream; a blank seed keeps their current positions.
+Startup without an explicit seed uses OS entropy. Fixed native seeds are
+reproducible, but do not reproduce the former Python/MT19937 sequences.
+
 ## Profiles and editable data
 
 Existing JSON profiles retain their original setting names, unknown keys and
@@ -160,9 +166,10 @@ fixtures record the reviewed original implementation. Oversized captures use
 byte-exact multipart storage; tests and verification reassemble the original
 JSON and retain its original hashes. See the
 [multipart storage layout](VERIFY.md#multipart-fixture-storage).
-Legacy numerical results are preserved, including known analytical/sampled
-discrepancies; parity and independent internal checks do **not** establish
-accuracy against live-game data.
+Legacy formulas and recorded-draw numerical results are preserved, including
+known analytical/sampled discrepancies. Generator-dependent searches and
+simulations use separately hash-checked native fixed-seed goldens. Parity and
+independent internal checks do **not** establish accuracy against live-game data.
 
 ## Provenance
 

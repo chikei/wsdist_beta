@@ -6,16 +6,16 @@ use std::sync::Arc;
 use wsdist_core::Catalog;
 use wsdist_core::actions::{SPELL_REGISTRY, evaluate_spell, gui_spell_type, resolve_spell_name};
 use wsdist_core::model::{ActionResult, CalculationStep, Enemy, EvaluationContext, Metric, Player, SpellRequest, SpellType};
-use wsdist_core::rng::RandomSources;
+use wsdist_core::rng::ScriptedTape;
 
 use combat_support::{boundary_enemy, build_boundary, document, fixture_root, index, resource_root};
 
-fn fixture(suffix: &str) -> (EvaluationContext, Player, Enemy) {
+fn fixture(suffix: &str) -> (EvaluationContext<ScriptedTape>, Player, Enemy) {
     let root = fixture_root();
     let entry = index(&root).cases.into_iter().find(|entry| entry.id.ends_with(suffix)).unwrap();
     let case = document(&root.join(entry.path));
     let catalog = Arc::new(Catalog::load(&resource_root()).expect("frozen catalog"));
-    let mut ctx = EvaluationContext::new(catalog, RandomSources::from_seeds(11, 20240101));
+    let mut ctx = EvaluationContext::new(catalog, ScriptedTape::new(Vec::new()));
     let player = build_boundary(&case, &mut ctx).expect("actual player construction");
     (ctx, player, boundary_enemy(&case))
 }
@@ -40,7 +40,6 @@ fn tracing_all_exposed_spells_preserves_results_streams_and_integer_stages() {
         for metric in ["Damage dealt", "TP return", "TP > Damage", "Damage > TP"] {
             let request = SpellRequest { spell: resolve_spell_name(spec.name).unwrap(),
                 spell_type: gui_spell_type(spec.name).unwrap(), metric: Metric::new(metric) };
-            let random_before = ctx.random.clone();
             let baseline = evaluate_spell(&player, &enemy, &request, &mut ctx).unwrap();
             assert!(ctx.calculation_trace.is_none());
             ctx.calculation_trace = Some(Vec::new());
@@ -50,7 +49,7 @@ fn tracing_all_exposed_spells_preserves_results_streams_and_integer_stages() {
             assert_eq!(traced.invert, baseline.invert);
             assert_eq!(traced.seconds_per_round, baseline.seconds_per_round);
             assert_eq!(traced.time_to_ws, baseline.time_to_ws);
-            assert_eq!(ctx.random, random_before, "{}: analytical traces must not consume RNG", spec.name);
+            assert_eq!(ctx.random.position(), 0, "{}: analytical traces must not consume RNG", spec.name);
 
             let output = trace.last().expect("a successful spell supplies its calculation result");
             if spec.name == "EnSpell" || request.spell_type == SpellType::Ninjutsu {
@@ -76,13 +75,12 @@ fn barrage_shot_and_recycle_operands_reconstruct_authoritative_damage_tp_and_met
     let (mut ctx, player, enemy) = fixture(".spell.ranged.rng.Barrage.Barrage.Damage_dealt");
     let request = SpellRequest { spell: resolve_spell_name("Barrage").unwrap(),
         spell_type: SpellType::RangedAttack, metric: Metric::new("TP > Damage") };
-    let random_before = ctx.random.clone();
     let baseline = evaluate_spell(&player, &enemy, &request, &mut ctx).unwrap();
     ctx.calculation_trace = Some(Vec::new());
     let result = evaluate_spell(&player, &enemy, &request, &mut ctx).unwrap();
     let trace = ctx.calculation_trace.take().unwrap();
     assert_eq!(result_bits(&result), result_bits(&baseline));
-    assert_eq!(ctx.random, random_before);
+    assert_eq!(ctx.random.position(), 0);
 
     let barrage = step(&trace, "Expected main/Barrage hits");
     let attempts = (1.0 + value(barrage, "barrage")).ceil() as usize;

@@ -222,7 +222,7 @@ fn combo_popup_selection_reaches_controller_and_retains_unlisted_restored_values
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
     paths.defaults = sandbox.path().join("defaults.json");
     fs::write(&paths.defaults, serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap()).unwrap();
-    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seeds(11, 11)).unwrap();
+    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
     desktop.window.window().set_size(slint::LogicalSize::new(1152.0, 900.0));
     desktop.window.window().dispatch_event(WindowEvent::WindowActiveChanged(true));
@@ -296,7 +296,7 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
     paths.defaults = sandbox.path().join("defaults.json");
     fs::write(&paths.defaults, serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap()).unwrap();
-    let desktop = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() }, RandomSources::from_seeds(11,11)).unwrap();
+    let desktop = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() }, RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
     desktop.window.window().set_size(slint::LogicalSize::new(1152.0, 900.0));
     let master_level = ElementHandle::find_by_accessible_label(&desktop.window, "Master level")
@@ -376,7 +376,7 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
 
     // A malformed existing profile is visible and must never be silently overwritten.
     fs::write(&paths.defaults, b"{corrupt").unwrap();
-    let corrupt = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() }, RandomSources::from_seeds(11,11)).unwrap();
+    let corrupt = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() }, RandomSources::from_seed(11)).unwrap();
     assert!(!corrupt.window.get_error_message().is_empty());
     assert!(corrupt.controller.borrow().profiles.is_none());
     corrupt.window.invoke_text_edited("defaults_tp_entry".into(), "1777".into());
@@ -406,7 +406,7 @@ fn optimizer_buttons_replace_progress_with_real_results_and_keep_main_usable() {
     let defaults = serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap();
     fs::write(&paths.defaults, &defaults).unwrap();
     let desktop = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() },
-        RandomSources::from_seeds(11, 11)).unwrap();
+        RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
     desktop.window.window().set_size(slint::LogicalSize::new(1152.0, 900.0));
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
@@ -560,7 +560,7 @@ fn optimizer_candidate_failures_show_exact_error_and_preserve_successful_state()
     let defaults = serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap();
     fs::write(&paths.defaults, &defaults).unwrap();
     let desktop = Desktop::with_random(Resources { paths: paths.clone(), catalog: ui_support::catalog() },
-        RandomSources::from_seeds(11, 11)).unwrap();
+        RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
     for (key, value) in [
@@ -916,7 +916,7 @@ fn compact_window_preserves_input_columns_and_visible_editors() {
     let mut paths = AppPaths::from_parts(Some(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").as_os_str()),
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
     paths.defaults = sandbox.path().join("defaults.json");
-    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seeds(11, 11)).unwrap();
+    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
 
     let fixture = ui_support::cases("ui.profile").into_iter().find(|fixture| fixture["id"] == "ui.profile.10.ninja").unwrap();
@@ -1094,7 +1094,7 @@ fn gear_keyboard_selection_stays_visible_after_virtual_realization_and_user_scro
         std::path::Path::new("/unused"), std::path::Path::new("/")).unwrap();
     paths.defaults = sandbox.path().join("defaults.json");
     fs::write(&paths.defaults, serde_json::to_vec(&fixture["input"]["profile_document"]).unwrap()).unwrap();
-    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seeds(11, 11)).unwrap();
+    let desktop = Desktop::with_random(Resources { paths, catalog: ui_support::catalog() }, RandomSources::from_seed(11)).unwrap();
     desktop.window.show().unwrap();
     desktop.window.window().set_size(slint::LogicalSize::new(760.0, 900.0));
     // TestingBackend has no native activation/rendering on show. Model the

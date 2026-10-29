@@ -73,7 +73,7 @@ impl Desktop {
         let extras = extra_controls();
         let models = DesktopModels::new(&ui, &extras, IconProvider::new(&resources.paths));
         models.bind(&window);
-        let spare_context = Some(EvaluationContext::new(resources.catalog, RandomSources::from_seeds(0, 0)));
+        let spare_context = Some(EvaluationContext::new(resources.catalog, RandomSources::from_seed(0)));
         let controller = Rc::new_cyclic(|weak| RefCell::new(DesktopController {
             ui, extras, paths: resources.paths, profiles, last_result: None,
             completed_jobs: 0, cancelled_jobs: 0, last_error: initial_error, status: "Ready — calculations run only when requested.".into(),

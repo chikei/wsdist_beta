@@ -2,6 +2,10 @@
 #[allow(dead_code)]
 mod support;
 mod simulation_support;
+#[allow(dead_code)]
+mod native_support;
+#[allow(dead_code)]
+mod optimizer_support;
 
 use serde_json::Value;
 use support::{document, fixture, fixture_root, index};
@@ -19,13 +23,13 @@ fn replay_all(operation: &str, replay: fn(&Value)) -> usize {
 }
 
 #[test]
-fn all_twenty_full_7200_trajectories_match_actions_transitions_reductions_and_streams() {
+fn all_twenty_full_7200_trajectories_match_native_goldens_and_legacy_inputs() {
     assert_eq!(replay_all("simulation_dps", simulation_support::replay_dps), 20,
         "every frozen single/dual/H2H/both-set timing/Regain/EnSpell trajectory");
 }
 
 #[test]
-fn all_twelve_20000_sample_distributions_match_ordered_samples_histograms_and_streams() {
+fn all_twelve_20000_sample_distributions_match_native_goldens_and_legacy_players() {
     assert_eq!(replay_all("simulation_distribution", simulation_support::replay_distribution), 12,
         "every physical/magical/hybrid/single-only/Fotia/Conserve/capped/resist distribution");
 }

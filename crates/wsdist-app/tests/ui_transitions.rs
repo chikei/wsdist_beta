@@ -62,10 +62,7 @@ impl NativeDriver {
             "initialized_without_profiles" => None,
             name => panic!("unknown frozen bootstrap {name}"),
         };
-        let random = RandomSources::from_seeds(
-            u32::try_from(input["host_seed"].as_u64().unwrap()).unwrap(),
-            u32::try_from(input["numba_python_seed"].as_u64().unwrap()).unwrap(),
-        );
+        let random = RandomSources::from_seed(input["host_seed"].as_u64().unwrap());
         Self { state: UiState::new(catalog(), random, restored), profiles, directory, saved_job: None }
     }
 
@@ -374,7 +371,7 @@ fn drive_fixture(fixture: &Value) {
     assert_eq!(driver.profiles.document(), &native_profile_document(&driver, fixture, &expected["in_memory_profile_document"]), "{label}: final profile document");
     if fixture["input"]["relaunch_after_save"].as_bool().unwrap_or(false) {
         let reloaded = ProfileStore::load(&driver.profile_path()).unwrap();
-        let relaunched = UiState::new(catalog(), RandomSources::from_seeds(11, 11), Some(&reloaded));
+        let relaunched = UiState::new(catalog(), RandomSources::from_seed(11), Some(&reloaded));
         assert_snapshot(&relaunched, &expected["relaunch_state"], &format!("{label}.actual file relaunch"));
         assert_last_player(&relaunched, expected, "relaunch", label);
         assert_eq!(reloaded.document(), driver.profiles.document(), "{label}: relaunch reads the saved file, not an in-memory snapshot");

@@ -3,11 +3,15 @@
 mod support;
 #[allow(dead_code)]
 mod optimizer_support;
+#[allow(dead_code)]
+mod native_support;
 
 use std::sync::atomic::AtomicBool;
 
 use wsdist_core::model::{CalculationStep, OptimizeResult, Slot};
 use wsdist_core::optimizer::probe::{SearchTrace, TraceEvent, optimize_raw};
+
+use optimizer_support as adapter;
 
 fn value(step: &CalculationStep, name: &str) -> f64 {
     step.values.iter().find(|(key, _)| *key == name).unwrap().1
@@ -22,30 +26,31 @@ fn traced_fixture(id: &str) -> (support::FrozenCatalog, OptimizeResult, SearchTr
     let fixture = support::fixture(&support::fixture_root(), &entry);
     let input = &fixture["input"];
     let catalog = support::FrozenCatalog::from_input(input);
-    let mut baseline_engine = catalog.context(&input["seeds"]);
-    let request = optimizer_support::raw_request(&catalog, input, &baseline_engine.state, id);
-    let mut baseline_trace = Some(SearchTrace::default());
-    let baseline = optimize_raw(&request, &mut baseline_engine, &AtomicBool::new(false),
-        &mut |_| {}, &mut baseline_trace).unwrap();
+    let baseline_run = adapter::run_build(&fixture, &catalog);
+    adapter::assert_build_legacy(&fixture, &baseline_run, &catalog);
+    native_support::expect_native(id, &entry.sha256, &adapter::project_build(&baseline_run, &catalog));
+    let baseline = baseline_run.result.as_ref().unwrap();
     assert!(baseline.calculation.is_empty());
-    assert!(baseline_engine.calculation_trace.is_none());
+    assert!(baseline_run.engine.calculation_trace.is_none());
 
     let observer = CalculationStep { label: "Caller observer", equation: Some("Caller = prior value"),
         formula: "caller = {caller}", values: vec![("caller", 17.0)] };
-    let mut engine = catalog.context(&input["seeds"]);
+    let mut engine = adapter::context(&catalog, &input["seeds"]);
     engine.calculation_trace = Some(vec![observer.clone()]);
     let mut trace = Some(SearchTrace::default());
-    let result = optimize_raw(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}, &mut trace).unwrap();
+    let result = optimize_raw(&baseline_run.request, &mut engine, &AtomicBool::new(false), &mut |_| {}, &mut trace).unwrap();
 
-    optimizer_support::assert_build(&result, &fixture["expected"]["value"], &catalog, &engine.state, id);
+    assert_eq!(adapter::project_build_result(&result, &catalog), adapter::project_build_result(baseline, &catalog),
+        "display tracing must preserve the native build result");
     assert_eq!(result.gearset, baseline.gearset);
     assert_eq!(result.metric, baseline.metric);
     assert_eq!(result.legacy_output, baseline.legacy_output);
     assert_eq!(result.termination, baseline.termination);
     assert_eq!(result.accepted.len(), baseline.accepted.len());
     assert_eq!((result.stages, result.passes, result.scored), (baseline.stages, baseline.passes, baseline.scored));
-    assert_eq!(engine.random, baseline_engine.random, "display tracing must not change RNG continuation");
-    assert_eq!(trace.as_ref().unwrap().events.len(), baseline_trace.as_ref().unwrap().events.len(),
+    assert_eq!(native_support::random_value(&engine.random), native_support::random_value(&baseline_run.engine.random),
+        "display tracing must not change RNG continuation");
+    assert_eq!(trace.as_ref().unwrap().events.len(), baseline_run.trace.events.len(),
         "display tracing must not add action evaluations or search events");
     let retained_observer = engine.calculation_trace.as_ref().unwrap();
     assert_eq!(retained_observer.len(), 1, "candidate evaluations must not write into the caller observer");

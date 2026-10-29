@@ -5,7 +5,7 @@ use serde_json::Value;
 use wsdist_core::{Catalog,build_player};
 use wsdist_core::actions::{evaluate_action,resolve_spell_name,sample_round,sample_ws};
 use wsdist_core::model::{ActionRequest,Abilities,CalcError,Enemy,EvaluationContext,HitEvent,LegacyF64,Metric,Player,RandomSource,RandomStream,SkillType,Slot,SpellRequest,SpellType,WsRequest,WsType};
-use wsdist_core::rng::{RandomSources,ScriptedTape};
+use wsdist_core::rng::ScriptedTape;
 use wsdist_core::weaponskills::resolve_name;
 
 #[path="../legacy_player/support.rs"]
@@ -24,7 +24,7 @@ pub fn index(root:&Path)->FixtureIndex {serde_json::from_value(document(&root.jo
 pub fn number(value:&Value)->f64 {serde_json::from_value::<LegacyF64>(value.clone()).expect("captured number").0}
 
 #[derive(Default)]
-pub struct ReplayCounts {pub compiled:usize,pub scripted:usize,pub hits:usize,pub uniform_draws:usize,pub legacy_errors:usize,pub last_fields:Option<Value>,pub scripted_trace:Option<Vec<HitEvent>>}
+pub struct ReplayCounts {pub recorded:usize,pub scripted:usize,pub hits:usize,pub uniform_draws:usize,pub legacy_errors:usize,pub last_fields:Option<Value>,pub scripted_trace:Option<Vec<HitEvent>>}
 
 #[derive(Clone,Debug)]
 struct UniformDraw {stream:RandomStream,low:f64,high:f64,value:f64}
@@ -35,8 +35,8 @@ impl<R:RandomSource> RandomSource for Recorded<R> {
         let value=self.inner.uniform(stream,low,high);
         self.draws.push(UniformDraw{stream,low,high,value});value
     }
-    fn bounded_numpy(&mut self,upper_exclusive:usize)->usize {panic!("combat must not choose: bound {upper_exclusive}")}
-    fn reseed_numpy(&mut self,seed:u32) {panic!("combat must not reseed: {seed}")}
+    fn bounded(&mut self,upper_exclusive:usize)->usize {panic!("combat must not choose: bound {upper_exclusive}")}
+    fn reseed(&mut self,seed:u64) {panic!("combat must not reseed: {seed}")}
 }
 
 fn request(case:&Value)->Result<ActionRequest,CalcError> {
@@ -119,7 +119,7 @@ fn assert_draws(actual:&[UniformDraw],expected:&Value,label:&str) {
     let expected=expected.as_array().unwrap();
     assert_eq!(actual.len(),expected.len(),"{label}: complete random draw consumption");
     for (index,(actual,expected)) in actual.iter().zip(expected).enumerate() {
-        let stream=match expected["stream"].as_str().unwrap() {"NumpyHost"=>RandomStream::NumpyHost,"NumbaPython"=>RandomStream::NumbaPython,other=>panic!("unexpected stream {other}")};
+        let stream=match expected["stream"].as_str().unwrap() {"NumpyHost"=>RandomStream::Primary,"NumbaPython"=>RandomStream::Pdif,other=>panic!("unexpected stream {other}")};
         assert_eq!(actual.stream,stream,"{label}.draw[{index}]: stream/order");
         assert_eq!(expected["operation"],"uniform","{label}.draw[{index}]: operation");
         assert_eq!(actual.low.to_bits(),number(&expected["parameters"][0]).to_bits(),"{label}.draw[{index}]: low parameter bits");
@@ -128,39 +128,33 @@ fn assert_draws(actual:&[UniformDraw],expected:&Value,label:&str) {
     }
 }
 
-fn assert_stream_snapshot(random:&RandomSources,checkpoint:&Value,label:&str) {
-    let mut cloned=random.clone();
-    for (stream,key) in [(RandomStream::NumpyHost,"numpy_host"),(RandomStream::NumbaPython,"numba_python")] {
-        for (index,expected) in checkpoint[key]["next_uniforms_from_independent_clone"].as_array().expect("captured independent MT continuation").iter().enumerate() {
-            assert_eq!(cloned.random53(stream).to_bits(),number(expected).to_bits(),"{label}.{key}.next[{index}]: full stream continuation");
-        }
-    }
-}
-
 pub fn replay_case(case:&Value,catalog:&Arc<Catalog>)->ReplayCounts {
     assert_eq!(case["expected"]["outcome"],"result","source capture protocol failed");
     let label=case["id"].as_str().unwrap();
-    let random=&case["input"]["random"];
-    let source=RandomSources::from_seeds(random["numpy_host_seed"].as_u64().unwrap() as u32,random["numba_python_seed"].as_u64().unwrap() as u32);
-    let mut ctx=EvaluationContext::new(Arc::clone(catalog),Recorded{inner:source,draws:Vec::new()});
     let expected=&case["expected"]["value"];
+    let source=if expected["status"]=="legacy_error" {
+        ScriptedTape::new(Vec::new())
+    } else {
+        ScriptedTape::from_json_records(&expected["compiled"]["draws"]).expect("captured compiled draws")
+    };
+    let mut ctx=EvaluationContext::new(Arc::clone(catalog),Recorded{inner:source,draws:Vec::new()});
     if expected["status"]=="legacy_error" {
         let input=player_support::parse_input(&case["input"]["player"],&ctx.catalog,&ctx.state,label);
         let mut player=Player::new(input.gearset);
         assert_error(&build_player(&input,&mut ctx,&mut player).expect_err("captured build rejection"),&expected["error"],label);
         assert!(ctx.random.draws.is_empty(),"{label}: rejected build consumed RNG");
+        ctx.random.inner.assert_finished().expect("complete recorded draw consumption");
         return ReplayCounts{legacy_errors:1,..ReplayCounts::default()};
     }
     let player=build_boundary(case,&mut ctx).unwrap_or_else(|error|panic!("{label}: build failed: {error}"));
     assert!(ctx.random.draws.is_empty(),"{label}: player build must not consume RNG");
-    assert_stream_snapshot(&ctx.random.inner,&expected["compiled"]["rng_before"],&format!("{label}.before"));
     let enemy=boundary_enemy(case);
     ctx.action_trace=Some(Vec::with_capacity(16));
     let result=evaluate(case,&player,&enemy,&mut ctx);
     let last_fields=assert_fields(result,&expected["compiled"],label);
     assert_draws(&ctx.random.draws,&expected["compiled"]["draws"],label);
-    assert_stream_snapshot(&ctx.random.inner,&expected["compiled"]["rng_after"],&format!("{label}.after"));
-    let mut counts=ReplayCounts{compiled:1,scripted:0,hits:ctx.action_trace.as_ref().unwrap().len(),uniform_draws:ctx.random.draws.len(),legacy_errors:usize::from(last_fields.is_none()),last_fields,scripted_trace:None};
+    ctx.random.inner.assert_finished().expect("complete recorded draw consumption");
+    let mut counts=ReplayCounts{recorded:1,scripted:0,hits:ctx.action_trace.as_ref().unwrap().len(),uniform_draws:ctx.random.draws.len(),legacy_errors:usize::from(last_fields.is_none()),last_fields,scripted_trace:None};
     if let Some(scripted)=expected.get("scripted") {
         let tape=ScriptedTape::from_json_records(&scripted["tape"]).expect("captured strict tape");
         let mut scripted_ctx=EvaluationContext::new(Arc::clone(catalog),Recorded{inner:tape,draws:Vec::new()});

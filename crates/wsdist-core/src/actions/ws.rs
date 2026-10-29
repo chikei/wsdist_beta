@@ -584,11 +584,11 @@ fn average_melee<R: RandomSource>(
 
 #[inline]
 fn uniform<R: RandomSource>(ctx: &mut EvaluationContext<R>) -> f64 {
-    ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0)
+    ctx.random.uniform(RandomStream::Primary, 0.0, 1.0)
 }
 
-// Each successful/missed swing has exactly one host hit-rate draw. pDIF owns its
-// separate Numba-Python draws, and optional events never consume randomness.
+// Each successful/missed swing has exactly one Primary hit-rate draw. pDIF owns
+// its separate Pdif draws, and optional events never consume randomness.
 #[allow(clippy::too_many_arguments)]
 fn melee_swings<R: RandomSource>(
     count: u8,
@@ -819,7 +819,7 @@ fn sample_melee<R: RandomSource>(
             &[("probability", conserve_tp_chance), ("activated", flag(conserved))]);
     }
     if conserved {
-        let tp = python_int(ctx.random.uniform(RandomStream::NumpyHost, 10.0, 200.0), OPERATION, "Conserve TP")?;
+        let tp = python_int(ctx.random.uniform(RandomStream::Primary, 10.0, 200.0), OPERATION, "Conserve TP")?;
         damage.tp += tp;
         if ctx.calculation_trace.is_some() {
             ctx.record_equation("Sampled Conserve TP amount",

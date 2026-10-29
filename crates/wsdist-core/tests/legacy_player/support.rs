@@ -24,11 +24,11 @@ impl RandomSource for RejectRandom {
     fn uniform(&mut self, stream: RandomStream, low: f64, high: f64) -> f64 {
         panic!("unrequested uniform: {stream:?}, {low}, {high}");
     }
-    fn bounded_numpy(&mut self, upper_exclusive: usize) -> usize {
-        panic!("unrequested NumPy bounded integer: {upper_exclusive}");
+    fn bounded(&mut self, upper_exclusive: usize) -> usize {
+        panic!("unrequested bounded integer: {upper_exclusive}");
     }
-    fn reseed_numpy(&mut self, seed: u32) {
-        panic!("unrequested NumPy reseed: {seed}");
+    fn reseed(&mut self, seed: u64) {
+        panic!("unrequested reseed: {seed}");
     }
 }
 

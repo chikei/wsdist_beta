@@ -1,24 +1,25 @@
-mod draws;
-mod hits;
 pub mod boundaries;
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::sync::atomic::AtomicBool;
 
-use serde_json::Value;
+use serde::Serialize;
+use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use wsdist_core::actions::sample_round;
 use wsdist_core::math::{get_delay_timing, get_dex_crit, get_tp, python_round1};
 use wsdist_core::model::{
-    CalcError, DistributionRequest, DpsRequest, DpsResult, Enemy, EvaluationContext,
-    Metric, ModelState, PieceKind, Player, RandomSource, SimulationEvent,
+    CalcError, DistributionRequest, DistributionResult, DpsRequest, DpsResult, Enemy,
+    EvaluationContext, Metric, ModelState, PieceKind, Player, RandomSource, RoundSample,
     SimulationEventKind, SkillType, Slot, WsRequest, WsType, build_player,
 };
+use wsdist_core::rng::RandomSources;
 use wsdist_core::simulation::{sample_distribution, simulate_dps};
 use wsdist_core::stats::Stat;
 use wsdist_core::weaponskills::resolve_name;
 
+use crate::native_support::{CountingRandom, expect_native, num, random_value};
 use crate::support::{FrozenCatalog, assert_error, assert_number, enemy, number};
-use draws::ObservedRandom;
 
 pub fn assert_close(actual: f64, expected: f64, label: &str) {
     crate::support::observation::record(actual, expected, false, label);
@@ -34,8 +35,9 @@ pub fn assert_close(actual: f64, expected: f64, label: &str) {
     }
 }
 
-fn observed_context(frozen: &FrozenCatalog, input: &Value) -> EvaluationContext<ObservedRandom> {
-    EvaluationContext::new(Arc::clone(&frozen.catalog), ObservedRandom::new(&input["seeds"]))
+fn native_context(frozen: &FrozenCatalog, input: &Value) -> EvaluationContext<CountingRandom> {
+    EvaluationContext::new(Arc::clone(&frozen.catalog),
+        CountingRandom::seeded(input["seeds"]["numpy_host"].as_u64().unwrap()))
 }
 
 pub fn ws_request(value: &Value) -> WsRequest {
@@ -69,18 +71,30 @@ fn assert_model_changes(frozen: &FrozenCatalog, state: &ModelState, changes: &Va
     }
 }
 
-fn build_dps_players<R: RandomSource>(
-    frozen: &FrozenCatalog, request: &DpsRequest, expected: &Value,
-    ctx: &mut EvaluationContext<R>, label: &str,
-) -> (Player, Player) {
+struct DpsPlayers {
+    tp: Player,
+    ws: Player,
+    tp_after_build_state: ModelState,
+}
+
+fn build_dps_players(
+    request: &DpsRequest, ctx: &mut EvaluationContext<CountingRandom>,
+) -> DpsPlayers {
     let mut tp = Player::new(request.tp_player.gearset);
     build_player(&request.tp_player, ctx, &mut tp).unwrap();
-    frozen.assert_player(&tp, &ctx.state, &expected["players"]["tp_after_build"], label);
+    let tp_after_build_state = ctx.state.clone();
     let mut ws = Player::new(request.ws_player.gearset);
     build_player(&request.ws_player, ctx, &mut ws).unwrap();
-    frozen.assert_player(&tp, &ctx.state, &expected["players"]["tp_after_ws_build"], label);
-    frozen.assert_player(&ws, &ctx.state, &expected["players"]["ws_after_build"], label);
-    (tp, ws)
+    DpsPlayers { tp, ws, tp_after_build_state }
+}
+
+fn assert_dps_players(
+    frozen: &FrozenCatalog, players: &DpsPlayers, state: &ModelState,
+    expected: &Value, label: &str,
+) {
+    frozen.assert_player(&players.tp, &players.tp_after_build_state, &expected["players"]["tp_after_build"], label);
+    frozen.assert_player(&players.tp, state, &expected["players"]["tp_after_ws_build"], label);
+    frozen.assert_player(&players.ws, state, &expected["players"]["ws_after_build"], label);
 }
 
 fn assert_bound_inputs<R: RandomSource>(tp: &Player, ws: &Player, enemy: &Enemy, ctx: &EvaluationContext<R>, bound: &Value, label: &str) {
@@ -122,277 +136,236 @@ fn assert_bound_inputs<R: RandomSource>(tp: &Player, ws: &Player, enemy: &Enemy,
     }
 }
 
-fn assert_series(actual: &[[f64; 2]], times: &Value, damage: &Value, label: &str) {
-    let times = times.as_array().unwrap();
-    let damage = damage.as_array().unwrap();
-    assert_eq!(actual.len(), times.len(), "{label}: timestamp count");
-    assert_eq!(actual.len(), damage.len(), "{label}: cumulative damage count");
-    for ((actual, time), damage) in actual.iter().zip(times).zip(damage) {
-        assert_number(actual[0], time, label);
-        assert_number(actual[1], damage, label);
+fn assert_same_model_state(frozen: &FrozenCatalog, actual: &ModelState, expected: &ModelState, label: &str) {
+    for piece in frozen.catalog.pieces() {
+        assert_eq!(actual.override_for(piece.id), expected.override_for(piece.id),
+            "{label}: built and sampled model state");
     }
 }
 
-#[derive(Clone, Copy, Default)]
-struct DriverState { time: f64, tp: f64, damage: f64, tp_damage: f64, ws_damage: f64 }
-
-impl DriverState {
-    fn assert_captured(self, expected: &Value, label: &str) {
-        for (field, actual) in [("time", self.time), ("tp", self.tp), ("damage", self.damage),
-            ("tp_damage", self.tp_damage), ("ws_damage", self.ws_damage)] {
-            assert_number(actual, &expected[field], label);
-        }
-    }
-    fn advance(&mut self, event: &SimulationEvent) {
-        self.time = event.time;
-        self.tp = event.tp_after;
-        self.damage = event.cumulative_damage;
-        match event.kind { SimulationEventKind::Round => self.tp_damage += event.damage,
-            SimulationEventKind::WeaponSkill => self.ws_damage += event.damage }
+fn error_value(error: &CalcError) -> Value {
+    match error {
+        CalcError::Data { path, json_path, message } => json!({
+            "kind": "Data", "path": path, "json_path": json_path, "message": message,
+        }),
+        CalcError::Legacy { operation, field, category, message } => json!({
+            "kind": "Legacy", "operation": operation, "field": field, "category": category, "message": message,
+        }),
+        CalcError::Input { operation, field, message } => json!({
+            "kind": "Input", "operation": operation, "field": field, "message": message,
+        }),
+        CalcError::Interrupted { operation } => json!({"kind": "Interrupted", "operation": operation}),
+        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => json!({
+            "kind": "NonProgress", "operation": operation, "starting_tp": num(*starting_tp),
+            "threshold": num(*threshold), "upper_bound": num(*upper_bound),
+        }),
     }
 }
 
-fn assert_driver_transitions(result: &DpsResult, evidence: &Value, label: &str) {
-    let expected = evidence["simulation_transitions"].as_array().unwrap();
-    let mut transition = 0;
-    let mut completed = 0;
-    let mut state = DriverState::default();
-    let mut check = |line: u64, completed: usize, state: DriverState| {
-        let captured = expected.get(transition).unwrap_or_else(|| panic!("{label}: extra driver phase"));
-        assert_eq!(captured["source_line"].as_u64().unwrap(), line, "{label}: phase order");
-        assert_eq!(captured["completed_samples"].as_u64().unwrap(), completed as u64, "{label}: phase action cursor");
-        state.assert_captured(&captured["state"], label);
-        transition += 1;
+fn sampled_projection<T: Serialize>(
+    result: &Result<T, CalcError>, context: &EvaluationContext<CountingRandom>,
+) -> Value {
+    let hits = context.action_trace.as_ref().expect("requested simulation hit trace");
+    let mut observation = json!({
+        "hit_count": hits.len(),
+        "hits_sha256": format!("{:x}", Sha256::digest(serde_json::to_vec(hits).unwrap())),
+        "random": random_value(&context.random),
+    });
+    let fields = observation.as_object_mut().unwrap();
+    match result {
+        Ok(result) => { fields.insert("result".into(), serde_json::to_value(result).unwrap()); }
+        Err(error) => { fields.insert("error".into(), error_value(error)); }
+    }
+    observation
+}
+
+pub struct DpsRun {
+    pub context: EvaluationContext<CountingRandom>,
+    pub result: Result<DpsResult, CalcError>,
+    request: DpsRequest,
+    players: DpsPlayers,
+    build_context: EvaluationContext<CountingRandom>,
+}
+
+pub fn run_dps(case: &Value, cat: &FrozenCatalog) -> DpsRun {
+    let input = &case["input"];
+    let label = case["id"].as_str().unwrap();
+    let mut context = native_context(cat, input);
+    let request = dps_request(cat, input, &context, label);
+    let mut build_context = native_context(cat, input);
+    let players = build_dps_players(&request, &mut build_context);
+    context.action_trace = Some(Vec::new());
+    let result = simulate_dps(&request, &mut context, &AtomicBool::new(false));
+    DpsRun { context, result, request, players, build_context }
+}
+
+pub fn assert_dps_legacy(case: &Value, run: &DpsRun, cat: &FrozenCatalog) {
+    let label = case["id"].as_str().unwrap();
+    assert_eq!(case["expected"]["outcome"], "result", "{label}: frozen capture outcome");
+    let expected = &case["expected"]["value"];
+    assert_dps_players(cat, &run.players, &run.build_context.state, expected, label);
+    assert_bound_inputs(&run.players.tp, &run.players.ws, &run.request.enemy,
+        &run.build_context, &expected["bound"], label);
+    if expected["status"] == "legacy_exception" {
+        assert_error(run.result.as_ref().expect_err("captured DPS exception"), &expected["error"], label);
+    } else {
+        assert_eq!(expected["status"], "returned", "{label}: complete driver capture");
+        let result = run.result.as_ref().unwrap_or_else(|error| panic!("{label}: {error}"));
+        assert_close(result.ws_tp_bonus,
+            expected["players"]["ws_after_build"]["stats"].get("TP Bonus").map_or(0.0, number), label);
+        assert_eq!(result.total_series.len(), result.round_count + result.ws_count,
+            "{label}: every action's distinct total timestamp");
+        assert_eq!(result.events.len(), result.total_series.len(), "{label}: requested action trace completeness");
+        assert!(result.final_time >= 7200.0, "{label}: complete final cycle crosses the actual horizon");
+        assert_eq!(result.events.last().unwrap().kind, SimulationEventKind::WeaponSkill,
+            "{label}: last stopping action is always a WS");
+    }
+    // axis_labels remain immutable Python plotting provenance: DpsResult has no label surface.
+    assert_model_changes(cat, &run.context.state, &expected["catalog_metadata_changes"], label);
+    assert_same_model_state(cat, &run.context.state, &run.build_context.state, label);
+}
+
+pub fn project_dps(run: &DpsRun, _cat: &FrozenCatalog) -> Value {
+    sampled_projection(&run.result, &run.context)
+}
+
+pub struct DistributionRun {
+    pub context: EvaluationContext<CountingRandom>,
+    pub result: Result<DistributionResult, CalcError>,
+    player: Player,
+    build_context: EvaluationContext<CountingRandom>,
+}
+
+pub fn run_distribution(case: &Value, cat: &FrozenCatalog) -> DistributionRun {
+    let input = &case["input"];
+    let label = case["id"].as_str().unwrap();
+    let mut context = native_context(cat, input);
+    let request = DistributionRequest {
+        player: cat.player(&input["player"], &context.state, label),
+        enemy: enemy(&input["enemy"]), ws: ws_request(&input["request"]),
     };
-    while completed < result.events.len() {
-        assert!(state.time < 7200.0, "{label}: no new cycle after the outer horizon");
-        check(224, completed, state);
-        loop {
-            check(225, completed, state);
-            let event = &result.events[completed];
-            if event.kind == SimulationEventKind::WeaponSkill { break; }
-            state.advance(event);
-            completed += 1;
-        }
-        check(248, completed, state);
-        state.advance(&result.events[completed]);
-        completed += 1;
-    }
-    assert!(state.time >= 7200.0, "{label}: complete final cycle crosses the actual horizon");
-    check(224, completed, state);
-    check(269, completed, state);
-    drop(check);
-    assert_eq!(transition, expected.len(), "{label}: every captured driver transition");
+    let mut build_context = native_context(cat, input);
+    let mut player = Player::new(request.player.gearset);
+    build_player(&request.player, &mut build_context, &mut player).unwrap();
+    context.action_trace = Some(Vec::new());
+    let result = sample_distribution(&request, &mut context, &AtomicBool::new(false));
+    DistributionRun { context, result, player, build_context }
 }
 
-fn assert_dps_result(result: &DpsResult, expected: &Value, label: &str) {
-    let evidence = &expected["evidence"];
-    let final_state = &evidence["final_driver_locals"];
-    for (field, actual) in [("time", result.final_time), ("tp", result.final_tp), ("damage", result.damage),
-        ("tp_damage", result.tp_damage), ("ws_damage", result.ws_damage), ("time_per_attack_round", result.seconds_per_round)] {
-        assert_number(actual, &final_state[field], label);
+pub fn assert_distribution_legacy(case: &Value, run: &DistributionRun, cat: &FrozenCatalog) {
+    let label = case["id"].as_str().unwrap();
+    assert_eq!(case["expected"]["outcome"], "result", "{label}: captured distribution outcome");
+    let expected = &case["expected"]["value"];
+    cat.assert_player(&run.player, &run.build_context.state, &expected["player"], label);
+    if expected["status"] == "legacy_exception" {
+        assert_error(run.result.as_ref().expect_err("captured distribution exception"), &expected["error"], label);
+    } else {
+        assert_eq!(expected["status"], "returned", "{label}: complete distribution capture");
+        let result = run.result.as_ref().unwrap_or_else(|error| panic!("{label}: {error}"));
+        assert_eq!(result.damage.len(), 20000, "{label}: every fixed-count damage sample");
+        assert_eq!(result.tp.len(), 20000, "{label}: every fixed-count TP sample");
+        assert_eq!(result.histogram.density.len(), 300, "{label}: all density bins");
+        assert_eq!(result.histogram.edges.len(), 301, "{label}: all bin edges");
     }
-    assert_eq!(result.round_count, final_state["avg_tp_dmg"].as_array().unwrap().len(), "{label}: round count");
-    assert_eq!(result.ws_count, final_state["avg_ws_dmg"].as_array().unwrap().len(), "{label}: WS count");
-    let reductions = expected["printed_summary_reductions"].as_array().unwrap();
-    for (actual, index) in [(result.average_tp_damage, 0), (result.average_physical_round_damage, 1),
-        (result.average_magical_round_damage, 4), (result.average_ws_damage, 7), (result.average_pre_bonus_tp, 8)] {
-        assert_number(actual, &reductions[index]["result"], label);
-    }
-    assert_close(result.ws_tp_bonus, expected["players"]["ws_after_build"]["stats"].get("TP Bonus").map_or(0.0, number), label);
-    assert_series(&result.total_series, &final_state["time_list"], &final_state["damage_list"], label);
-    assert_series(&result.tp_series, &final_state["tp_time_list"], &final_state["tp_damage_list"], label);
-    assert_series(&result.ws_series, &final_state["ws_time_list"], &final_state["ws_damage_list"], label);
-    assert_eq!(result.total_series.len(), result.round_count + result.ws_count, "{label}: every action's distinct total timestamp");
-    assert_eq!(result.events.len(), result.total_series.len(), "{label}: requested action trace completeness");
-    for (curve, series) in expected["plotted_curves"].as_array().unwrap().iter().zip([&result.total_series, &result.tp_series, &result.ws_series]) {
-        let x = curve["x"].as_array().unwrap();
-        let y = curve["y"].as_array().unwrap();
-        assert_eq!(series.len(), x.len(), "{label}: DPS plot event count");
-        assert_eq!(series.len(), y.len(), "{label}: DPS plot reduction count");
-        for ((point, x), y) in series.iter().zip(x).zip(y) {
-            assert_number(point[0], x, label);
-            assert_number(point[1] / point[0], y, label);
+    assert_model_changes(cat, &run.context.state, &expected["catalog_metadata_changes"], label);
+    assert_same_model_state(cat, &run.context.state, &run.build_context.state, label);
+}
+
+pub fn project_distribution(run: &DistributionRun, _cat: &FrozenCatalog) -> Value {
+    sampled_projection(&run.result, &run.context)
+}
+
+pub struct NonprogressRun {
+    pub context: EvaluationContext<CountingRandom>,
+    pub result: Result<DpsResult, CalcError>,
+    pub diagnostic_context: EvaluationContext<CountingRandom>,
+    pub diagnostic: RoundSample,
+    request: DpsRequest,
+    players: DpsPlayers,
+    initial_random: RandomSources,
+}
+
+pub fn run_nonprogress(case: &Value, cat: &FrozenCatalog) -> NonprogressRun {
+    let input = &case["input"];
+    let label = case["id"].as_str().unwrap();
+    let mut context = native_context(cat, input);
+    let initial_random = context.random.inner.clone();
+    let request = dps_request(cat, input, &context, label);
+    let mut diagnostic_context = native_context(cat, input);
+    let players = build_dps_players(&request, &mut diagnostic_context);
+    let result = simulate_dps(&request, &mut context, &AtomicBool::new(false));
+    diagnostic_context.action_trace = Some(Vec::new());
+    let diagnostic = sample_round(&players.tp, &request.enemy, 0.0, request.threshold, &mut diagnostic_context)
+        .unwrap_or_else(|error| panic!("{label}: diagnostic round: {error}"));
+    NonprogressRun { context, result, diagnostic_context, diagnostic, request, players, initial_random }
+}
+
+pub fn assert_nonprogress_legacy(case: &Value, run: &NonprogressRun, cat: &FrozenCatalog) {
+    let label = case["id"].as_str().unwrap();
+    assert_eq!(case["expected"]["outcome"], "result", "{label}: nonprogress capture outcome");
+    let expected = &case["expected"]["value"];
+    assert_eq!(expected["status"], "proven_nonterminating_reference");
+    assert_dps_players(cat, &run.players, &run.diagnostic_context.state, expected, label);
+    assert_bound_inputs(&run.players.tp, &run.players.ws, &run.request.enemy,
+        &run.diagnostic_context, &expected["bound"], label);
+    match run.result.as_ref().expect_err("required no-TP guard") {
+        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => {
+            assert_eq!(*operation, "simulate_dps");
+            assert_eq!(*starting_tp, 0.0);
+            assert_eq!(threshold.to_bits(), run.request.threshold.to_bits());
+            assert_number(*upper_bound, &expected["bound"]["conservative_tp_upper_bound"], label);
         }
+        other => panic!("{label}: required no-TP guard, got {other}"),
     }
-    let samples = evidence["samples"].as_array().unwrap();
-    assert_eq!(result.events.len(), samples.len(), "{label}: full ordered action trajectory");
-    for (index, (event, sample)) in result.events.iter().zip(samples).enumerate() {
-        let before = &sample["before"];
-        let after = if index + 1 == samples.len() { final_state } else { &samples[index + 1]["before"] };
-        assert_number(event.tp_before, &before["tp"], label);
-        assert_number(event.time, &after["time"], label);
-        assert_number(event.tp_after, &after["tp"], label);
-        assert_number(event.cumulative_damage, &after["damage"], label);
-        assert_number(event.tp_return, &sample["result"][1], label);
-        let regain = match sample["kind"].as_str().unwrap() {
-            "round" => {
-                assert_eq!(event.kind, SimulationEventKind::Round, "{label}: attack order");
-                assert_number(event.physical_damage, &sample["result"][0], label);
-                assert_number(event.magical_damage, &sample["result"][2], label);
-                assert_close(event.damage, number(&sample["result"][0]) + number(&sample["result"][2]), label);
-                assert_number(event.tp_before, &sample["input"]["starting_tp"], label);
-                assert!(sample["input"]["simulation"].as_bool().unwrap());
-                assert!(number(&before["tp"]) < number(&sample["input"]["ws_threshold"]), "{label}: TP threshold round gating");
-                number(&expected["bound"]["rounded_round_regain"])
-            }
-            "ws" => {
-                assert_eq!(event.kind, SimulationEventKind::WeaponSkill, "{label}: WS order");
-                assert_number(event.damage, &sample["result"][0], label);
-                assert_number(event.physical_damage, &sample["locals"]["physical_damage"], label);
-                assert_number(event.magical_damage, &sample["locals"]["magical_damage"], label);
-                assert_number(event.tp_before, &sample["input"]["input_tp"], label);
-                assert!(sample["input"]["simulation"].as_bool().unwrap());
-                assert!(!sample["input"]["single"].as_bool().unwrap(), "{label}: continuous DPS disables single-only bonuses");
-                number(&final_state["regain_ws_return"])
-            }
-            other => panic!("{label}: unknown action kind {other}"),
-        };
-        assert_close(event.regain_tp, regain, label);
-        let expected_time = number(&before["time"]) + if event.kind == SimulationEventKind::Round { result.seconds_per_round } else { 2.0 };
-        assert_close(event.time, expected_time, label);
-        let expected_tp = if event.kind == SimulationEventKind::Round { number(&before["tp"]) + event.tp_return } else { event.tp_return } + regain;
-        assert_close(event.tp_after, expected_tp, label);
-    }
-    assert_eq!(result.events.last().unwrap().kind, SimulationEventKind::WeaponSkill, "{label}: last stopping action is always a WS");
-    assert_driver_transitions(result, evidence, label);
+    assert_eq!(run.context.random.inner, run.initial_random, "{label}: guard consumes neither random stream");
+    assert_eq!(run.context.random.uniforms() + run.context.random.bounded + run.context.random.reseeds, 0,
+        "{label}: guard makes no random calls");
+    assert_model_changes(cat, &run.context.state, &expected["catalog_metadata_changes"], label);
+    // reason explains the Python driver's uninvoked loop; it remains fixture provenance, not a core output.
+}
+
+pub fn project_nonprogress(run: &NonprogressRun, _cat: &FrozenCatalog) -> Value {
+    json!({
+        "diagnostic_round": serde_json::to_value(run.diagnostic).unwrap(),
+        "hits": run.diagnostic_context.action_trace.as_ref().expect("diagnostic hit trace"),
+        "random": random_value(&run.diagnostic_context.random),
+    })
+}
+
+fn expect_case_native(case: &Value, observation: &Value) {
+    static INDEX: LazyLock<crate::support::FixtureIndex> = LazyLock::new(crate::support::index);
+    let label = case["id"].as_str().unwrap();
+    let entry = INDEX.cases.iter().find(|entry| entry.id == label)
+        .unwrap_or_else(|| panic!("{label}: no hash-bearing legacy index entry"));
+    assert_eq!(case["operation"], entry.operation, "{label}: indexed operation");
+    expect_native(label, &entry.sha256, observation);
 }
 
 pub fn replay_dps(case: &Value) { replay_dps_measured(case); }
 
 pub fn replay_dps_measured(case: &Value) -> (usize, usize, usize) {
-    let label = case["id"].as_str().unwrap();
-    let input = &case["input"];
-    assert_eq!(case["expected"]["outcome"], "result", "{label}: frozen capture outcome");
-    let expected = &case["expected"]["value"];
-    let frozen = FrozenCatalog::from_input(input);
-    let mut context = observed_context(&frozen, input);
-    let request = dps_request(&frozen, input, &context, label);
-    let mut build_context = frozen.context(&input["seeds"]);
-    let (tp, ws) = build_dps_players(&frozen, &request, expected, &mut build_context, label);
-    assert_bound_inputs(&tp, &ws, &request.enemy, &build_context, &expected["bound"], label);
-    context.action_trace = Some(Vec::new());
-    let result = simulate_dps(&request, &mut context, &AtomicBool::new(false));
-    let samples = result.as_ref().map_or(0, |result| result.events.len());
-    if expected["status"] == "legacy_exception" {
-        assert_error(&result.unwrap_err(), &expected["error"], label);
-    } else {
-        assert_eq!(expected["status"], "returned", "{label}: complete driver capture");
-        let result = result.unwrap_or_else(|error| panic!("{label}: {error}"));
-        assert_dps_result(&result, expected, label);
-    }
-    let trace = context.action_trace.as_ref().unwrap();
-    let mut cursor = 0;
-    for sample in expected["evidence"]["samples"].as_array().unwrap() { hits::assert_sample_hits(sample, trace, &mut cursor, label); }
-    assert_eq!(cursor, trace.len(), "{label}: no extra or missing sampled hit records");
-    context.random.assert_evidence(&input["seeds"], &expected["evidence"], label);
-    assert_model_changes(&frozen, &context.state, &expected["catalog_metadata_changes"], label);
-    for piece in frozen.catalog.pieces() {
-        assert_eq!(context.state.override_for(piece.id), build_context.state.override_for(piece.id), "{label}: shared TP-then-WS model context");
-    }
-    (samples, trace.len(), context.random.draw_count())
+    let frozen = FrozenCatalog::from_input(&case["input"]);
+    let run = run_dps(case, &frozen);
+    assert_dps_legacy(case, &run, &frozen);
+    expect_case_native(case, &project_dps(&run, &frozen));
+    (run.result.as_ref().map_or(0, |result| result.round_count + result.ws_count),
+        run.context.action_trace.as_ref().unwrap().len(), run.context.random.uniforms())
 }
 
 pub fn replay_distribution(case: &Value) { replay_distribution_measured(case); }
 
 pub fn replay_distribution_measured(case: &Value) -> (usize, usize, usize) {
-    let label = case["id"].as_str().unwrap();
-    let input = &case["input"];
-    assert_eq!(case["expected"]["outcome"], "result", "{label}: captured distribution outcome");
-    let expected = &case["expected"]["value"];
-    assert_eq!(expected["status"], "returned", "{label}: complete distribution capture");
-    let frozen = FrozenCatalog::from_input(input);
-    let mut context = observed_context(&frozen, input);
-    let request = DistributionRequest { player: frozen.player(&input["player"], &context.state, label),
-    enemy: enemy(&input["enemy"]), ws: ws_request(&input["request"]) };
-    let mut build_context = frozen.context(&input["seeds"]);
-    let mut player = Player::new(request.player.gearset);
-    build_player(&request.player, &mut build_context, &mut player).unwrap();
-    frozen.assert_player(&player, &build_context.state, &expected["player"], label);
-    context.action_trace = Some(Vec::new());
-    let result = sample_distribution(&request, &mut context, &AtomicBool::new(false))
-        .unwrap_or_else(|error| panic!("{label}: {error}"));
-    assert_eq!(result.damage.len(), 20000, "{label}: every fixed-count damage sample");
-    assert_eq!(result.tp.len(), 20000, "{label}: every fixed-count TP sample");
-    let damage = expected["damage_samples"].as_array().unwrap();
-    let tp = expected["tp_samples"].as_array().unwrap();
-    let samples = expected["evidence"]["samples"].as_array().unwrap();
-    assert_eq!(damage.len(), 20000);
-    assert_eq!(tp.len(), 20000);
-    assert_eq!(samples.len(), 20000);
-    let trace = context.action_trace.as_ref().unwrap();
-    let mut cursor = 0;
-    for (index, sample) in samples.iter().enumerate() {
-        assert_number(result.damage[index], &damage[index], label);
-        assert_number(result.tp[index], &tp[index], label);
-        assert_number(result.damage[index], &sample["result"][0], label);
-        assert_number(result.tp[index], &sample["result"][1], label);
-        assert_eq!(sample["kind"], "ws", "{label}: only weapon skills in the distribution");
-        assert!(sample["input"]["single"].as_bool().unwrap(), "{label}: single-only first-hit behavior");
-        assert!(sample["input"]["simulation"].as_bool().unwrap());
-        assert_number(request.ws.tp, &sample["input"]["input_tp"], label);
-        hits::assert_sample_hits(sample, trace, &mut cursor, label);
-    }
-    assert_eq!(cursor, trace.len(), "{label}: complete distribution sampled attempt/proc trace");
-    let summary = &expected["summary"];
-    for (field, actual) in [("minimum", result.minimum), ("mean", result.mean),
-        ("median", result.median), ("maximum", result.maximum)] {
-        assert_number(actual, &summary[field], label);
-    }
-    assert_eq!(result.title_mean.to_bits(), number(&summary["title_mean_integer"]).to_bits(), "{label}: truncated title mean integer");
-    assert_eq!(result.title_median.to_bits(), number(&summary["title_median_integer"]).to_bits(), "{label}: truncated title median integer");
-    let counts = summary["histogram_counts"].as_array().unwrap().iter().map(|count| count.as_u64().unwrap()).collect::<Vec<_>>();
-    assert_eq!(result.histogram.counts, counts, "{label}: exact inclusive-edge 300-bin counts");
-    assert_eq!(result.histogram.density.len(), 300, "{label}: all density bins");
-    assert_eq!(result.histogram.edges.len(), 301, "{label}: all bin edges");
-    for (actual, expected) in result.histogram.edges.iter().zip(summary["histogram_edges"].as_array().unwrap()) { assert_number(*actual, expected, label); }
-    for (actual, expected) in result.histogram.density.iter().zip(summary["histogram_density"].as_array().unwrap()) { assert_number(*actual, expected, label); }
-    let actual_plot = &expected["plot"]["actual_matplotlib_histogram_calls"][0];
-    for (actual, expected) in result.histogram.edges.iter().zip(actual_plot["edges"].as_array().unwrap()) { assert_number(*actual, expected, label); }
-    for (actual, expected) in result.histogram.density.iter().zip(actual_plot["density"].as_array().unwrap()) { assert_number(*actual, expected, label); }
-    for marker in expected["plot"]["mean_marker"].as_array().unwrap() {
-        for x in marker["x"].as_array().unwrap() { assert_number(result.mean, x, label); }
-    }
-    context.random.assert_evidence(&input["seeds"], &expected["evidence"], label);
-    assert_model_changes(&frozen, &context.state, &expected["catalog_metadata_changes"], label);
-    for piece in frozen.catalog.pieces() {
-        assert_eq!(context.state.override_for(piece.id), build_context.state.override_for(piece.id), "{label}: distribution model state");
-    }
-    (result.damage.len(), trace.len(), context.random.draw_count())
+    let frozen = FrozenCatalog::from_input(&case["input"]);
+    let run = run_distribution(case, &frozen);
+    assert_distribution_legacy(case, &run, &frozen);
+    expect_case_native(case, &project_distribution(&run, &frozen));
+    (run.result.as_ref().map_or(0, |result| result.damage.len()),
+        run.context.action_trace.as_ref().unwrap().len(), run.context.random.uniforms())
 }
 
 pub fn replay_nonprogress(case: &Value) {
-    let label = case["id"].as_str().unwrap();
-    let input = &case["input"];
-    let expected = &case["expected"]["value"];
-    assert_eq!(expected["status"], "proven_nonterminating_reference");
-    let frozen = FrozenCatalog::from_input(input);
-    let mut context = observed_context(&frozen, input);
-    let initial_random = context.random.inner.clone();
-    let request = dps_request(&frozen, input, &context, label);
-    let mut diagnostic_context = observed_context(&frozen, input);
-    let (tp, ws) = build_dps_players(&frozen, &request, expected, &mut diagnostic_context, label);
-    assert_bound_inputs(&tp, &ws, &request.enemy, &diagnostic_context, &expected["bound"], label);
-    match simulate_dps(&request, &mut context, &AtomicBool::new(false)).unwrap_err() {
-        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => {
-            assert_eq!(operation, "simulate_dps");
-            assert_eq!(starting_tp, 0.0);
-            assert_eq!(threshold.to_bits(), request.threshold.to_bits());
-            assert_number(upper_bound, &expected["bound"]["conservative_tp_upper_bound"], label);
-        }
-        other => panic!("{label}: required no-TP guard, got {other}"),
-    }
-    assert_eq!(context.random.inner, initial_random, "{label}: guard consumes neither random stream");
-    assert_model_changes(&frozen, &context.state, &expected["catalog_metadata_changes"], label);
-    diagnostic_context.action_trace = Some(Vec::new());
-    let diagnostic = sample_round(&tp, &request.enemy, 0.0, request.threshold, &mut diagnostic_context).unwrap();
-    for (actual, expected) in [diagnostic.physical_damage, diagnostic.tp_return, diagnostic.magical_damage].into_iter()
-        .zip(expected["observed_one_compiled_sampling_round"].as_array().unwrap()) { assert_number(actual, expected, label); }
-    let samples = expected["evidence"]["samples"].as_array().unwrap();
-    assert_eq!(samples.len(), 1, "{label}: source diagnostics did not invoke an infinite driver");
-    let mut cursor = 0;
-    let trace = diagnostic_context.action_trace.as_ref().unwrap();
-    hits::assert_sample_hits(&samples[0], trace, &mut cursor, label);
-    assert_eq!(cursor, trace.len());
-    diagnostic_context.random.assert_evidence(&input["seeds"], &expected["evidence"], label);
+    let frozen = FrozenCatalog::from_input(&case["input"]);
+    let run = run_nonprogress(case, &frozen);
+    assert_nonprogress_legacy(case, &run, &frozen);
+    expect_case_native(case, &project_nonprogress(&run, &frozen));
 }

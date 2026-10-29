@@ -71,14 +71,14 @@ fn clipped(qratio: f64, cap: f64) -> f64 {
 #[inline]
 pub fn get_pdif_melee(player_attack: f64, wpn_type_skill: PdifSkill, pdl_trait: f64, pdl_gear: f64, enemy_defense: f64, crit_rate: f64, random: &mut impl RandomSource) -> Result<(f64, bool), CalcError> {
     let pdif_cap = (wpn_type_skill.melee_cap() + pdl_trait) * (1.0 + pdl_gear);
-    let crit = random.uniform(RandomStream::NumbaPython, 0.0, 1.0) < crit_rate;
+    let crit = random.uniform(RandomStream::Pdif, 0.0, 1.0) < crit_rate;
     let ratio = divide(player_attack, enemy_defense, "get_pdif_melee", "enemy_defense")?;
     let wratio = if crit { ratio + 1.0 } else { ratio };
     let (lower, upper) = melee_limits(wratio);
-    let qratio = random.uniform(RandomStream::NumbaPython, lower, upper);
+    let qratio = random.uniform(RandomStream::Pdif, lower, upper);
     let mut pdif = clipped(qratio, pdif_cap);
     if crit { pdif += 1.0; }
-    pdif *= random.uniform(RandomStream::NumbaPython, 1.0, 1.05);
+    pdif *= random.uniform(RandomStream::Pdif, 1.0, 1.05);
     Ok((pdif, crit))
 }
 
@@ -103,10 +103,10 @@ pub fn get_avg_pdif_melee(player_attack: f64, wpn_type_skill: PdifSkill, pdl_tra
 #[inline]
 pub fn get_pdif_ranged(player_ranged_attack: f64, wpn_type_skill: PdifSkill, pdl_trait: f64, pdl_gear: f64, enemy_defense: f64, crit_rate: f64, random: &mut impl RandomSource) -> Result<(f64, bool), CalcError> {
     let pdif_base_cap = wpn_type_skill.ranged_cap();
-    let crit = random.uniform(RandomStream::NumbaPython, 0.0, 1.0) < crit_rate;
+    let crit = random.uniform(RandomStream::Pdif, 0.0, 1.0) < crit_rate;
     let ratio = divide(player_ranged_attack, enemy_defense, "get_pdif_ranged", "enemy_defense")?;
     let (lower, upper) = ranged_limits(ratio);
-    let qratio = random.uniform(RandomStream::NumbaPython, lower, upper);
+    let qratio = random.uniform(RandomStream::Pdif, lower, upper);
     let pdif_cap = (pdif_base_cap + pdl_trait) * (1.0 + pdl_gear);
     let mut pdif = clipped(qratio, pdif_cap);
     if crit { pdif *= 1.25; }

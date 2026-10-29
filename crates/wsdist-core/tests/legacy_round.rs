@@ -16,18 +16,18 @@ fn all_frozen_round_branches_match_compiled_and_scripted_oracles() {
     let catalog = Arc::new(Catalog::load(&resource_root()).expect("real immutable catalog"));
     let root = fixture_root();
     let mut cases = 0;
-    let mut compiled = 0;
+    let mut recorded = 0;
     let mut scripted = 0;
     for entry in index(&root).cases.into_iter().filter(|entry| entry.operation == "combat.round") {
         let case = document(&root.join(&entry.path));
         assert_eq!(case["id"], entry.id, "indexed case identity");
         let replay = replay_case(&case, &catalog);
         cases += 1;
-        compiled += replay.compiled;
+        recorded += replay.recorded;
         scripted += replay.scripted;
     }
     assert_eq!(cases, 816, "complete frozen combat.round corpus, without narrowing");
-    assert_eq!(compiled, 816, "actual production two-stream seeded evaluations");
+    assert_eq!(recorded, 816, "recorded compiled-draw replays");
     assert_eq!(scripted, 19, "all paired strict endpoint tapes and complete draw consumption");
 }
 

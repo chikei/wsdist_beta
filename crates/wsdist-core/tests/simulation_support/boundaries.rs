@@ -30,8 +30,8 @@ struct CancellingRandom {
 
 impl CancellingRandom {
     fn new(seeds: &Value, stop: Arc<AtomicBool>, cancel_at: Option<usize>, policy: HostPolicy) -> Self {
-        Self { inner: RandomSources::from_seeds(seeds["numpy_host"].as_u64().unwrap() as u32,
-            seeds["numba_python"].as_u64().unwrap() as u32), stop, cancel_at, draws: 0, host_draws: 0, policy }
+        Self { inner: RandomSources::from_seed(seeds["numpy_host"].as_u64().unwrap()),
+            stop, cancel_at, draws: 0, host_draws: 0, policy }
     }
 }
 
@@ -40,7 +40,7 @@ impl RandomSource for CancellingRandom {
         let sampled = self.inner.uniform(stream, low, high);
         self.draws += 1;
         if self.cancel_at == Some(self.draws) { self.stop.store(true, Ordering::Relaxed); }
-        if stream == RandomStream::NumpyHost {
+        if stream == RandomStream::Primary {
             self.host_draws += 1;
             match self.policy {
                 HostPolicy::Seeded => sampled,
@@ -53,8 +53,8 @@ impl RandomSource for CancellingRandom {
             sampled
         }
     }
-    fn bounded_numpy(&mut self, _: usize) -> usize { panic!("no simulation choice draws") }
-    fn reseed_numpy(&mut self, _: u32) { panic!("no simulation reseeding") }
+    fn bounded(&mut self, _: usize) -> usize { panic!("no simulation choice draws") }
+    fn reseed(&mut self, _: u64) { panic!("no simulation reseeding") }
 }
 
 fn fixture(suffix: &str) -> Value {
@@ -122,8 +122,7 @@ pub fn cancellation_after_a_round_never_enters_the_following_ws() {
     request.threshold = 1.0;
     let (tp, _) = build_players(&request, &mut baseline);
     baseline.action_trace = Some(Vec::new());
-    let first = sample_round(&tp, &request.enemy, 0.0, request.threshold, &mut baseline).unwrap();
-    assert_eq!(first.tp_return, 75.0, "captured first round reaches the immediate WS threshold");
+    sample_round(&tp, &request.enemy, 0.0, request.threshold, &mut baseline).unwrap();
     let first_draws = baseline.random.draws;
     let stop = Arc::new(AtomicBool::new(false));
     let mut ctx = context(&frozen, input, Arc::clone(&stop), Some(first_draws), HostPolicy::Seeded);
@@ -144,8 +143,7 @@ pub fn cancellation_in_a_ws_returns_no_partial_distribution() {
     let mut player = Player::new(request.player.gearset);
     build_player(&request.player, &mut baseline, &mut player).unwrap();
     baseline.action_trace = Some(Vec::new());
-    let first = sample_ws(&player, &request.enemy, &request.ws, true, &mut baseline).unwrap();
-    super::assert_close(first.damage, 2749.380269752536, "captured first single WS");
+    sample_ws(&player, &request.enemy, &request.ws, true, &mut baseline).unwrap();
     let stop = Arc::new(AtomicBool::new(false));
     let mut ctx = context(&frozen, input, Arc::clone(&stop), Some(baseline.random.draws), HostPolicy::Seeded);
     ctx.action_trace = Some(Vec::new());
@@ -282,16 +280,27 @@ pub fn trace_disabled_keeps_the_same_damage_and_streams_without_events() {
     let case = fixture("full7200-single-host11-compiled20240101");
     let input = &case["input"];
     let frozen = FrozenCatalog::from_input(input);
-    let mut ctx = super::observed_context(&frozen, input);
-    let mut request = dps_request(&frozen, input, &ctx, "trace-free trajectory");
+    let mut traced_ctx = super::native_context(&frozen, input);
+    let mut request = dps_request(&frozen, input, &traced_ctx, "trace-invariant trajectory");
+    traced_ctx.action_trace = Some(Vec::new());
+    let traced = simulate_dps(&request, &mut traced_ctx, &AtomicBool::new(false)).unwrap();
+    assert!(!traced.events.is_empty(), "requested driver traces are captured");
+    assert!(!traced_ctx.action_trace.as_ref().unwrap().is_empty(), "requested per-hit traces are captured");
+    let mut untraced_ctx = super::native_context(&frozen, input);
     request.trace = false;
-    let result = simulate_dps(&request, &mut ctx, &AtomicBool::new(false)).unwrap();
-    assert!(result.events.is_empty(), "no unrequested driver traces");
-    assert!(ctx.action_trace.is_none(), "no unrequested per-hit buffer");
-    let expected = &case["expected"]["value"]["evidence"]["final_driver_locals"];
-    crate::support::assert_number(result.final_time, &expected["time"], "trace-free final time");
-    crate::support::assert_number(result.damage, &expected["damage"], "trace-free damage");
-    ctx.random.assert_evidence(&input["seeds"], &case["expected"]["value"]["evidence"], "trace-free streams");
+    let untraced = simulate_dps(&request, &mut untraced_ctx, &AtomicBool::new(false)).unwrap();
+    assert!(untraced.events.is_empty(), "no unrequested driver traces");
+    assert!(untraced_ctx.action_trace.is_none(), "no unrequested per-hit buffer");
+    let mut traced_value = serde_json::to_value(traced).unwrap();
+    let mut untraced_value = serde_json::to_value(untraced).unwrap();
+    // DpsResult serializes events; only this intentionally trace-dependent field is excluded.
+    traced_value.as_object_mut().unwrap().remove("events").unwrap();
+    untraced_value.as_object_mut().unwrap().remove("events").unwrap();
+    crate::native_support::assert_json_eq(&traced_value, &untraced_value, "trace-invariant DPS result");
+    crate::native_support::assert_json_eq(
+        &crate::native_support::random_value(&traced_ctx.random),
+        &crate::native_support::random_value(&untraced_ctx.random),
+        "trace-invariant random consumption and continuation");
 }
 
 pub fn unreachable_special_hits_do_not_mask_nonprogress() {

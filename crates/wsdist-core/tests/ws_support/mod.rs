@@ -23,10 +23,10 @@ impl RandomSource for NoSetupDraws {
     fn uniform(&mut self, stream: RandomStream, low: f64, high: f64) -> f64 {
         panic!("unexpected WS setup uniform: {stream:?} [{low}, {high}]")
     }
-    fn bounded_numpy(&mut self, upper_exclusive: usize) -> usize {
+    fn bounded(&mut self, upper_exclusive: usize) -> usize {
         panic!("unexpected WS setup bounded draw: {upper_exclusive}")
     }
-    fn reseed_numpy(&mut self, seed: u32) { panic!("unexpected WS setup reseed: {seed}") }
+    fn reseed(&mut self, seed: u64) { panic!("unexpected WS setup reseed: {seed}") }
 }
 
 #[derive(Deserialize)]

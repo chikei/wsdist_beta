@@ -121,7 +121,7 @@ fn mean_discrete(distribution: &[f64]) -> f64 {
 
 fn base_boundary(root: &Path, path: &str, catalog: &Arc<Catalog>) -> (Player, Enemy) {
     let case = crate::player_support::document(&root.join(path));
-    let mut context = EvaluationContext::new(Arc::clone(catalog), RandomSources::from_seeds(0, 0));
+    let mut context = EvaluationContext::new(Arc::clone(catalog), RandomSources::from_seed(0));
     let player = crate::combat_support::build_boundary(&case, &mut context).unwrap();
     let enemy = crate::combat_support::boundary_enemy(&case);
     (player, enemy)
@@ -226,9 +226,9 @@ pub fn diagnostics(root: &Path) -> Vec<Value> {
     // prove that the clipped upper atom is integrated rather than midpointed.
     for (critical, ratio, q, expected) in [(false, 3.25, 3.625, 3.25), (true, 1.0, 2.375, 3.375)] {
         let (low, high) = melee_window(ratio + if critical { 1.0 } else { 0.0 });
-        let mut tape = ScriptedTape::new(vec![TapeRecord::uniform(wsdist_core::model::RandomStream::NumbaPython, 0.0, 1.0, if critical { 0.0 } else { 0.9 }),
-            TapeRecord::uniform(wsdist_core::model::RandomStream::NumbaPython, low, high, q),
-            TapeRecord::uniform(wsdist_core::model::RandomStream::NumbaPython, 1.0, 1.05, 1.0)]);
+        let mut tape = ScriptedTape::new(vec![TapeRecord::uniform(wsdist_core::model::RandomStream::Pdif, 0.0, 1.0, if critical { 0.0 } else { 0.9 }),
+            TapeRecord::uniform(wsdist_core::model::RandomStream::Pdif, low, high, q),
+            TapeRecord::uniform(wsdist_core::model::RandomStream::Pdif, 1.0, 1.05, 1.0)]);
         let result = get_pdif_melee(ratio, PdifSkill::from_name("Sword"), 0.0, 0.0, 1.0, 0.5, &mut tape).unwrap();
         assert_eq!(result.1, critical); assert_close(result.0, expected, "conditional clipped pDIF endpoint"); tape.assert_finished().unwrap();
     }
@@ -275,9 +275,8 @@ where F: FnMut(usize, usize, &mut RandomSources, &mut [u64]) -> f64 {
     let mut counts = vec![0_u64; categories.len()];
     let mut batches = Vec::with_capacity(BATCHES);
     for batch in 0..BATCHES {
-        let host = 20240101 + batch as u32;
-        let compiled = 40480202 + batch as u32;
-        let mut random = RandomSources::from_seeds(host, compiled);
+        let seed = 20_240_101_u64 + batch as u64;
+        let mut random = RandomSources::from_seed(seed);
         let mut moments = Moments::default();
         for index in 0..PER_BATCH {
             let value = sample(batch, index, &mut random, &mut counts);
@@ -286,7 +285,7 @@ where F: FnMut(usize, usize, &mut RandomSources, &mut [u64]) -> f64 {
         }
         assert!(moments.mean.is_finite() && moments.variance().is_finite(), "{id}: nonfinite batch reduction");
         batch_means.add(moments.mean);
-        batches.push(json!({"batch": batch, "numpy_host_seed": host, "numba_python_seed": compiled,
+        batches.push(json!({"batch": batch, "seed": seed,
             "n": PER_BATCH, "mean": moments.mean, "sample_variance": moments.variance()}));
     }
     let standard_error = (batch_means.variance() / BATCHES as f64).sqrt();
@@ -309,7 +308,7 @@ where F: FnMut(usize, usize, &mut RandomSources, &mut [u64]) -> f64 {
         "error": error, "six_standard_error_tolerance": tolerance, "passed": passed, "categories": categories, "batches": batches})
 }
 
-/// Each isolated scenario uses exactly the plan's 40 independent seed pairs.
+/// Each isolated scenario uses 40 fixed batch seeds with independent Primary/Pdif streams.
 /// No comparison equates a sampled mean to a legacy analytical approximation.
 pub fn statistics(root: &Path) -> Vec<Value> {
     let mut results = Vec::new();
@@ -358,7 +357,7 @@ pub fn statistics(root: &Path) -> Vec<Value> {
         let mut categories = (0..=8).map(|hits| (format!("landed_hits_{hits}"), distribution[hits])).collect::<Vec<_>>();
         let normal = (1.0 - qa) * (1.0 - ta) * (1.0 - da);
         categories.extend([("main_qa", qa), ("main_ta", (1.0 - qa) * ta), ("main_da", (1.0 - qa) * (1.0 - ta) * da), ("main_normal", normal)].map(|(name, probability)| (name.to_owned(), probability)));
-        let mut context = EvaluationContext::new(Arc::clone(&catalog), RandomSources::from_seeds(0, 0));
+        let mut context = EvaluationContext::new(Arc::clone(&catalog), RandomSources::from_seed(0));
         context.action_trace = Some(Vec::with_capacity(8));
         results.push(statistic(id, &["actions.py:597-820", "get_ma_rate.py:183-284"], mean_discrete(&distribution), categories,
             |_, index, random, counts| {
@@ -383,7 +382,7 @@ pub fn statistics(root: &Path) -> Vec<Value> {
         let mut categories = vec![("proc".to_owned(), probability), ("no_proc".to_owned(), 1.0 - probability)];
         if conserve > 0.0 { categories.extend((10..200).map(|tp| (format!("integer_tp_{tp}"), conserve / 190.0))); }
         let request = WsRequest { skill: resolve_name("Fast Blade").unwrap(), ws_type: WsType::Melee, tp: 1000.0, metric: Metric::new("Damage dealt") };
-        let mut context = EvaluationContext::new(Arc::clone(&catalog), RandomSources::from_seeds(0, 0));
+        let mut context = EvaluationContext::new(Arc::clone(&catalog), RandomSources::from_seed(0));
         context.action_trace = Some(Vec::with_capacity(10));
         results.push(statistic(id, &["actions.py:1565-1569", "actions.py:1670-1681"], expected, categories,
             |_, index, random, counts| {

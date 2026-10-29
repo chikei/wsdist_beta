@@ -50305,7 +50305,7 @@
     }
   },
   "fixture_counts": {
-    "capture_players": 6003,
+    "capture_players": 5995,
     "capture_combat": 23515,
     "capture_search_simulation": 432,
     "capture_ui": 243
@@ -56305,16 +56305,8 @@
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005991.json": "d6a0cb2914d8c258663c8b95e8e7c602713ff7fecc99e2c85b23494013d46def",
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005992.json": "2238c6b47e63146009ae28b933d6ad681befebff68e3491193d1f8dcbd15cc69",
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005993.json": "2b89e3c5363fe5b0f3a26e23fa3f5ca9d4785ccb5aec4466c56ae1d30ed495fc",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005994.json": "a779469e0f1d93d7b3d1b658b84de0a5e42ae5ef9cecd49188d37474e841b6bb",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005995.json": "1ced3ffcd80fdf2ecfeb8d2757f669ed6cd6f8444d5b1ce1a8aa467ebc95c99e",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005996.json": "e09b4d490e2378dd8a10e0c761a072c4f580ec9a10b412f6bd92857fc5732719",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005997.json": "58a87baaf708086f2b84b08dd20c761fefa542054a7dd734c4137a8d6e9c84ba",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005998.json": "6830cb5c5122add05a75e5b9dbd5af37f922f187ff6eab752223892e7977d6eb",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/005999.json": "b6d3a8b760ebe383d2881f347684905f330182bbf9d2c439c5462fd210d52214",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/006000.json": "705eb1e21bc912714e2959bf532c51e22e1c6b5f442883f4a884386ebdba19d1",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/006001.json": "f0f043a206522b569683a26cdd6d37b3ea1938c0490f05d552f2033371257b86",
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players/006002.json": "e520413a90eceb314189a2c6dafe7a9f433800d2db71202b417a9a672a277f94",
-    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players.json": "a2127bb062aa1adce0c78cfba57c974afef5763b7579931238eec98a757107b8",
+    "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/players.json": "d815f48cfd4670ad7d97eb34111aad760b1fa903a2e88bfefe06e6947975577f",
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/combat/000000.json": "0e8126b2a663216804a4567c886f04b4846122e4966976cef76c261c8f5813aa",
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/combat/000001.json": "20e2dcb63225d6d04c85e73c0e9fd7f4ba2642a664f71cc141e5c3fd7f4dbcf6",
     "/home/Chikei/repos/wsdist_beta/crates/wsdist-core/tests/fixtures/legacy/combat/000002.json": "f4abf45baeec7708bf2b30144babdd521975eb8d15da4598a65554f678a9f957",

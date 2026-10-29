@@ -20,13 +20,13 @@ use combat_support::{
 
 /// Full action parity, separate from the setup/table suite in legacy_ws.rs.
 /// The shared adapter invokes the public analytical/sampled engine with the
-/// production seeded streams and additionally replays every captured tape.
+/// recorded compiled draws and additionally replays every captured endpoint tape.
 #[test]
 fn all_frozen_weapon_actions_match_results_errors_draws_and_components() {
     let root = fixture_root();
     let catalog = Arc::new(Catalog::load(&resource_root()).expect("reviewed inert catalogs"));
     let mut cases = 0;
-    let mut compiled = 0;
+    let mut recorded = 0;
     let mut scripted = 0;
     let mut hits = 0;
     for entry in index(&root).cases {
@@ -34,12 +34,12 @@ fn all_frozen_weapon_actions_match_results_errors_draws_and_components() {
         let case = document(&root.join(entry.path));
         let replay = replay_case(&case, &catalog);
         cases += 1;
-        compiled += replay.compiled;
+        recorded += replay.recorded;
         scripted += replay.scripted;
         hits += replay.hits;
     }
     assert_eq!(cases, 12812, "the entire frozen combat.ws corpus must be replayed");
-    eprintln!("WS action parity: {cases} cases, {compiled} compiled, {scripted} scripted, {hits} traced hits");
+    eprintln!("WS action parity: {cases} cases, {recorded} recorded compiled-draw replays, {scripted} scripted, {hits} traced hits");
 }
 
 fn request(case: &serde_json::Value) -> WsRequest {

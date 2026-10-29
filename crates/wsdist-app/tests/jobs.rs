@@ -4,7 +4,7 @@ use std::sync::{Arc, LazyLock, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use wsdist_app::exchange::GearSource;
 use wsdist_app::jobs::{
     AnalyticalKind, GuiAction, JobCompletion, WorkRequest, WorkResult, WorkerCoordinator,
@@ -14,7 +14,7 @@ use wsdist_app::state::CalculationInputs;
 use wsdist_core::Catalog;
 use wsdist_core::model::{
     CalcError, CalculationStep, CandidatePools, Enemy, EvaluationContext, HitEvent, OptimizeOptions,
-    Player, PlayerStage, PlayerStageSnapshot, Progress, RandomStream,
+    Player, PlayerStage, PlayerStageSnapshot, Progress, RandomSource, RandomStream,
     SkillType, Slot, WsType,
 };
 use wsdist_core::rng::RandomSources;
@@ -44,6 +44,14 @@ fn frozen(index: &str, id: &str) -> Value {
     let entry = index["cases"].as_array().unwrap().iter()
         .find(|entry| entry["id"] == id).unwrap_or_else(|| panic!("uncaptured scenario {id}"));
     support::fixture(&root, entry)
+}
+
+fn native(id: &str) -> Value {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../wsdist-core/tests/fixtures/native");
+    let index = document(&root.join("index.json"));
+    let entry = index["cases"].as_array().unwrap().iter()
+        .find(|entry| entry["id"] == id).unwrap_or_else(|| panic!("uncaptured native scenario {id}"));
+    support::fixture(&root, entry)["observation"].clone()
 }
 
 fn combat(id: &str) -> Value { frozen("combat.json", id) }
@@ -101,9 +109,8 @@ fn first_progress(worker: &mut WorkerCoordinator) -> Progress {
 
 fn combat_inputs(case: &Value) -> (CalculationInputs, Engine) {
     let seed = &case["input"]["random"];
-    let context = EvaluationContext::new(catalog(), RandomSources::from_seeds(
-        seed["numpy_host_seed"].as_u64().unwrap() as u32,
-        seed["numba_python_seed"].as_u64().unwrap() as u32,
+    let context = EvaluationContext::new(catalog(), RandomSources::from_seed(
+        seed["numpy_host_seed"].as_u64().unwrap(),
     ));
     let source = &case["input"]["player"];
     assert!(source["stat_overrides"].as_object().unwrap().is_empty(),
@@ -127,9 +134,8 @@ fn combat_inputs(case: &Value) -> (CalculationInputs, Engine) {
 fn search_inputs(case: &Value) -> (CalculationInputs, Engine) {
     let input = &case["input"];
     let seed = &input["seeds"];
-    let context = EvaluationContext::new(catalog(), RandomSources::from_seeds(
-        seed["numpy_host"].as_u64().unwrap() as u32,
-        seed["numba_python"].as_u64().unwrap() as u32,
+    let context = EvaluationContext::new(catalog(), RandomSources::from_seed(
+        seed["numpy_host"].as_u64().unwrap(),
     ));
     let source = input.get("player").unwrap_or(&input["tp_player"]);
     let player = support::parse_input(source, &context.catalog, &context.state, "search input");
@@ -175,6 +181,7 @@ fn cancellation_action(case: &Value, catalog: &Catalog) -> GuiAction {
     for pool in candidates.iter_mut().filter(|pool| !pool.is_empty()) {
         *pool = pool.iter().copied().cycle().take(96).collect();
     }
+    options.seed = None;
     options.workers = 2;
     options.restart_count = 100;
     action
@@ -194,17 +201,6 @@ fn assert_action(actual: &wsdist_core::model::ActionResult, expected: &Value) {
     assert_eq!(actual.invert as i64, expected["invert"].as_i64().unwrap());
 }
 
-fn assert_rng(context: &Engine, snapshot: &Value) {
-    let mut random = context.random.clone();
-    for (stream, key) in [(RandomStream::NumpyHost, "numpy_host"),
-        (RandomStream::NumbaPython, "numba_python")] {
-        for expected in snapshot[key]["next_uniforms_from_independent_clone"].as_array().unwrap() {
-            assert_eq!(random.random53(stream).to_bits(), number(expected).to_bits(),
-                "recovered {key} must continue the frozen stream, not restart it");
-        }
-    }
-}
-
 fn stats_request(quicklook: CalculationInputs) -> WorkRequest {
     let input = quicklook.player.clone();
     WorkRequest { quicklook, action: GuiAction::Stats { source: GearSource::Quicklook, input } }
@@ -218,10 +214,10 @@ fn busy_start_returns_the_supplied_context_intact_and_success_releases_only_once
         let mut worker = WorkerCoordinator::new();
         worker.start(WorkRequest { quicklook: inputs.clone(), action: GuiAction::Ws }, context).unwrap();
 
-        let mut rejected = EvaluationContext::new(catalog(), RandomSources::from_seeds(20240101, 11));
+        let mut rejected = EvaluationContext::new(catalog(), RandomSources::from_seed(20240101));
         rejected.state.set_skill(rejected.catalog.empty, SkillType::HandToHand);
-        rejected.random.random53(RandomStream::NumpyHost);
-        rejected.random.random53(RandomStream::NumbaPython);
+        rejected.random.uniform(RandomStream::Primary, 0.0, 1.0);
+        rejected.random.uniform(RandomStream::Pdif, 0.0, 1.0);
         rejected.scratch.oa_main[3] = 0.625;
         rejected.scratch.hit_rates[1][0] = 0.875;
         rejected.action_trace = Some(Vec::with_capacity(9));
@@ -250,7 +246,6 @@ fn busy_start_returns_the_supplied_context_intact_and_success_releases_only_once
         assert_player(&player, &fixture["expected"]["value"]["player_at_action_boundary"], "WS worker player");
         assert_action(&result, &fixture["expected"]["value"]["compiled"]["fields"]);
         assert_eq!((display.damage.as_str(), display.tp_return.as_str()), ("668", "18.3"));
-        assert_rng(&completion.context, &fixture["expected"]["value"]["compiled"]["rng_after"]);
 
         let rng = completion.context.random.clone();
         worker.start(stats_request(inputs), completion.context).unwrap();
@@ -291,17 +286,20 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
         let WorkResult::SingleWs { sample, events, report, .. } = completion.outcome.unwrap() else {
             panic!("single WS must not replace the analytical result labels");
         };
-        let expected = &fixture["expected"]["value"]["compiled"]["fields"];
-        for (field, actual) in [("damage", sample.damage), ("tp_return", sample.tp_return),
-            ("physical_damage", sample.physical_damage), ("magical_damage", sample.magical_damage)] {
-            assert_number(actual, &expected[field], field);
+        let expected = native("combat.019404.ws.Savage_Blade.sample.tp1000.seed11.singleTrue");
+        assert_eq!(serde_json::to_value(sample).unwrap(), expected["result"]);
+        assert_eq!(serde_json::to_value(&events).unwrap(), expected["hits"]);
+        assert!(!report.text.contains("Average Damage"));
+        assert_eq!(report.text.contains("Missed"), events.iter().any(|hit| !hit.landed));
+        let mut continuation = completion.context.random.clone();
+        for (stream, key) in [(RandomStream::Primary, "primary"), (RandomStream::Pdif, "pdif")] {
+            let draws = expected["random"]["continuation"][key].as_array().unwrap();
+            assert_eq!(draws.len(), 4);
+            for expected in draws {
+                assert_eq!(continuation.uniform(stream, 0.0, 1.0).to_bits(), number(expected).to_bits(),
+                    "recovered {key} must continue the native stream, not restart it");
+            }
         }
-        assert_eq!(events.len(), 3, "two landed attempts and the missed Double Attack must all be retained");
-        assert!(events[0].landed && events[1].landed && !events[2].landed);
-        assert_eq!(events[2].proc, wsdist_core::model::AttackProc::DoubleAttack);
-        assert!(report.text.contains("1919") && report.text.contains("301") && report.text.contains("2220"));
-        assert!(report.text.contains("Missed") && !report.text.contains("Average Damage"));
-        assert_rng(&completion.context, &fixture["expected"]["value"]["compiled"]["rng_after"]);
         assert_eq!(serde_json::to_value(completion.context.action_trace.as_ref().unwrap()).unwrap(), saved_trace);
         assert_eq!(completion.context.player_stages.as_ref().unwrap().len(), 1);
         assert_eq!(serde_json::to_value(&completion.context.player_stages.as_ref().unwrap()[0].stats).unwrap(), saved_stats);
@@ -326,8 +324,8 @@ fn none_spell_and_unresolved_ws_fail_after_the_current_h2h_prelude_and_allow_rec
             inputs.player = support::parse_input(&fixture["input"]["players"][0],
                 &context.catalog, &context.state, "H2H prelude");
             inputs.ws_name = Arc::from(if spell { "Combo" } else { "unknown weapon skill" });
-            context.random.random53(RandomStream::NumpyHost);
-            context.random.random53(RandomStream::NumbaPython);
+            context.random.uniform(RandomStream::Primary, 0.0, 1.0);
+            context.random.uniform(RandomStream::Pdif, 0.0, 1.0);
             let rng = context.random.clone();
             context.action_trace = Some(Vec::with_capacity(7));
             context.player_stages = Some(Vec::with_capacity(5));
@@ -352,7 +350,7 @@ fn none_spell_and_unresolved_ws_fail_after_the_current_h2h_prelude_and_allow_rec
             assert_eq!(completion.context.action_trace.as_ref().unwrap().as_ptr(), trace_address);
             assert_eq!(completion.context.player_stages.as_ref().unwrap().as_ptr(), stages_address);
             assert_eq!(completion.context.calculation_trace.as_ref().unwrap().as_ptr(), calculation_address);
-            assert_eq!(EvaluationContext::new(catalog(), RandomSources::from_seeds(0, 0)).state.override_for(catalog().empty), None,
+            assert_eq!(EvaluationContext::new(catalog(), RandomSources::from_seed(0)).state.override_for(catalog().empty), None,
                 "worker model state must not leak into independent sessions");
 
             inputs.player = support::parse_input(&fixture["input"]["players"][1],
@@ -414,18 +412,19 @@ fn optimizer_progress_is_nonterminal_and_final_set_matches_the_frozen_complete_s
         worker.start(WorkRequest { quicklook: inputs, action }, context).unwrap();
         let (completion, progress) = finish(&mut worker);
         let WorkResult::Optimize { result, .. } = completion.outcome.unwrap() else { panic!("missing complete optimizer result"); };
-        let expected = &fixture["expected"]["value"]["result"];
+        let observation = native("search-simulation/seed11-complete-build-workers1");
+        let expected = &observation["result"];
         let player = result.player.as_ref().expect("captured search has a real winning player");
-        assert_player(player, &expected["player"], "worker winning player");
+        assert_eq!(player.gearset, result.gearset, "winning player uses the returned gearset");
         for slot in Slot::ALL {
-            support::assert_piece(completion.context.catalog.piece(result.gearset[slot.index()]),
-                Some(&completion.context.state), &expected["player"]["gearset"][slot.name()], slot.name());
+            let piece = completion.context.catalog.piece(result.gearset[slot.index()]);
+            assert_eq!(json!([piece.original_id, piece.name2]), expected["gearset"][slot.index()],
+                "worker winning gearset/{}", slot.name());
         }
-        for (actual, expected) in result.legacy_output.iter().zip(expected["legacy_output"].as_array().unwrap()) {
-            assert_number(*actual, expected, "complete search output");
-        }
+        assert_eq!(serde_json::to_value(&result.legacy_output).unwrap(), expected["legacy_output"]);
         assert_eq!(result.legacy_output.len(), 3);
-        assert_number(result.metric, &expected["legacy_output"][0], "complete search score");
+        assert_eq!(result.metric.to_bits(), number(&expected["metric"]).to_bits(), "complete search score");
+        assert_eq!(result.feasible, expected["feasible"].as_bool().unwrap());
         assert!(result.feasible);
         assert!(progress.iter().any(|progress| progress.scored > 0), "scored batches must be visible before the final report");
         assert!(progress.windows(2).all(|pair| pair[0].scored <= pair[1].scored), "published work cannot move backwards");
@@ -439,8 +438,8 @@ fn cancel_after_scored_search_never_publishes_an_equippable_partial_set_and_reus
         let fixture = search("search-simulation/seed11-real-pool-two-workers-repeated-pools");
         let (inputs, mut context) = search_inputs(&fixture);
         context.state.set_skill(context.catalog.empty, SkillType::HandToHand);
-        context.random.random53(RandomStream::NumbaPython);
-        let compiled_checkpoint = context.random.clone();
+        context.random.uniform(RandomStream::Pdif, 0.0, 1.0);
+        let pdif_checkpoint = context.random.clone();
         let action = cancellation_action(&fixture, &context.catalog);
         let mut worker = WorkerCoordinator::new();
         worker.start(WorkRequest { quicklook: inputs.clone(), action }, context).unwrap();
@@ -451,11 +450,11 @@ fn cancel_after_scored_search_never_publishes_an_equippable_partial_set_and_reus
         let error = completion.outcome.err().expect("cancelled search must not install any best set");
         assert!(error.is_cancelled(), "unexpected cancellation outcome: {error}");
         assert_eq!(completion.context.state.override_for(completion.context.catalog.empty), Some(SkillType::HandToHand));
-        let mut expected = compiled_checkpoint;
+        let mut expected = pdif_checkpoint;
         let mut actual = completion.context.random.clone();
         for _ in 0..4 {
-            assert_eq!(actual.random53(RandomStream::NumbaPython), expected.random53(RandomStream::NumbaPython),
-                "physical search cancellation must recover the untouched compiled stream");
+            assert_eq!(actual.uniform(RandomStream::Pdif, 0.0, 1.0), expected.uniform(RandomStream::Pdif, 0.0, 1.0),
+                "physical search cancellation must recover the untouched pDIF stream");
         }
         let random = completion.context.random.clone();
         worker.start(stats_request(inputs), completion.context).unwrap();
@@ -478,12 +477,13 @@ fn full_dps_job_returns_the_actual_final_cycle_and_cancelled_shutdown_returns_no
             tp: tp.clone(), ws: ws.clone(), plot: true } }, context).unwrap();
         let (completion, _) = finish(&mut worker);
         let WorkResult::Dps { result, .. } = completion.outcome.unwrap() else { panic!("missing completed DPS result"); };
-        let expected = &fixture["expected"]["value"]["evidence"]["final_driver_locals"];
-        for (key, actual) in [("time", result.final_time), ("tp", result.final_tp), ("damage", result.damage),
+        let observation = native("search-simulation/full7200-single-host11-compiled20240101");
+        let expected = &observation["result"];
+        for (key, actual) in [("final_time", result.final_time), ("final_tp", result.final_tp), ("damage", result.damage),
             ("tp_damage", result.tp_damage), ("ws_damage", result.ws_damage)] {
-            assert_number(actual, &expected[key], key);
+            assert_eq!(actual.to_bits(), number(&expected[key]).to_bits(), "{key}");
         }
-        assert_eq!(result.final_time, 7274.0, "finish the threshold phase and subsequent WS beyond 7200 seconds");
+        assert!(result.final_time >= 7200.0, "finish the threshold phase and subsequent WS beyond 7200 seconds");
         assert_eq!(result.total_series.last().unwrap()[0], result.final_time);
         assert_eq!(result.ws_series.last().unwrap()[0], result.final_time);
         assert_eq!(result.tp_series.last().unwrap()[0], result.final_time - 2.0);
@@ -544,22 +544,27 @@ fn distribution_worker_returns_all_frozen_bins_and_annotations_without_leaking_i
             panic!("distribution must return a complete histogram and its target's annotations");
         };
         let expected = &fixture["expected"]["value"];
-        let summary = &expected["summary"];
+        let observation = native("search-simulation/distribution20000-magical-constant-host11-compiled20240101");
+        let expected_result = &observation["result"];
         assert_eq!(result.damage.len(), 20000, "fixed-TP sampling is complete, not a partial cancelled vector");
         assert_eq!(result.tp.len(), 20000);
         for (field, actual) in [("minimum", result.minimum), ("mean", result.mean),
             ("median", result.median), ("maximum", result.maximum)] {
-            assert_number(actual, &summary[field], field);
+            assert_eq!(actual.to_bits(), number(&expected_result[field]).to_bits(), "{field}");
         }
-        assert_eq!(result.histogram.counts, serde_json::from_value::<Vec<u64>>(summary["histogram_counts"].clone()).unwrap(),
-            "every inclusive-edge density bin matches the frozen 20000-sample result");
+        assert_eq!(result.histogram.counts, serde_json::from_value::<Vec<u64>>(expected_result["histogram"]["counts"].clone()).unwrap(),
+            "every inclusive-edge density bin matches the native 20000-sample result");
         assert_eq!(result.histogram.edges.len(), 301);
         assert_eq!(result.histogram.density.len(), 300);
-        for (actual, expected) in result.histogram.edges.iter().zip(summary["histogram_edges"].as_array().unwrap()) {
-            assert_number(*actual, expected, "distribution bin edge");
+        let edges = expected_result["histogram"]["edges"].as_array().unwrap();
+        assert_eq!(result.histogram.edges.len(), edges.len());
+        for (actual, expected) in result.histogram.edges.iter().zip(edges) {
+            assert_eq!(actual.to_bits(), number(expected).to_bits(), "distribution bin edge");
         }
-        for (actual, expected) in result.histogram.density.iter().zip(summary["histogram_density"].as_array().unwrap()) {
-            assert_number(*actual, expected, "distribution density");
+        let density = expected_result["histogram"]["density"].as_array().unwrap();
+        assert_eq!(result.histogram.density.len(), density.len());
+        for (actual, expected) in result.histogram.density.iter().zip(density) {
+            assert_eq!(actual.to_bits(), number(expected).to_bits(), "distribution density");
         }
         let source = expected["plot"]["annotations"].as_array().unwrap()[0].as_str().unwrap();
         let source_rows: Vec<_> = source.lines().map(|line| {
@@ -567,7 +572,7 @@ fn distribution_worker_returns_all_frozen_bins_and_annotations_without_leaking_i
             (label.trim(), value.trim())
         }).collect();
         assert_eq!(presentation.annotations.iter().map(|row| (row.label.as_str(), row.value.as_str())).collect::<Vec<_>>(), source_rows);
-        assert!(report.text.contains("1435.2000000000003"), "visible report retains the raw mean alongside the integer title");
+        assert!(report.text.contains(&format!("{}", result.mean)), "visible report retains the raw mean alongside the integer title");
         assert_eq!(completion.context.player_stages.as_ref().unwrap().as_ptr(), saved_address);
         assert!(completion.context.player_stages.as_ref().unwrap().is_empty(), "the job's target-build stages must not contaminate its caller's observer");
         let rng = completion.context.random.clone();

@@ -211,12 +211,12 @@ fn prepare_round<R: RandomSource>(
         elemental_bonus = elemental_max / 100.0 + stats.get(Stat::ElementalBonus) / 100.0;
         main_enspell = get_enspell_damage(enhancing_skill, enspell_percent_main, enspell_damage_main)?
             * (1.0 + dayweather) * (1.0 + elemental_bonus)
-            * (1.0 + 0.25 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < magic_crit_rate2));
+            * (1.0 + 0.25 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < magic_crit_rate2));
         // Deliberately main-hand percentage on the sampled offhand damage.
         // Both uniforms are also consumed by the analytical setup.
         sub_enspell = get_enspell_damage(enhancing_skill, enspell_percent_main, enspell_damage_sub)?
             * (1.0 + dayweather) * (1.0 + elemental_bonus)
-            * (1.0 + 0.25 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < magic_crit_rate2));
+            * (1.0 + 0.25 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < magic_crit_rate2));
     } else if player.abilities.enabled(Ability::EnlightIi) {
         main_enspell = if enhancing_skill <= 500.0 {
             2.0 * ((enhancing_skill + 85.0) / 13.0) + ((enhancing_skill + 85.0) / 26.0)
@@ -845,10 +845,10 @@ struct MultiattackRolls { qa: bool, ta: bool, da: bool }
 
 impl MultiattackRolls {
     fn draw<R: RandomSource>(setup: &RoundSetup, ctx: &mut EvaluationContext<R>) -> Self {
-        let qa = ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.qa;
+        let qa = ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.qa;
         // Source uses multiplication rather than `and`: all three draws occur.
-        let ta = (ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.ta) && !qa;
-        let da = (ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.da) && !qa && !ta;
+        let ta = (ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.ta) && !qa;
+        let da = (ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.da) && !qa && !ta;
         Self { qa, ta, da }
     }
 
@@ -888,7 +888,7 @@ fn sampled_hit(damage: f64, fstr: f64, pdif: f64, critical: bool, crit_damage: f
 // Python indexing and late failure, including the preceding uniform draw.
 #[inline]
 fn empyrean_proc<R: RandomSource>(setup: &RoundSetup, ctx: &mut EvaluationContext<R>) -> Result<bool, CalcError> {
-    let draw = ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0);
+    let draw = ctx.random.uniform(RandomStream::Primary, 0.0, 1.0);
     let rate = match setup.aftermath {
         -2.0 | 1.0 => EMPYREAN_AM[0],
         -1.0 | 2.0 => EMPYREAN_AM[1],
@@ -906,7 +906,7 @@ fn empyrean_proc<R: RandomSource>(setup: &RoundSetup, ctx: &mut EvaluationContex
 
 fn oa_proc<R: RandomSource>(player: &Player, offhand: bool, ctx: &mut EvaluationContext<R>) -> Option<(AttackProc, u8, f64)> {
     for (proc, rate, bonus) in oa_tiers(&player.stats, offhand) {
-        if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < rate {
+        if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < rate {
             return Some((proc, bonus, 1.0));
         }
     }
@@ -935,7 +935,7 @@ fn bonus_swings<R: RandomSource>(
     for _ in 0..count {
         if totals.attempts < 8 {
             totals.attempts += 1;
-            if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < hit_rate {
+            if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < hit_rate {
                 let (pdif, critical) = get_pdif_melee(attack, skill.into(), setup.pdl_trait,
                     setup.pdl_gear, setup.enemy_defense, setup.crit_rate, &mut ctx.random)?;
                 let mut physical = sampled_hit(damage, fstr, pdif, critical, setup.crit_damage)?;
@@ -977,17 +977,17 @@ pub fn sample_round<R: RandomSource>(
     let mut main_connected = false;
     let mut main_ma_proc = false;
     totals.attempts += 1;
-    if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.hit_rates[0][0] {
+    if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.hit_rates[0][0] {
         main_connected = true;
         let (pdif, critical) = get_pdif_melee(setup.attack1, setup.main_skill.into(),
             setup.pdl_trait, setup.pdl_gear, setup.enemy_defense, setup.crit_rate, &mut ctx.random)?;
         let mut physical = sampled_hit(setup.main_damage, setup.fstr_main, pdif, critical, setup.crit_damage)?;
         // Membership is checked AFTER each draw, even on ordinary weapons.
-        physical *= 1.0 + 2.0 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < 0.13 && setup.relic30);
-        physical *= 1.0 + 1.5 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < 0.16 && setup.relic25);
-        physical *= 1.0 + 1.0 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < 0.2 && setup.relic20);
-        physical *= 1.0 + 2.0 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < 0.3 && setup.prime3);
-        physical *= 1.0 + 1.0 * flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < 0.3 && setup.prime2);
+        physical *= 1.0 + 2.0 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < 0.13 && setup.relic30);
+        physical *= 1.0 + 1.5 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < 0.16 && setup.relic25);
+        physical *= 1.0 + 1.0 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < 0.2 && setup.relic20);
+        physical *= 1.0 + 2.0 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < 0.3 && setup.prime3);
+        physical *= 1.0 + 1.0 * flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < 0.3 && setup.prime2);
         physical *= 1.0 + 2.0 * flag(empyrean_proc(&setup, ctx)?);
         physical *= 1.0 + setup.da_damage * flag(main_rolls.da);
         physical *= 1.0 + setup.ta_damage * flag(main_rolls.ta);
@@ -1002,7 +1002,7 @@ pub fn sample_round<R: RandomSource>(
     }
     if setup.dual_wield {
         totals.attempts += 1;
-        if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.hit_rates[0][1] {
+        if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.hit_rates[0][1] {
             let (pdif, critical) = get_pdif_melee(setup.attack2, setup.sub_skill.into(),
                 setup.pdl_trait, setup.pdl_gear, setup.enemy_defense, setup.crit_rate, &mut ctx.random)?;
             let mut physical = sampled_hit(setup.sub_damage, setup.fstr_sub, pdif, critical, setup.crit_damage)?;
@@ -1039,16 +1039,16 @@ pub fn sample_round<R: RandomSource>(
     if totals.attempts < 8 {
         // Keep this left-to-right short circuit: landed main hits consume a
         // Zanhasso draw even on dual wield/one-handed gear and after an MA proc.
-        if (!main_connected || ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.zanhasso)
+        if (!main_connected || ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.zanhasso)
             && !setup.dual_wield && TWO_HANDED_SKILLS.contains(&setup.main_skill) {
             if !main_ma_proc {
                 let attack = setup.attack1 + player.stats.get(Stat::ZanshinAttack);
-                if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.zanshin_oa2 {
+                if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.zanshin_oa2 {
                     zanshin_damage += bonus_swings(&setup, 2, setup.zanshin_hit_rate, attack,
                         setup.main_skill, setup.main_damage, setup.fstr_main, setup.main_enspell,
                         1.0, true, player.main_job == Job::Sam, AttackKind::Zanshin,
                         AttackProc::Occasionally(2), &mut totals, ctx)?;
-                } else if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.zanshin {
+                } else if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.zanshin {
                     zanshin_damage += bonus_swings(&setup, 1, setup.zanshin_hit_rate, attack,
                         setup.main_skill, setup.main_damage, setup.fstr_main, setup.main_enspell,
                         1.0, true, player.main_job == Job::Sam, AttackKind::Zanshin,
@@ -1060,16 +1060,16 @@ pub fn sample_round<R: RandomSource>(
     physical_damage += zanshin_damage;
     let mut kick_damage = 0.0;
     if totals.attempts < 8 {
-        if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.kickattacks && setup.main_skill == SkillType::HandToHand {
+        if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.kickattacks && setup.main_skill == SkillType::HandToHand {
             totals.attempts += 1;
-            if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.hit_rates[0][0] {
+            if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.hit_rates[0][0] {
                 let (pdif, critical) = get_pdif_melee(setup.attack1 + player.stats.get(Stat::KickAttacksAttack),
                     setup.main_skill.into(), setup.pdl_trait, setup.pdl_gear, setup.enemy_defense,
                     setup.crit_rate, &mut ctx.random)?;
                 let physical = sampled_hit(setup.kick_damage, setup.fstr_kick, pdif, critical, setup.crit_damage)?;
                 // The sampled source applies this 20% double damage roll to ALL
                 // H2H kicks, not only Dragon Fangs. Trace the boosted damage.
-                kick_damage = physical * (1.0 + flag(ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < 0.2));
+                kick_damage = physical * (1.0 + flag(ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < 0.2));
                 let tp = get_tp(1.0, setup.hit_delay(), setup.stp, false)?;
                 totals.tp += tp;
                 let mut magic = 0.0;
@@ -1083,9 +1083,9 @@ pub fn sample_round<R: RandomSource>(
     physical_damage += kick_damage;
     let mut daken_damage = 0.0;
     if totals.attempts < 8 {
-        if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.daken && setup.ammo_skill == SkillType::Throwing {
+        if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.daken && setup.ammo_skill == SkillType::Throwing {
             totals.attempts += 1;
-            if ctx.random.uniform(RandomStream::NumpyHost, 0.0, 1.0) < setup.hit_rate_ranged {
+            if ctx.random.uniform(RandomStream::Primary, 0.0, 1.0) < setup.hit_rate_ranged {
                 let (pdif, critical) = get_pdif_ranged(setup.ranged_attack, setup.ammo_skill.into(),
                     setup.pdl_trait, setup.pdl_gear, setup.enemy_defense, setup.crit_rate, &mut ctx.random)?;
                 daken_damage = sampled_hit(setup.ammo_damage, setup.fstr_ammo, pdif, critical, setup.crit_damage)?;

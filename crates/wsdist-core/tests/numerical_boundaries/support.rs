@@ -77,8 +77,8 @@ impl StrictTape {
         if let Some(draws) = row.get("draws").or_else(|| row.get("seeded_adapter_pair").map(|pair| &pair["draws"])) {
             return Self::new(draws.as_array().unwrap().iter().map(|draw| Draw {
                 stream: match draw["stream"].as_str().unwrap() {
-                    "NumpyHost" => RandomStream::NumpyHost,
-                    "NumbaPython" => RandomStream::NumbaPython,
+                    "NumpyHost" => RandomStream::Primary,
+                    "NumbaPython" => RandomStream::Pdif,
                     other => panic!("unsupported recorded stream {other}"),
                 },
                 operation: draw["operation"].as_str().unwrap().into(),
@@ -106,7 +106,7 @@ impl StrictTape {
             let high27 = temper(words[position].as_u64().unwrap() as u32) >> 5;
             let low26 = temper(words[position + 1].as_u64().unwrap() as u32) >> 6;
             let value = (f64::from(high27) * 67_108_864.0 + f64::from(low26)) / 9_007_199_254_740_992.0;
-            return Self::new(vec![Draw { stream: RandomStream::NumbaPython, operation: "uniform".into(), low: 0.0, high: 1.0, value }]);
+            return Self::new(vec![Draw { stream: RandomStream::Pdif, operation: "uniform".into(), low: 0.0, high: 1.0, value }]);
         }
         Self::new(Vec::new())
     }
@@ -131,11 +131,11 @@ impl RandomSource for StrictTape {
         self.cursor += 1;
         draw.value
     }
-    fn bounded_numpy(&mut self, upper_exclusive: usize) -> usize {
-        panic!("unexpected bounded_numpy({upper_exclusive}) at random draw {}", self.cursor)
+    fn bounded(&mut self, upper_exclusive: usize) -> usize {
+        panic!("unexpected bounded({upper_exclusive}) at random draw {}", self.cursor)
     }
-    fn reseed_numpy(&mut self, seed: u32) {
-        panic!("unexpected reseed_numpy({seed}) at random draw {}", self.cursor)
+    fn reseed(&mut self, seed: u64) {
+        panic!("unexpected reseed({seed}) at random draw {}", self.cursor)
     }
 }
 

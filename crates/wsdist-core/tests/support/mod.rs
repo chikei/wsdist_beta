@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 use wsdist_core::model::{EvaluationContext, Player, build_player};
 use wsdist_core::Catalog;
 
-use crate::{buffs_support, combat_support, kernel_support, player_support, rng_support, simulation_support, support, ws_support};
+use crate::{buffs_support, combat_support, kernel_support, player_support, simulation_support, support, ws_support};
 
 #[derive(Deserialize)]
 struct Entry { id: String, operation: String, path: String, sha256: String }
@@ -28,17 +28,12 @@ struct Index { schema_version: u64, cases: Vec<Entry> }
 pub struct Work {
     pub player_builds: usize,
     pub kernel_rows: usize,
-    pub seeded_kernel_rows: usize,
     pub strict_kernel_tape_rows: usize,
-    pub compiled_actions: usize,
+    pub recorded_actions: usize,
     pub scripted_actions: usize,
     pub hit_records: usize,
     pub uniform_draws: usize,
     pub legacy_errors: usize,
-    pub direct_rng_cases: usize,
-    pub direct_rng_events: usize,
-    pub direct_rng_tempered_words: usize,
-    pub direct_rng_twist_crossings: usize,
     pub optimizer_cases: usize,
     pub full_optimizer_builds: usize,
     pub public_seed11_optimizer_runs: usize,
@@ -54,17 +49,12 @@ impl Work {
     fn merge(&mut self, other: &Self) {
         self.player_builds += other.player_builds;
         self.kernel_rows += other.kernel_rows;
-        self.seeded_kernel_rows += other.seeded_kernel_rows;
         self.strict_kernel_tape_rows += other.strict_kernel_tape_rows;
-        self.compiled_actions += other.compiled_actions;
+        self.recorded_actions += other.recorded_actions;
         self.scripted_actions += other.scripted_actions;
         self.hit_records += other.hit_records;
         self.uniform_draws += other.uniform_draws;
         self.legacy_errors += other.legacy_errors;
-        self.direct_rng_cases += other.direct_rng_cases;
-        self.direct_rng_events += other.direct_rng_events;
-        self.direct_rng_tempered_words += other.direct_rng_tempered_words;
-        self.direct_rng_twist_crossings += other.direct_rng_twist_crossings;
         self.optimizer_cases += other.optimizer_cases;
         self.full_optimizer_builds += other.full_optimizer_builds;
         self.public_seed11_optimizer_runs += other.public_seed11_optimizer_runs;
@@ -161,26 +151,16 @@ fn replay(case: &Value, catalog: &Arc<Catalog>, work: &mut Work) {
             assert_eq!(player_support::effective_skills(catalog, &isolated.state), catalog.pieces().iter().map(|piece| piece.skill_type).collect::<Vec<_>>(), "{label}: catalog/context isolation");
         }
         "kernel_group" | "kernel_tapes" | "kernel_tables" | "rounding" => {
-            let (rows, tapes, seeded) = kernels::replay(case);
+            let (rows, tapes) = kernels::replay(case);
             work.kernel_rows += rows;
             work.strict_kernel_tape_rows += tapes;
-            work.seeded_kernel_rows += seeded;
-        }
-        "rng" => {
-            let fixture: rng_support::Fixture = serde_json::from_value(case.clone()).unwrap();
-            let result = rng_support::replay(&fixture);
-            work.direct_rng_cases += result.cases;
-            work.direct_rng_events += result.events;
-            work.direct_rng_tempered_words += result.raw_words;
-            work.direct_rng_twist_crossings += result.twist_crossing_runs;
-            work.legacy_errors += result.errors;
         }
         "combat.metadata" => specs::metadata(case),
         "combat.weapon_bonus" => specs::weapon_bonus(case),
         "combat.round" | "combat.spell" | "combat.ws" => {
             let result = combat_support::replay_case(case, catalog);
             work.player_builds += 1;
-            work.compiled_actions += result.compiled;
+            work.recorded_actions += result.recorded;
             work.scripted_actions += result.scripted;
             work.hit_records += result.hits;
             work.uniform_draws += result.uniform_draws;

@@ -6,7 +6,7 @@ use std::sync::{Arc, LazyLock};
 use parking_lot::Mutex;
 use serde::Deserialize;
 use serde_json::Value;
-use wsdist_core::model::{Abilities, CalcError, Enemy, EvaluationContext, GearId, Gearset, ModelState, Player, PlayerInput, RandomStream, Slot};
+use wsdist_core::model::{Abilities, CalcError, Enemy, EvaluationContext, GearId, Gearset, ModelState, Player, PlayerInput, Slot};
 use wsdist_core::rng::RandomSources;
 use wsdist_core::Catalog;
 
@@ -124,10 +124,7 @@ impl FrozenCatalog {
     }
 
     pub fn context(&self, seeds: &Value) -> EvaluationContext<RandomSources> {
-        EvaluationContext::new(Arc::clone(&self.catalog), RandomSources::from_seeds(
-            seeds["numpy_host"].as_u64().unwrap() as u32,
-            seeds["numba_python"].as_u64().unwrap() as u32,
-        ))
+        EvaluationContext::new(Arc::clone(&self.catalog), RandomSources::from_seed(seeds["numpy_host"].as_u64().unwrap()))
     }
 
     pub fn assert_piece(&self, actual: GearId, state: Option<&ModelState>, source: &Value, label: &str) {
@@ -176,35 +173,4 @@ pub fn assert_error(error: &CalcError, expected: &Value, label: &str) {
     let CalcError::Legacy { category, message, .. } = error else { panic!("{label}: expected source error, got {error}") };
     assert_eq!(*category, expected["class"].as_str().unwrap(), "{label}: exception category");
     assert_eq!(message, expected["message"].as_str().unwrap(), "{label}: exception message");
-}
-
-fn temper(mut word: u32) -> u32 {
-    word ^= word >> 11;
-    word ^= (word << 7) & 0x9d2c_5680;
-    word ^= (word << 15) & 0xefc6_0000;
-    word ^ (word >> 18)
-}
-
-/// Use the library's public recovery API for a captured block, not a second
-/// test-side MT implementation. Check the suffix and the following twist so a
-/// source cursor at 624 still has a non-vacuous continuation assertion.
-pub fn numpy_state_matches(random: &RandomSources, snapshot: &Value) -> bool {
-    assert_eq!(snapshot["algorithm"], "MT19937");
-    let words = snapshot["words"].as_array().unwrap();
-    assert_eq!(words.len(), 624);
-    let position = snapshot["position"].as_u64().unwrap() as usize;
-    assert!(position <= 624);
-    let tempered: [u32; 624] = std::array::from_fn(|index| temper(words[index].as_u64().unwrap() as u32));
-    let mut actual = random.clone();
-    for &expected in &tempered[position..] {
-        if actual.next_u32(RandomStream::NumpyHost) != expected { return false; }
-    }
-    let mut expected = rand_mt::Mt::recover(tempered).expect("captured nonzero MT state");
-    (0..32).all(|_| actual.next_u32(RandomStream::NumpyHost) == expected.next_u32())
-}
-
-pub fn assert_numpy_state(random: &RandomSources, snapshot: &Value, label: &str) {
-    assert_eq!(snapshot["has_gauss"], 0, "{label}: host Gaussian cache untouched");
-    assert_number(0.0, &snapshot["cached_gaussian"], &format!("{label}.cached_gaussian"));
-    assert!(numpy_state_matches(random, snapshot), "{label}: exact host MT suffix and next-twist continuation");
 }

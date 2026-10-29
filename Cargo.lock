@@ -3962,12 +3962,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rand_mt"
-version = "6.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4f926523c30345680eb6641f4256a151f0826c5605e190177541f9e40a32390"
-
-[[package]]
 name = "rav1e"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6283,7 +6277,7 @@ dependencies = [
  "csv",
  "getrandom 0.3.4",
  "parking_lot",
- "rand_mt",
+ "rand_chacha",
  "rayon",
  "serde",
  "serde_json",
