@@ -279,11 +279,12 @@ pub struct HitEvent {
 }
 
 /// A display-only equation captured from an existing calculation.
-/// Named `{operands}` are substituted by the report renderer; random terms
-/// remain explicit placeholders in the formula rather than invented rolls.
+/// `equation` holds an optional named formula; `{operands}` in `formula`
+/// are substituted by the report renderer. Random terms remain placeholders.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CalculationStep {
     pub label: &'static str,
+    pub equation: Option<&'static str>,
     pub formula: &'static str,
     pub values: Vec<(&'static str, f64)>,
 }
@@ -310,7 +311,13 @@ impl<R: RandomSource> EvaluationContext<R> {
     pub fn record_calculation(&mut self, label: &'static str, formula: &'static str,
         values: &[(&'static str, f64)]) {
         if let Some(trace) = &mut self.calculation_trace {
-            trace.push(CalculationStep { label, formula, values: values.to_vec() });
+            trace.push(CalculationStep { label, equation: None, formula, values: values.to_vec() });
+        }
+    }
+    pub fn record_equation(&mut self, label: &'static str, equation: &'static str,
+        formula: &'static str, values: &[(&'static str, f64)]) {
+        if let Some(trace) = &mut self.calculation_trace {
+            trace.push(CalculationStep { label, equation: Some(equation), formula, values: values.to_vec() });
         }
     }
 }

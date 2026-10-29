@@ -1,4 +1,4 @@
-use crate::model::{AttackProc, CalcError, GearPiece, SkillType};
+use crate::model::{AttackProc, CalcError, EvaluationContext, GearPiece, RandomSource, SkillType};
 use crate::stats::{Stat, Stats};
 
 pub(crate) const ONE_HANDED_SKILLS: &[SkillType] = &[SkillType::Axe, SkillType::Club, SkillType::Dagger, SkillType::Sword, SkillType::Katana];
@@ -52,4 +52,41 @@ pub(crate) fn weapon_damage_bonuses(main: &GearPiece, aftermath: f64) -> Result<
     let mut kick = 1.0;
     if main.name2.as_ref() == "Dragon Fangs" { kick += 1.0 * 0.2; }
     Ok([empyrean, relic, prime, kick])
+}
+
+/// TP notation shared by all action reports; it does not evaluate TP again.
+pub(crate) fn record_tp_reference<R: RandomSource>(ctx: &mut EvaluationContext<R>) {
+    if ctx.calculation_trace.is_none() { return; }
+    ctx.record_equation("Tactical Points reference",
+        "BG Wiki Tactical Points:\nBase TP = floor(Delay TP(Modified Delay))\nTP per hit = floor(Base TP) + floor(Base TP × Store TP / 100)\nNormal multiattacks grant full TP per landed hit; weapon skills grant full TP when the first main-hand or first offhand attempt lands, then 10 base TP per additional landed hit.",
+        "Base TP denotes the initially rounded delay-derived value. The delay-based TP kernel truncates toward zero rather than flooring and applies Store TP before weighting expected landed hits. The wiki describes TP from hits dealing more than zero damage; this evaluator uses landed-hit counts without a separate damage-positive gate. Haste changes attack timing, not TP-generating delay. Action-specific delay, Store TP units, extra TP sources and exceptions are shown below.",
+        &[]);
+    ctx.record_equation("Delay-to-TP table",
+        "Implemented continuous-delay form of the BG Wiki table, with d = Modified Delay:\nDelay TP(d) = 61 + (d − 180) × 63 / 360, d ≤ 180\nDelay TP(d) = 61 + (d − 180) × 88 / 360, 180 < d ≤ 540\nDelay TP(d) = 149 + (d − 540) × 20 / 360, 540 < d ≤ 630\nDelay TP(d) = 154 + (d − 630) × 28 / 360, 630 < d ≤ 720\nDelay TP(d) = 161 + (d − 720) × 24 / 360, 720 < d ≤ 900\nDelay TP(d) = 173 + (d − 900) × 28 / 360, d > 900",
+        "The wiki labels its integer ranges 181–540, 541–630, 631–720, 721–900 and >901. The evaluator retains fractional delay and uses the continuous boundaries above, including its final branch for every delay >900. No table boundary or arithmetic is changed for this display.",
+        &[]);
+}
+
+/// Record the inputs and result of an already-completed `math::get_tp` call.
+/// `store_tp` is the exact kernel input: usually a fraction, but raw in Quick Draw.
+pub(crate) fn record_tp_gain<R: RandomSource>(ctx: &mut EvaluationContext<R>,
+    label: &'static str, hits: f64, delay: f64, store_tp: f64, zanshin: bool, tp: f64) {
+    if ctx.calculation_trace.is_none() { return; }
+    let formula = if delay <= 180.0 {
+        "TP = {hits} × trunc((trunc(61 + ({delay} − 180) × 63 / 360) + {bonus}) × (1 + {store_tp})) = {tp}"
+    } else if delay <= 540.0 {
+        "TP = {hits} × trunc((trunc(61 + ({delay} − 180) × 88 / 360) + {bonus}) × (1 + {store_tp})) = {tp}"
+    } else if delay <= 630.0 {
+        "TP = {hits} × trunc((trunc(149 + ({delay} − 540) × 20 / 360) + {bonus}) × (1 + {store_tp})) = {tp}"
+    } else if delay <= 720.0 {
+        "TP = {hits} × trunc((trunc(154 + ({delay} − 630) × 28 / 360) + {bonus}) × (1 + {store_tp})) = {tp}"
+    } else if delay <= 900.0 {
+        "TP = {hits} × trunc((trunc(161 + ({delay} − 720) × 24 / 360) + {bonus}) × (1 + {store_tp})) = {tp}"
+    } else {
+        "TP = {hits} × trunc((trunc(173 + ({delay} − 900) × 28 / 360) + {bonus}) × (1 + {store_tp})) = {tp}"
+    };
+    ctx.record_equation(label,
+        "Implemented TP Gain = Landed Hits × trunc((trunc(Delay TP(Modified Delay)) + Zanshin TP Bonus) × (1 + Store TP Input))\nStore TP Input normally equals Store TP / 100; any branch using raw Store TP is labeled separately. Zanshin TP Bonus is 150 for the modeled SAM Zanshin call, otherwise 0.",
+        formula, &[("hits", hits), ("delay", delay), ("store_tp", store_tp),
+            ("bonus", if zanshin { 150.0 } else { 0.0 }), ("tp", tp)]);
 }

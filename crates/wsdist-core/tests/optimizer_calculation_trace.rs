@@ -30,7 +30,8 @@ fn traced_fixture(id: &str) -> (support::FrozenCatalog, OptimizeResult, SearchTr
     assert!(baseline.calculation.is_empty());
     assert!(baseline_engine.calculation_trace.is_none());
 
-    let observer = CalculationStep { label: "Caller observer", formula: "caller = {caller}", values: vec![("caller", 17.0)] };
+    let observer = CalculationStep { label: "Caller observer", equation: Some("Caller = prior value"),
+        formula: "caller = {caller}", values: vec![("caller", 17.0)] };
     let mut engine = catalog.context(&input["seeds"]);
     engine.calculation_trace = Some(vec![observer.clone()]);
     let mut trace = Some(SearchTrace::default());
@@ -48,9 +49,8 @@ fn traced_fixture(id: &str) -> (support::FrozenCatalog, OptimizeResult, SearchTr
         "display tracing must not add action evaluations or search events");
     let retained_observer = engine.calculation_trace.as_ref().unwrap();
     assert_eq!(retained_observer.len(), 1, "candidate evaluations must not write into the caller observer");
-    assert_eq!(retained_observer[0].label, observer.label);
-    assert_eq!(retained_observer[0].formula, observer.formula);
-    assert_eq!(retained_observer[0].values, observer.values);
+    assert_eq!(retained_observer.as_slice(), std::slice::from_ref(&observer),
+        "candidate scoring must preserve the caller's complete equation observer");
     assert!(result.calculation.iter().all(|step| step.label != observer.label));
     (catalog, result, trace.unwrap())
 }

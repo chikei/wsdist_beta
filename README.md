@@ -57,6 +57,18 @@ keeps observed hit outcomes above its calculation process. Optimization details
 follow the retained scored output and identify any separate post-reorder restart
 comparison. Viewing a report does not rerun calculations or draw new rolls.
 
+Named equations use BG Wiki's
+[Weapon Skill Damage](https://www.bg-wiki.com/ffxi/Weapon_Skill_Damage),
+[Magic Damage](https://www.bg-wiki.com/ffxi/Magic_Damage),
+[Physical Damage](https://www.bg-wiki.com/ffxi/Physical_Damage), and
+[Tactical Points](https://www.bg-wiki.com/ffxi/Tactical_Points) notation, followed
+by worked substitutions. Wiki reference forms and the evaluator's implemented
+rounding, factor order, or omitted factors are labeled separately; adopting the
+notation does not change damage or TP calculations.
+TP details include modified delay, the delay-to-TP table, Store TP, first-hit
+versus additional-hit WS returns, Regain, time to WS, and applicable spell/ranged
+TP sources such as Occult Acumen and Recycle.
+
 At 760×440, the UI preserves the original three input columns, four buff columns,
 equipment grid beside its candidate list, and grouped Stats columns. The main
 tabs use a fixed 704px rail with 680px content rows: controls, dropdowns, buttons,

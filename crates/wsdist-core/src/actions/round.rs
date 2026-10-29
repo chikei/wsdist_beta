@@ -19,7 +19,8 @@ use crate::stats::Stat;
 use super::common::{
     EMPYREAN_AM, EMPYREAN_WEAPONS, ONE_HANDED_SKILLS, PRIME_WEAPONS_2,
     PRIME_WEAPONS_3, RELIC_WEAPONS_20, RELIC_WEAPONS_25, RELIC_WEAPONS_30,
-    TWO_HANDED_SKILLS, oa_list, oa_tiers, weapon_damage_bonuses,
+    TWO_HANDED_SKILLS, oa_list, oa_tiers, record_tp_gain, record_tp_reference,
+    weapon_damage_bonuses,
 };
 
 const OPERATION: &str = "average_attack_round";
@@ -266,34 +267,39 @@ pub fn evaluate_round<R: RandomSource>(
     let stats = &player.stats;
     let tracing = ctx.calculation_trace.is_some();
     if tracing {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Analytical damage conventions",
-            "trunc(x) truncates toward zero. For dSTR = STR - enemy VIT, F(x) = x+13 if x<=-22; x+12 if x<=-16; x+10 if x<=-8; x+9 if x<=-3; x+8 if x<=0; x+7 if x<=5; x+6 if x<12; otherwise x+4. Melee fSTR = clip(F(dSTR)/4, -D/9, 8+D/9), with no rank/fSTR flooring.",
+            "BG Wiki reference: Physical Damage = Base Damage × pDIF\nMelee Base Damage = Weapon Base Damage + fSTR\nEvaluator average landed-hit damage = trunc(Base Damage) × legacy average pDIF × expected critical-damage multiplier\nOrdinary expected component = expected landed hits × average landed-hit damage\nAbility, weapon, and component-specific adjustments are shown separately below.",
+            "trunc(x) truncates toward zero. For dSTR = STR − Target VIT, adjusted dSTR F(x) = x+13 if x<=-22; x+12 if x<=-16; x+10 if x<=-8; x+9 if x<=-3; x+8 if x<=0; x+7 if x<=5; x+6 if x<12; otherwise x+4. Melee fSTR = clamp(F(dSTR)/4, −Weapon Base Damage/9, 8+Weapon Base Damage/9). This evaluator retains fractional rank and fSTR, truncates the combined base before pDIF, and does not truncate after pDIF or expected-hit weighting.",
             &[],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Main-hand damage and fSTR",
-            "dSTR = {strength} - {vitality}; fSTR = clip(F(dSTR)/4, -{damage}/9, 8+{damage}/9) = {fstr}; base damage = {damage} + {fstr}",
+            "dSTR = STR − Target VIT\nWeapon Rank = Weapon Base Damage / 9\nfSTR = clamp(adjusted dSTR / 4, −Weapon Rank, 8 + Weapon Rank)\nBase Damage = Weapon Base Damage + fSTR",
+            "dSTR = {strength} − {vitality}; Weapon Rank = {damage} / 9; fSTR = clamp(F(dSTR) / 4, −{damage} / 9, 8 + {damage} / 9) = {fstr}; Base Damage = {damage} + {fstr}. Rank and fSTR are not floored.",
             &[("damage", setup.main_damage), ("strength", stats.get(Stat::Str)),
                 ("vitality", enemy.stats.get(Stat::Vit)), ("fstr", setup.fstr_main)],
         );
         if setup.dual_wield {
-            ctx.record_calculation(
+            ctx.record_equation(
                 if setup.main_skill == SkillType::HandToHand { "Second-fist damage and fSTR" } else { "Offhand damage and fSTR" },
-                "dSTR = {strength} - {vitality}; fSTR = clip(F(dSTR)/4, -{damage}/9, 8+{damage}/9) = {fstr}; base damage = {damage} + {fstr}",
+                "dSTR = STR − Target VIT\nWeapon Rank = Weapon Base Damage / 9\nfSTR = clamp(adjusted dSTR / 4, −Weapon Rank, 8 + Weapon Rank)\nBase Damage = Weapon Base Damage + fSTR",
+                "dSTR = {strength} − {vitality}; Weapon Rank = {damage} / 9; fSTR = clamp(F(dSTR) / 4, −{damage} / 9, 8 + {damage} / 9) = {fstr}; Base Damage = {damage} + {fstr}. Rank and fSTR are not floored.",
                 &[("damage", setup.sub_damage), ("strength", stats.get(Stat::Str)),
                     ("vitality", enemy.stats.get(Stat::Vit)), ("fstr", setup.fstr_sub)],
             );
         }
-        ctx.record_calculation(
+        ctx.record_equation(
             "DEX critical contribution",
-            "dDEX = {dex} - {enemy_agi}; get_dex_crit = 0 for dDEX<=6, 0.01 for <=13, 0.02 for <=19, 0.03 for <=29, 0.04 for <=39, otherwise min((dDEX-35)/100, 0.15)",
+            "dDEX = DEX − Target AGI\nDEX critical contribution = the evaluator's piecewise dDEX bonus",
+            "dDEX = {dex} − {enemy_agi}; DEX critical contribution = 0 for dDEX<=6, 0.01 for <=13, 0.02 for <=19, 0.03 for <=29, 0.04 for <=39, otherwise min((dDEX−35)/100, 0.15)",
             &[("dex", stats.get(Stat::Dex)), ("enemy_agi", enemy.stats.get(Stat::Agi))],
         );
         let main = ctx.catalog.piece(player.gearset[Slot::Main.index()]);
-        ctx.record_calculation(
+        ctx.record_equation(
             "Critical chance and Store TP",
-            "critical chance = min(1, {base_crit} / 100 + get_dex_crit({dex}, {enemy_agi}) + 0.5 * (1 - {starting_tp} / 3000) * {tauret}) = {crit_rate}; Store TP = {store_tp} / 100 + 0.5 * {crit_rate} * {karambit} = {stp}; critical damage bonus = {crit_damage}",
+            "Critical Hit Rate = min(1, Sheet Critical Hit Rate / 100 + DEX critical contribution + Tauret bonus)\nTauret bonus = 0.5 × (1 − Starting TP / 3000) when wielding Tauret, otherwise 0\nStore TP = Sheet Store TP / 100 + Karambit bonus\nKarambit bonus = 0.5 × Critical Hit Rate when wielding Karambit, otherwise 0\nExpected critical-damage multiplier = 1 + min(Critical Hit Rate, 1) × min(Critical Damage Bonus, 1)",
+            "Critical Hit Rate = min(1, {base_crit} / 100 + DEX critical contribution at DEX {dex} and Target AGI {enemy_agi} + 0.5 × (1 − {starting_tp} / 3000) × {tauret}) = {crit_rate}; Store TP = {store_tp} / 100 + 0.5 × {crit_rate} × {karambit} = {stp}; Critical Damage Bonus = {crit_damage}",
             &[("base_crit", stats.get(Stat::CritRate)), ("dex", stats.get(Stat::Dex)),
                 ("enemy_agi", enemy.stats.get(Stat::Agi)), ("starting_tp", starting_tp),
                 ("tauret", flag(main.name.as_ref() == "Tauret")), ("crit_rate", setup.crit_rate),
@@ -399,22 +405,25 @@ pub fn evaluate_round<R: RandomSource>(
         let zanshin_enspell = get_enspell_damage(setup.enhancing_skill, setup.enspell_percent_main, setup.enspell_damage_main)?;
         magical_damage += hits.zanshin * zanshin_enspell;
         if tracing {
-            ctx.record_calculation(
+            ctx.record_equation(
                 "EnSpell skill scaling",
-                "scaled skill = (skill-223)/7.70 for skill<600, otherwise (skill-202.5)/8.05; per-hit EnSpell = (trunc(scaled skill)+29+flat bonus)*(1+percent bonus/100). Only the scaled-skill stage truncates.",
+                "BG Wiki reference: Damage Dealt = D × MTDR × Staff × Affinity × Resist × Resistance Rank Reduction × MB × MBB × Day & Weather × (MAB / MDB) × TMDA × Potency Multipliers\nEvaluator EnSpell base per landed hit = (trunc(Scaled Enhancing Magic Skill) + 29 + Flat EnSpell Damage) × (1 + EnSpell Damage Bonus / 100)\nThis EnSpell base uses enhancing skill, not the reference's dINT-adjusted spell base. Only the explicitly shown EnSpell, Day & Weather, elemental-bonus, and magic-critical factors are modeled here; other reference factors are unmodeled, not measured values of 1.",
+                "Scaled Enhancing Magic Skill = (skill−223)/7.70 for skill<600, otherwise (skill−202.5)/8.05. The BG Wiki reference floors after each multiplier; this evaluator truncates only scaled skill, before adding 29 and the flat bonus, and retains fractional products thereafter.",
                 &[],
             );
-            ctx.record_calculation(
+            ctx.record_equation(
                 "EnSpell damage per landed hit",
-                "main = get_enspell_damage(skill = {skill}, percent bonus = {main_percent}, flat bonus = {main_flat}) = {main}; offhand = get_enspell_damage(skill = {skill}, percent bonus = {sub_percent}, flat bonus = {sub_flat}) = {sub}; kicks = {kick}; Zanshin = {zanshin}",
+                "Main EnSpell base = (trunc(Scaled Enhancing Magic Skill) + 29 + Main Flat Bonus) × (1 + Main Percent Bonus / 100)\nOffhand EnSpell base = (trunc(Scaled Enhancing Magic Skill) + 29 + Offhand Flat Bonus) × (1 + Offhand Percent Bonus / 100)\nKick and Zanshin EnSpell bases = Main EnSpell base",
+                "Enhancing Magic Skill = {skill}; main EnSpell base = (trunc(scaled skill) + 29 + {main_flat}) × (1 + {main_percent} / 100) = {main}; offhand EnSpell base = (trunc(scaled skill) + 29 + {sub_flat}) × (1 + {sub_percent} / 100) = {sub}; kicks = {kick}; Zanshin = {zanshin}",
                 &[("skill", setup.enhancing_skill), ("main_percent", setup.enspell_percent_main),
                     ("main_flat", setup.enspell_damage_main), ("main", main_enspell),
                     ("sub_percent", setup.enspell_percent_sub), ("sub_flat", setup.enspell_damage_sub),
                     ("sub", sub_enspell), ("kick", kick_enspell), ("zanshin", zanshin_enspell)],
             );
-            ctx.record_calculation(
+            ctx.record_equation(
                 "Expected EnSpell subtotal",
-                "magic subtotal = {main_hits} * {main} + {sub_hits} * {sub} + {kick_hits} * {kick} + {zanshin_hits} * {zanshin} = {subtotal}",
+                "Expected EnSpell subtotal = Main Landed Hits × Main EnSpell base + Offhand Landed Hits × Offhand EnSpell base + Landed Kicks × Kick EnSpell base + Landed Zanshin Hits × Zanshin EnSpell base",
+                "EnSpell subtotal = {main_hits} × {main} + {sub_hits} × {sub} + {kick_hits} × {kick} + {zanshin_hits} × {zanshin} = {subtotal}",
                 &[("main_hits", hits.main), ("main", main_enspell), ("sub_hits", hits.sub),
                     ("sub", sub_enspell), ("kick_hits", hits.kick), ("kick", kick_enspell),
                     ("zanshin_hits", hits.zanshin), ("zanshin", zanshin_enspell), ("subtotal", magical_damage)],
@@ -425,9 +434,10 @@ pub fn evaluate_round<R: RandomSource>(
         magical_damage *= 1.0 + setup.elemental_bonus;
         magical_damage *= 1.0 + 0.25 * setup.magic_crit_rate2;
         if tracing {
-            ctx.record_calculation(
+            ctx.record_equation(
                 "Expected EnSpell multipliers",
-                "magic = {subtotal} * (1 + {dayweather}) * (1 + {elemental_bonus}) * (1 + 0.25 * {magic_crit_rate}) = {magic}; sampled magic critical = I([random magic critical roll: U(0,1)] < {magic_crit_rate}). The two compatibility preparation rolls are consumed unchanged but are not used by this analytical expectation.",
+                "Expected EnSpell Damage = Expected EnSpell subtotal × Day & Weather × Elemental Bonus Multiplier × Expected Magic Critical Multiplier\nDay & Weather = 1 + Day & Weather Bonus\nElemental Bonus Multiplier = 1 + Elemental Bonus\nExpected Magic Critical Multiplier = 1 + 0.25 × Magic Critical Rate II\nThis is the evaluator's multiplication order, with no flooring between these factors.",
+                "EnSpell Damage = {subtotal} × (1 + {dayweather}) × (1 + {elemental_bonus}) × (1 + 0.25 × {magic_crit_rate}) = {magic}; sampled magic critical = I([random magic critical roll: U(0,1)] < {magic_crit_rate}). The two compatibility preparation rolls are consumed unchanged but are not used by this analytical expectation.",
                 &[("subtotal", enspell_subtotal), ("dayweather", setup.dayweather), ("elemental_bonus", setup.elemental_bonus),
                     ("magic_crit_rate", setup.magic_crit_rate2), ("magic", magical_damage)],
             );
@@ -448,22 +458,44 @@ pub fn evaluate_round<R: RandomSource>(
     tp_return += daken_tp;
     tp_return = if tp_return < 0.0 { 0.0 } else { tp_return };
     if tracing {
-        ctx.record_calculation(
+        record_tp_reference(ctx);
+        let delay_equation = if setup.main_skill == SkillType::HandToHand {
+            "H2H TP Delay = (Base H2H Delay + Weapon Delay − Martial Arts) / 2\nImplemented H2H TP Delay = (((Sheet Main Delay + Sheet Offhand Delay) / 2 − Martial Arts) × (1 − Dual Wield / 100)) / 2\nBuilt H2H sheets already include the 480 base delay in Main Delay, duplicate that total in Offhand Delay, and set Dual Wield to 0. Do not add the base delay again."
+        } else if setup.dual_wield {
+            "Dual-wield TP Delay per Weapon = (Main Weapon Delay + Offhand Weapon Delay) × (1 − Dual Wield / 100) / 2\nImplemented TP Delay = ((Sheet Main Delay + Sheet Offhand Delay) / 2 − Martial Arts) × (1 − Dual Wield / 100)\nBuilt non-H2H sheets set Martial Arts to 0; the implemented form retains the actual supplied sheet inputs."
+        } else {
+            "Single-wield TP Delay = Weapon Delay\nImplemented TP Delay = ((Sheet Main Delay + Sheet Offhand Delay) / 2 − Martial Arts) × (1 − Dual Wield / 100)\nBuilt single-wield sheets duplicate Main Delay in Offhand Delay and set Martial Arts and Dual Wield to 0; the implemented form retains the actual supplied sheet inputs."
+        };
+        ctx.record_equation(
             "TP-generating delay",
-            "average weapon delay = ({delay1} + {delay2}) / 2; modified delay = (average weapon delay - {martial_arts}) * (1 - {dual_wield} / 100) = {modified_delay}; TP hit delay = modified delay / {fists} = {hit_delay}",
+            delay_equation,
+            "Average sheet delay = ({delay1} + {delay2}) / 2; modified delay = (average sheet delay − {martial_arts}) × (1 − {dual_wield} / 100) = {modified_delay}; TP hit delay = {modified_delay} / {fists} = {hit_delay}. Haste affects seconds per round, not TP per landed hit. This TP setup does not apply a separate Delay Reduction factor.",
             &[("delay1", stats.get(Stat::Delay1)), ("delay2", stats.get(Stat::Delay2)),
                 ("martial_arts", stats.get(Stat::MartialArts)), ("dual_wield", stats.get(Stat::DualWield)),
                 ("modified_delay", setup.mdelay), ("fists", if setup.main_skill == SkillType::HandToHand { 2.0 } else { 1.0 }),
                 ("hit_delay", setup.hit_delay())],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "TP base and truncation",
-            "For TP hit delay d: base(d) = 61+(d-180)*63/360 if d<=180; 61+(d-180)*88/360 if d<=540; 149+(d-540)*20/360 if d<=630; 154+(d-630)*28/360 if d<=720; 161+(d-720)*24/360 if d<=900; otherwise 173+(d-900)*28/360. get_tp(hits,d,STP,SAM) = hits * trunc((trunc(base(d))+150*SAM)*(1+STP)). Both truncations occur before multiplying by expected landed hits; SAM Zanshin's +150 is before Store TP.",
-            &[],
+            "Implemented Base TP = trunc(Delay TP(TP Hit Delay))\nOrdinary Melee or Kick TP per Landed Hit = trunc(Base TP × (1 + Store TP Input))\nZanshin TP per Landed Hit = trunc((Base TP + Zanshin TP Bonus) × (1 + Store TP Input))\nExpected Component TP = Expected Landed Hits × TP per Landed Hit",
+            "Store TP Input = {stp}, including any Karambit expectation shown above. Zanshin TP Bonus = 150 for SAM, otherwise 0, before Store TP. Every ordinary landed multiattack hit grants full TP, unlike additional weapon-skill hits' 10 base TP. Both truncations occur before fractional expected-landed-hit weighting; hit probabilities are already included in those expectations, and no truncation follows their multiplication.",
+            &[("stp", setup.stp)],
         );
-        ctx.record_calculation(
+        record_tp_gain(ctx, "Melee and kick TP", hits.main + hits.sub + hits.kick,
+            setup.hit_delay(), setup.stp, false, melee_tp);
+        record_tp_gain(ctx, if player.main_job == Job::Sam { "SAM Zanshin TP" } else { "Non-SAM Zanshin TP" },
+            hits.zanshin, setup.hit_delay(), setup.stp, player.main_job == Job::Sam, zanshin_tp);
+        ctx.record_equation(
+            "Daken TP-generating delay",
+            "Daken TP Delay = Ammo Delay\nDaken uses the shuriken's delay alone, not Ranged Weapon Delay + Ammo Delay or the melee TP delay.",
+            "Daken TP delay = {ammo_delay}",
+            &[("ammo_delay", setup.ammo_delay)],
+        );
+        record_tp_gain(ctx, "Daken TP", hits.daken, setup.ammo_delay, setup.stp, false, daken_tp);
+        ctx.record_equation(
             "Expected TP from landed attacks",
-            "melee/kick TP = get_tp({main_hits} + {sub_hits} + {kick_hits}, delay = {delay}, Store TP = {stp}, SAM Zanshin = 0) = {melee_tp}; Zanshin TP = get_tp({zanshin_hits}, delay = {delay}, Store TP = {stp}, SAM Zanshin = {sam}) = {zanshin_tp}; Daken TP = get_tp({daken_hits}, delay = {ammo_delay}, Store TP = {stp}, SAM Zanshin = 0) = {daken_tp}; attack TP = max(0, {melee_tp} + {zanshin_tp} + {daken_tp}) = {attack_tp}",
+            "Expected Melee and Kick TP = (Expected Main Hits + Expected Offhand Hits + Expected Kicks) × Ordinary TP per Landed Hit\nExpected Zanshin TP = Expected Zanshin Hits × Zanshin TP per Landed Hit\nExpected Daken TP = Expected Daken Hits × Ammo-delay TP per Landed Hit\nExpected Attack TP = max(0, Expected Melee and Kick TP + Expected Zanshin TP + Expected Daken TP)",
+            "Melee/kick expected landed hits = {main_hits} + {sub_hits} + {kick_hits}, TP hit delay = {delay}, Store TP Input = {stp}: melee/kick TP = {melee_tp}; expected Zanshin hits = {zanshin_hits}, SAM bonus active = {sam}: Zanshin TP = {zanshin_tp}; expected Daken hits = {daken_hits}, ammo-only delay = {ammo_delay}: Daken TP = {daken_tp}; attack TP = max(0, {melee_tp} + {zanshin_tp} + {daken_tp}) = {attack_tp}",
             &[("main_hits", hits.main), ("sub_hits", hits.sub), ("kick_hits", hits.kick),
                 ("delay", setup.hit_delay()), ("stp", setup.stp), ("melee_tp", melee_tp),
                 ("zanshin_hits", hits.zanshin), ("sam", flag(player.main_job == Job::Sam)), ("zanshin_tp", zanshin_tp),
@@ -486,32 +518,36 @@ pub fn evaluate_round<R: RandomSource>(
     let time_to_ws = if tp_return == 0.0 { 9999.0 } else { seconds_per_round * ((threshold - starting_tp) / tp_return) };
     if tracing {
         let timing_delay2 = if setup.dual_wield && setup.main_skill != SkillType::HandToHand { stats.get(Stat::Delay2) } else { 0.0 };
-        ctx.record_calculation(
+        ctx.record_equation(
             "Haste and seconds per attack round",
+            "Timing Base Delay = Main Delay + Offhand Delay (offhand omitted for single-wield and H2H)\nCapped Gear Haste = min(Gear Haste, 256 / 1024)\nCapped Magic Haste = min(Magic Haste, 448 / 1024)\nCapped JA Haste = min(JA Haste, 256 / 1024)\nReduced Timing Delay = (Timing Base Delay − Martial Arts) × (1 − Dual Wield / 100) × (1 − Capped Gear Haste − Capped Magic Haste − Capped JA Haste)\nSeconds per Round = max(0, max(Reduced Timing Delay, 0.2 × Timing Base Delay) / 60)\nHaste affects Seconds per Round, not the TP-generating delay or TP per landed hit.",
             "timing base delay B = {delay1}+{delay2} (offhand delay is omitted for single-wield and H2H); g=min({gear_haste},256/1024), m=min({magic_haste},448/1024), j=min({ja_haste},256/1024), with upper caps only; reduced delay = (B-{martial_arts})*(1-{dual_wield}/100)*(1-g-m-j); seconds per round = max(0,max(reduced delay,0.2*B)/60) = {seconds}. Haste changes elapsed time, not TP hit delay.",
             &[("delay1", stats.get(Stat::Delay1)), ("delay2", timing_delay2),
                 ("gear_haste", stats.get(Stat::GearHaste)), ("magic_haste", stats.get(Stat::MagicHaste)),
                 ("ja_haste", stats.get(Stat::JaHaste)), ("martial_arts", stats.get(Stat::MartialArts)),
                 ("dual_wield", stats.get(Stat::DualWield)), ("seconds", seconds_per_round)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Regain and total expected TP",
-            "regain per 3 seconds = {regain_stat} + {dual_wield}*{gokotai} = {regain}; regain TP = ({seconds}/3)*{regain} = {regain_tp}; TP per round = {attack_tp}+{regain_tp} = {tp}. Only attack TP was floored at zero, before adding regain.",
+            "Regain per 3 Seconds = Sheet Regain + Sheet Dual Wield × I(Main Weapon is Gokotai)\nContinuous Regain TP per Round = (Seconds per Round / 3) × Regain per 3 Seconds\nTotal Expected TP per Round = Expected Attack TP + Continuous Regain TP per Round",
+            "Regain per 3 seconds = {regain_stat} + {dual_wield} × {gokotai} = {regain}; Regain TP = ({seconds} / 3) × {regain} = {regain_tp}; TP per round = {attack_tp} + {regain_tp} = {tp}. Only attack TP was clamped to at least zero, before adding Regain. This is continuous proportional Regain, not the article's discrete 3-second ticks; neither tick count nor Regain TP is rounded.",
             &[("regain_stat", stats.get(Stat::Regain)), ("dual_wield", stats.get(Stat::DualWield)),
                 ("gokotai", flag(gokotai)), ("regain", regain), ("seconds", seconds_per_round),
                 ("regain_tp", regain_tp), ("attack_tp", attack_tp), ("tp", tp_return)],
         );
         if tp_return == 0.0 {
-            ctx.record_calculation(
+            ctx.record_equation(
                 "Rounds and time to WS threshold",
-                "starting TP = {starting_tp}; threshold = {threshold}; TP per round = 0, so rounds to threshold are undefined and the legacy time-to-WS sentinel is {time} seconds",
+                "TP Gap = WS Threshold − Starting TP\nRounds to WS = undefined when Total TP per Round = 0\nTime to WS = 9999 seconds when Total TP per Round = 0 (legacy sentinel, not an elapsed-time estimate)",
+                "TP Gap = {threshold} − {starting_tp}, with no negative-gap clamp; TP per round = 0, so rounds to threshold are undefined and the legacy time-to-WS sentinel is {time} seconds. The sentinel is not a whole-round or discrete-tick calculation.",
                 &[("starting_tp", starting_tp), ("threshold", threshold), ("time", time_to_ws)],
             );
         } else {
             let rounds_to_ws = (threshold - starting_tp) / tp_return;
-            ctx.record_calculation(
+            ctx.record_equation(
                 "Rounds and time to WS threshold",
-                "continuous expected rounds to WS = ({threshold}-{starting_tp})/{tp} = {rounds}; time to WS = {seconds}*{rounds} = {time} seconds. This model does not round up rounds or clamp a negative TP gap.",
+                "TP Gap = WS Threshold − Starting TP\nContinuous Expected Rounds to WS = TP Gap / Total Expected TP per Round\nTime to WS = Seconds per Round × Continuous Expected Rounds to WS",
+                "TP Gap = {threshold} − {starting_tp}; continuous expected rounds to WS = ({threshold} − {starting_tp}) / {tp} = {rounds}; time to WS = {seconds} × {rounds} = {time} seconds. This model does not clamp a negative TP gap or round up swings or rounds as in the article's discrete examples; its Regain is continuous rather than discrete ticks.",
                 &[("threshold", threshold), ("starting_tp", starting_tp), ("tp", tp_return),
                     ("rounds", rounds_to_ws), ("seconds", seconds_per_round), ("time", time_to_ws)],
             );
@@ -526,14 +562,16 @@ pub fn evaluate_round<R: RandomSource>(
     let main_expected_damage = hits.main * main_hit_damage;
     physical_damage += main_expected_damage;
     if tracing {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Melee legacy pDIF bounds",
-            "w = attack/defense + min(critical chance,1). Upper bound U(w): w+0.5 for 0<=w<0.5; 1 for 0.5<=w<0.7; w+0.3 for 0.7<=w<1.2; 1.25*w for 1.2<=w<1.5; otherwise w+0.375. Lower bound L(w): 0 for 0<=w<0.38; (1176/1024)*w-448/1024 for 0.38<=w<1.25; 1 for 1.25<=w<1.51; (1176/1024)*w-755/1024 for 1.51<=w<2.44; otherwise w-0.375.",
+            "Attack Ratio = Attack / Target Defense\nCritical-adjusted Ratio w = Attack Ratio + min(Critical Hit Rate, 1)\nUpper Bound U(w) and Lower Bound L(w) are the evaluator's piecewise melee pDIF bounds below.",
+            "Upper Bound U(w): w+0.5 for 0<=w<0.5; 1 for 0.5<=w<0.7; w+0.3 for 0.7<=w<1.2; 1.25×w for 1.2<=w<1.5; otherwise w+0.375. Lower Bound L(w): 0 for 0<=w<0.38; (1176/1024)×w−448/1024 for 0.38<=w<1.25; 1 for 1.25<=w<1.51; (1176/1024)×w−755/1024 for 1.51<=w<2.44; otherwise w−0.375.",
             &[],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Melee PDL, mean spread, and average-hit formula",
-            "skill cap = 3.25 for Katana/Dagger/Sword/Axe/Club, 3.5 for Great Katana/H2H, 3.75 for Great Sword/Staff/Great Axe/Polearm, otherwise 4; cap = (skill cap+PDL trait)*(1+PDL gear). Legacy average pDIF = (clip((U(w)+L(w))/2,0,cap)+min(critical chance,1))*1.025, where 1.025 is mean [random melee damage spread: U(1,1.05)]. average_hit(D,fSTR,pDIF,c,CD) = trunc(D+fSTR)*pDIF*(1+min(c,1)*min(CD,1)); no truncation follows pDIF or expected-hit weighting.",
+            "PDL Cap = (Weapon-skill Cap + PDL Trait) × (1 + PDL Gear)\nLegacy average pDIF = (clamp((Upper Bound + Lower Bound) / 2, 0, PDL Cap) + min(Critical Hit Rate, 1)) × Mean Damage Spread\nExpected critical-damage multiplier = 1 + min(Critical Hit Rate, 1) × min(Critical Damage Bonus, 1)\nAverage landed-hit damage = trunc(Weapon Base Damage + fSTR) × legacy average pDIF × expected critical-damage multiplier",
+            "Weapon-skill Cap = 3.25 for Katana/Dagger/Sword/Axe/Club, 3.5 for Great Katana/H2H, 3.75 for Great Sword/Staff/Great Axe/Polearm, otherwise 4. Mean Damage Spread = 1.025, the mean of [random melee damage spread: U(1,1.05)]. The legacy average pDIF inserts fractional critical chance into both the bound ratio and the post-cap addition; this is a midpoint approximation, not the sampled distribution's exact expectation. No truncation follows pDIF or expected-hit weighting.",
             &[],
         );
         ctx.record_calculation(
@@ -541,22 +579,25 @@ pub fn evaluate_round<R: RandomSource>(
             "Icrit = I([random critical roll: U(0,1)] < critical chance); ws = attack/defense+Icrit; sampled pDIF = (clip([random melee pDIF roll: U(L(ws),U(ws))],0,cap)+Icrit)*[random melee damage spread: U(1,1.05)]. No such rolls are added or evaluated by these analytical trace steps.",
             &[],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Expected weapon proc modifiers",
-            "Empyrean matching weapon = {empyrean_weapon}, Aftermath tier = {aftermath}: multiplier = 1+2*AM proc probability (0.3/0.4/0.5 for active tiers 1/2/3, otherwise inactive) = {empyrean}; proc uses [random aftermath proc roll: U(0,1)]. Relic multiplier = 1+2*0.13, 1+1.5*0.16, or 1+0.2 for the matching relic tier, otherwise 1 = {relic}; proc uses [random relic proc roll: U(0,1)]. Prime multiplier = 1+2*0.3 for V, 1+0.3 for IV, otherwise 1 = {prime}; proc uses [random Prime proc roll: U(0,1)]. Dragon Fangs kick multiplier = 1+0.2 on matching weapon, otherwise 1 = {dragon_fangs}. These are prepared average modifiers, not additional proc rolls.",
+            "Expected weapon multiplier = 1 + (Proc Damage Multiplier − 1) × Proc Probability\nThe expected Empyrean, Relic, Prime, and Dragon Fangs modifiers are additional damage multipliers, not Base Damage or pDIF.",
+            "Empyrean matching weapon = {empyrean_weapon}, Aftermath tier = {aftermath}: multiplier = 1 + 2 × AM proc probability (0.3/0.4/0.5 for active tiers 1/2/3, otherwise inactive) = {empyrean}; proc uses [random aftermath proc roll: U(0,1)]. Relic multiplier = 1 + 2 × 0.13, 1 + 1.5 × 0.16, or 1 + 0.2 for the matching relic tier, otherwise 1 = {relic}; proc uses [random relic proc roll: U(0,1)]. Prime multiplier = 1 + 2 × 0.3 for V, 1 + 0.3 for IV, otherwise 1 = {prime}; proc uses [random Prime proc roll: U(0,1)]. Dragon Fangs kick multiplier = 1 + 0.2 on matching weapon, otherwise 1 = {dragon_fangs}. These are prepared average modifiers, not additional proc rolls.",
             &[("empyrean_weapon", flag(setup.empyrean)), ("aftermath", setup.aftermath),
                 ("empyrean", setup.empyrean_bonus), ("relic", setup.relic_bonus),
                 ("prime", setup.prime_bonus), ("dragon_fangs", setup.dragon_fangs_bonus)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Main-hand legacy average pDIF",
-            "pDIF = get_avg_pdif_melee(attack = {attack}, enemy defense = {defense}, PDL trait = {pdl_trait}, PDL gear = {pdl_gear}, critical chance = {crit_rate}) = {pdif}. This is the legacy analytical midpoint approximation of [random pDIF roll], not an exact sampled expectation.",
+            "Critical-adjusted Ratio w = Main-hand Attack / Target Defense + min(Critical Hit Rate, 1)\nPDL Cap = (Weapon-skill Cap + PDL Trait) × (1 + PDL Gear)\nLegacy average pDIF = (clamp((U(w) + L(w)) / 2, 0, PDL Cap) + min(Critical Hit Rate, 1)) × 1.025",
+            "w = {attack} / {defense} + min({crit_rate}, 1); PDL Cap = (Weapon-skill Cap + {pdl_trait}) × (1 + {pdl_gear}); legacy average pDIF = (clamp((U(w) + L(w)) / 2, 0, PDL Cap) + min({crit_rate}, 1)) × 1.025 = {pdif}. This is the legacy analytical midpoint approximation of [random pDIF roll], not an exact sampled expectation.",
             &[("attack", setup.attack1), ("defense", setup.enemy_defense), ("pdl_trait", setup.pdl_trait),
                 ("pdl_gear", setup.pdl_gear), ("crit_rate", setup.crit_rate), ("pdif", main_pdif)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Main-hand expected physical damage",
-            "average hit = average_hit(D = {damage}, fSTR = {fstr}, pDIF = {pdif}, critical chance = {crit_rate}, critical damage bonus = {crit_damage}) = {base}; hit after Empyrean modifier = {base} * {empyrean} = {hit}; main-hand damage = {hits} expected landed hits * {hit} = {total}. Verethragna's ordinary-hit Empyrean modifier is 1.",
+            "Main-hand Base Damage = Weapon Base Damage + fSTR\nAverage main-hand landed-hit damage = trunc(Main-hand Base Damage) × legacy average pDIF × expected critical-damage multiplier\nModified ordinary main-hand hit = Average main-hand landed-hit damage × expected Empyrean multiplier\nOrdinary main-hand component = Expected Main-hand Landed Hits × Modified ordinary main-hand hit",
+            "Average landed hit = trunc({damage} + {fstr}) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {base}; hit after Empyrean modifier = {base} × {empyrean} = {hit}; ordinary main-hand component = {hits} expected landed hits × {hit} = {total}. Hit probabilities are already included in the landed-hit count. Verethragna's ordinary-hit Empyrean modifier is 1.",
             &[("damage", setup.main_damage), ("fstr", setup.fstr_main), ("pdif", main_pdif),
                 ("crit_rate", setup.crit_rate), ("crit_damage", setup.crit_damage), ("base", main_base_damage),
                 ("empyrean", main_empyrean_multiplier), ("hit", main_hit_damage),
@@ -587,9 +628,10 @@ pub fn evaluate_round<R: RandomSource>(
     let first_hit_correction = first_damage * hit_rate11 - main_hit_damage * hit_rate11;
     physical_damage += first_hit_correction;
     if tracing {
-        ctx.record_calculation(
+        ctx.record_equation(
             "First-hit ability bonuses",
-            "Sneak Attack = {dex}*(1+{sneak_percent}/100)*{sneak_active}*{thf} = {sneak}; Trick Attack = {agi}*(1+{trick_percent}/100)*{trick_active}*{thf} = {trick}; Flourish CHR factor C = 1+{chr_percent}/100; Climactic = 0.5*{chr}*C*{climactic_active} = {climactic}; Striking = {chr}*C*{striking_active} = {striking}; Ternary = {chr}*C*{ternary_active} = {ternary}",
+            "Sneak Attack bonus = DEX × (1 + Sneak Attack Bonus / 100), for active Sneak Attack on THF\nTrick Attack bonus = AGI × (1 + Trick Attack Bonus / 100), for active Trick Attack on THF\nFlourish CHR Multiplier = 1 + Flourish CHR Bonus / 100\nClimactic Flourish bonus = 0.5 × CHR × Flourish CHR Multiplier, when active\nStriking or Ternary Flourish bonus = CHR × Flourish CHR Multiplier, when active\nEach inactive or inapplicable ability contributes 0.",
+            "Sneak Attack = {dex} × (1 + {sneak_percent} / 100) × {sneak_active} × {thf} = {sneak}; Trick Attack = {agi} × (1 + {trick_percent} / 100) × {trick_active} × {thf} = {trick}; Flourish CHR factor C = 1 + {chr_percent} / 100; Climactic = 0.5 × {chr} × C × {climactic_active} = {climactic}; Striking = {chr} × C × {striking_active} = {striking}; Ternary = {chr} × C × {ternary_active} = {ternary}",
             &[("dex", stats.get(Stat::Dex)), ("sneak_percent", stats.get(Stat::SneakAttackBonus)),
                 ("sneak_active", flag(sneak)), ("thf", flag(player.main_job == Job::Thf)), ("sneak", sneak_bonus),
                 ("agi", stats.get(Stat::Agi)), ("trick_percent", stats.get(Stat::TrickAttackBonus)),
@@ -598,25 +640,28 @@ pub fn evaluate_round<R: RandomSource>(
                 ("striking_active", flag(striking)), ("striking", striking_bonus),
                 ("ternary_active", flag(ternary)), ("ternary", ternary_bonus)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "First-hit critical adjustment",
-            "critical chance = 1 for Sneak/Trick/Climactic, otherwise {crit_rate} + {striking_crit} * I({crit_rate} > 0) = {first_crit}; critical damage bonus = ({crit_damage} + {vajra}) * (1 + {climactic_crit}) = {adjusted_crit}; legacy average first-hit pDIF = {pdif}",
+            "First-hit Critical Rate = 1 for Sneak Attack, Trick Attack, or Climactic Flourish; otherwise Ordinary Critical Hit Rate + Striking Critical Rate Bonus × I(Ordinary Critical Hit Rate > 0)\nFirst-hit Critical Damage Bonus = (Ordinary Critical Damage Bonus + Vajra bonus) × (1 + Climactic Critical Damage Bonus)\nExpected first-hit critical-damage multiplier = 1 + min(First-hit Critical Rate, 1) × min(First-hit Critical Damage Bonus, 1)\nLegacy first-hit average pDIF uses the same midpoint equation with First-hit Critical Rate substituted.",
+            "First-hit Critical Rate = 1 for Sneak/Trick/Climactic, otherwise {crit_rate} + {striking_crit} × I({crit_rate} > 0) = {first_crit}; First-hit Critical Damage Bonus = ({crit_damage} + {vajra}) × (1 + {climactic_crit}) = {adjusted_crit}; legacy first-hit average pDIF = {pdif}",
             &[("crit_rate", setup.crit_rate), ("striking_crit", striking_crit_rate),
                 ("first_crit", first_crit_rate), ("crit_damage", setup.crit_damage),
                 ("vajra", vajra_crit_damage), ("climactic_crit", climactic_crit_damage),
                 ("adjusted_crit", adjusted_crit_damage), ("pdif", first_pdif)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "First-hit average physical damage",
-            "ability-augmented base = trunc({damage}+{fstr}+{sneak}+{trick}+{climactic}+{striking}+{ternary}); first average hit = base * {pdif} * (1+min({crit_rate},1)*min({crit_damage},1)) = {hit}",
+            "First-hit Base Damage = Weapon Base Damage + fSTR + Sneak Attack bonus + Trick Attack bonus + Climactic Flourish bonus + Striking Flourish bonus + Ternary Flourish bonus\nFirst-hit average physical damage = trunc(First-hit Base Damage) × legacy first-hit average pDIF × expected first-hit critical-damage multiplier",
+            "First-hit Base Damage = {damage} + {fstr} + {sneak} + {trick} + {climactic} + {striking} + {ternary}; first average hit = trunc(First-hit Base Damage) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {hit}. The base truncates before pDIF; there is no final damage truncation.",
             &[("damage", setup.main_damage), ("fstr", setup.fstr_main), ("sneak", sneak_bonus),
                 ("trick", trick_bonus), ("climactic", climactic_bonus), ("striking", striking_bonus),
                 ("ternary", ternary_bonus), ("pdif", first_pdif), ("crit_rate", first_crit_rate),
                 ("crit_damage", adjusted_crit_damage), ("hit", first_base_damage)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "First-hit weapon modifiers and correction",
-            "first average hit before weapon modifiers = {base}; modified first hit = {base} * Relic {relic} * Empyrean {empyrean} * Prime {prime} = {first}; replace ordinary first hit: {first} * {first_hit_rate} - {ordinary} * {first_hit_rate} = {correction}; running physical subtotal = {subtotal}. Sneak/Trick force this local hit rate only; expected-hit matrix remains unchanged.",
+            "Modified first hit = First-hit average physical damage × expected Relic multiplier × expected Empyrean multiplier × expected Prime multiplier\nFirst-hit correction = Modified first hit × Local First-hit Probability − Modified ordinary main-hand hit × Local First-hit Probability\nCorrected main-hand component = Ordinary main-hand component + First-hit correction",
+            "First average hit before weapon modifiers = {base}; modified first hit = {base} × Relic {relic} × Empyrean {empyrean} × Prime {prime} = {first}; replace ordinary first hit: {first} × {first_hit_rate} − {ordinary} × {first_hit_rate} = {correction}; running physical subtotal = {subtotal}. Sneak/Trick force this local hit rate only; the expected-hit matrix and its ordinary hit weighting remain unchanged.",
             &[("base", first_base_damage), ("relic", setup.relic_bonus), ("empyrean", setup.empyrean_bonus),
                 ("prime", setup.prime_bonus), ("first", first_damage), ("first_hit_rate", hit_rate11),
                 ("ordinary", main_hit_damage), ("correction", first_hit_correction), ("subtotal", physical_damage)],
@@ -632,9 +677,10 @@ pub fn evaluate_round<R: RandomSource>(
         let striking_correction = (striking_damage - main_hit_damage) * hit_rate11;
         physical_damage += striking_correction;
         if tracing {
-            ctx.record_calculation(
+            ctx.record_equation(
                 "Striking Flourish additional-hit correction",
-                "additional-hit critical chance = {crit_rate}; legacy average pDIF = {pdif}; additional average hit uses the same ability-augmented truncated base, ordinary critical damage bonus {crit_damage}, and no first-hit weapon modifiers = {hit}; correction = ({hit} - {ordinary}) * {first_hit_rate} = {correction}; running physical subtotal = {subtotal}",
+                "Additional Striking hit = trunc(First-hit Base Damage) × legacy Striking average pDIF × expected Striking critical-damage multiplier\nStriking correction = (Additional Striking hit − Modified ordinary main-hand hit) × Local First-hit Probability\nThis additional hit uses the ability-augmented base, ordinary Critical Damage Bonus, and no first-hit weapon multipliers.",
+                "Additional-hit Critical Rate = {crit_rate}; legacy average pDIF = {pdif}; additional average hit = trunc(First-hit Base Damage) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {hit}; correction = ({hit} − {ordinary}) × {first_hit_rate} = {correction}; running physical subtotal = {subtotal}",
                 &[("crit_rate", striking_rate), ("pdif", striking_pdif), ("crit_damage", setup.crit_damage),
                     ("hit", striking_damage), ("ordinary", main_hit_damage), ("first_hit_rate", hit_rate11),
                     ("correction", striking_correction), ("subtotal", physical_damage)],
@@ -647,9 +693,10 @@ pub fn evaluate_round<R: RandomSource>(
     let offhand_expected_damage = offhand_damage * hits.sub;
     physical_damage += offhand_expected_damage;
     if tracing && setup.dual_wield {
-        ctx.record_calculation(
+        ctx.record_equation(
             if setup.main_skill == SkillType::HandToHand { "Second-fist expected physical damage" } else { "Offhand expected physical damage" },
-            "legacy average pDIF = get_avg_pdif_melee(attack = {attack}, enemy defense = {defense}, PDL trait = {pdl_trait}, PDL gear = {pdl_gear}, critical chance = {crit_rate}) = {pdif}; average hit = average_hit(D = {damage}, fSTR = {fstr}, pDIF = {pdif}, critical chance = {crit_rate}, critical damage bonus = {crit_damage}) = {hit}; damage = {hit} * {hits} expected landed hits = {total}; running physical subtotal = {subtotal}",
+            "Offhand / second-fist Base Damage = Weapon Base Damage + fSTR\nAverage offhand / second-fist landed-hit damage = trunc(Base Damage) × legacy average melee pDIF × expected critical-damage multiplier\nExpected offhand / second-fist component = Average landed-hit damage × Expected Offhand / Second-fist Landed Hits\nLegacy average melee pDIF uses the offhand / second-fist Attack and Weapon-skill Cap in the midpoint equation above.",
+            "Attack Ratio = {attack} / {defense}; PDL Cap = (Weapon-skill Cap + {pdl_trait}) × (1 + {pdl_gear}); Critical Hit Rate = {crit_rate}; legacy average pDIF = {pdif}; average landed hit = trunc({damage} + {fstr}) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {hit}; offhand / second-fist component = {hit} × {hits} expected landed hits = {total}; running physical subtotal = {subtotal}",
             &[("attack", setup.attack2), ("defense", setup.enemy_defense), ("pdl_trait", setup.pdl_trait),
                 ("pdl_gear", setup.pdl_gear), ("crit_rate", setup.crit_rate), ("pdif", offhand_pdif),
                 ("damage", setup.sub_damage), ("fstr", setup.fstr_sub), ("crit_damage", setup.crit_damage),
@@ -661,9 +708,10 @@ pub fn evaluate_round<R: RandomSource>(
     physical_damage *= (1.0 + setup.da_damage * setup.da) * (1.0 + setup.ta_damage * setup.ta);
     let melee_damage = physical_damage;
     if tracing {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Expected DA/TA damage modifiers",
-            "melee physical subtotal = {before} * (1 + {da_damage} * {da}) * (1 + {ta_damage} * {ta}) = {after}; these legacy weighted damage modifiers apply before kick, Daken, and Zanshin damage",
+            "Expected DA Damage Multiplier = 1 + DA Damage Bonus × DA Rate\nExpected TA Damage Multiplier = 1 + TA Damage Bonus × TA Rate\nExpected melee component = Corrected main-hand and offhand subtotal × (Expected DA Damage Multiplier × Expected TA Damage Multiplier)\nThese are legacy weighted damage modifiers, separate from the plain per-landed-hit physical formula and the expected-hit count.",
+            "Melee physical subtotal = {before} × ((1 + {da_damage} × {da}) × (1 + {ta_damage} × {ta})) = {after}; these modifiers apply before kick, Daken, and Zanshin damage",
             &[("before", melee_before_multiattack), ("da_damage", setup.da_damage), ("da", setup.da),
                 ("ta_damage", setup.ta_damage), ("ta", setup.ta), ("after", melee_damage)],
         );
@@ -676,9 +724,10 @@ pub fn evaluate_round<R: RandomSource>(
     let kick_expected_damage = kick_damage * hits.kick;
     physical_damage += kick_expected_damage;
     if tracing && (setup.kickattacks != 0.0 || hits.kick != 0.0) {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Kick expected physical damage",
-            "kick fSTR = get_fstr(D={damage}, STR={strength}, enemy VIT={vitality}) = {fstr}; kick attack = {attack}+{kick_attack}; legacy average melee pDIF = {pdif}; average_hit(D={damage}, fSTR={fstr}, pDIF={pdif}, c={crit_rate}, CD={crit_damage}) = {base}; modified kick hit = {base}*{dragon_fangs} = {hit}; kick damage = {hits} expected landed kicks * {hit} = {total}",
+            "Kick Attack = Main-hand Attack + Kick Attacks Attack\nKick Weapon Rank = Kick Damage / 9\nKick fSTR = clamp(adjusted dSTR / 4, −Kick Weapon Rank, 8 + Kick Weapon Rank)\nKick Base Damage = Kick Damage + Kick fSTR\nLegacy kick average pDIF uses Kick Attack and the main-hand Weapon-skill Cap in the midpoint equation above.\nAverage landed kick = trunc(Kick Base Damage) × legacy kick average pDIF × expected critical-damage multiplier\nModified kick = Average landed kick × expected Dragon Fangs multiplier\nExpected kick component = Modified kick × Expected Landed Kicks",
+            "Kick dSTR = {strength} − {vitality}; Kick fSTR = clamp(F(dSTR) / 4, −{damage} / 9, 8 + {damage} / 9) = {fstr}; Kick Attack = {attack} + {kick_attack}; legacy average melee pDIF = {pdif}; average landed kick = trunc({damage} + {fstr}) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {base}; modified kick = {base} × {dragon_fangs} = {hit}; kick component = {hit} × {hits} expected landed kicks = {total}",
             &[("damage", setup.kick_damage), ("strength", stats.get(Stat::Str)),
                 ("vitality", enemy.stats.get(Stat::Vit)), ("fstr", setup.fstr_kick),
                 ("attack", setup.attack1), ("kick_attack", stats.get(Stat::KickAttacksAttack)),
@@ -693,18 +742,20 @@ pub fn evaluate_round<R: RandomSource>(
     let daken_expected_damage = divide(hits.daken * daken_damage, setup.empyrean_bonus, OPERATION, "empyrean_am_damage_bonus")?;
     physical_damage += daken_expected_damage;
     if tracing && (setup.daken != 0.0 || hits.daken != 0.0) {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Daken ranged base and legacy pDIF",
-            "ranged rank = {damage}/9; dSTR = clip({strength}-{vitality},-2*(7+2*rank),2*(14+2*rank)); fSTR2 = clip(F(dSTR)/2,-2*rank,2*(rank+8)) = {fstr}. r={attack}/{defense}; ranged bounds L,U = r,(10/9)*r for 0<=r<0.9; 1,1 for 0.9<=r<1.1; otherwise (20/19)*r-3/19,r. cap = (3.5 for Marksmanship, otherwise 3.25, plus {pdl_trait})*(1+{pdl_gear}); legacy ranged pDIF = clip((L+U)/2,0,cap)*(1+0.25*min({crit_rate},1)) = {pdif}. Symbolic sampled pDIF = clip([random ranged pDIF roll: U(L,U)],0,cap)*(1+0.25*I([random ranged critical roll: U(0,1)] < {crit_rate})), with no melee spread multiplier.",
+            "Daken Weapon Rank = Ammo Damage / 9\nLimited dSTR = clamp(STR − Target VIT, −2 × (7 + 2 × Weapon Rank), 2 × (14 + 2 × Weapon Rank))\nfSTR2 = clamp(adjusted Limited dSTR / 2, −2 × Weapon Rank, 2 × (Weapon Rank + 8))\nDaken Base Damage = Ammo Damage + fSTR2\nRanged Attack Ratio r = Ranged Attack / Target Defense\nLegacy average ranged pDIF = clamp((Ranged Lower Bound + Ranged Upper Bound) / 2, 0, Ranged PDL Cap) × (1 + 0.25 × min(Critical Hit Rate, 1))",
+            "Daken Weapon Rank = {damage} / 9; limited dSTR = clamp({strength} − {vitality}, −2 × (7 + 2 × rank), 2 × (14 + 2 × rank)); fSTR2 = clamp(F(limited dSTR) / 2, −2 × rank, 2 × (rank + 8)) = {fstr}, with no rank or fSTR2 flooring. r = {attack} / {defense}; ranged bounds L,U = r,(10/9)×r for 0<=r<0.9; 1,1 for 0.9<=r<1.1; otherwise (20/19)×r−3/19,r. Ranged PDL Cap = (3.5 for Marksmanship, otherwise 3.25, plus {pdl_trait}) × (1 + {pdl_gear}); legacy ranged pDIF = clamp((L + U) / 2, 0, cap) × (1 + 0.25 × min({crit_rate}, 1)) = {pdif}. Symbolic sampled pDIF = clamp([random ranged pDIF roll: U(L,U)], 0, cap) × (1 + 0.25 × I([random ranged critical roll: U(0,1)] < {crit_rate})), with no melee spread multiplier. The analytical value is a capped midpoint approximation, not an exact sampled expectation.",
             &[("damage", setup.ammo_damage), ("strength", stats.get(Stat::Str)),
                 ("vitality", enemy.stats.get(Stat::Vit)), ("fstr", setup.fstr_ammo),
                 ("attack", setup.ranged_attack), ("defense", setup.enemy_defense),
                 ("pdl_trait", setup.pdl_trait), ("pdl_gear", setup.pdl_gear),
                 ("crit_rate", setup.crit_rate), ("pdif", daken_pdif)],
         );
-        ctx.record_calculation(
+        ctx.record_equation(
             "Daken expected physical damage",
-            "average_hit(D={damage}, fSTR2={fstr}, pDIF={pdif}, c={crit_rate}, CD={crit_damage}) = {hit}; Daken damage = {hits} expected landed Daken * {hit} / {empyrean} = {total}. The legacy analytical path divides this contribution by the Empyrean modifier.",
+            "Daken Base Damage = Ammo Damage + fSTR2\nAverage landed Daken damage = trunc(Daken Base Damage) × legacy average ranged pDIF × expected critical-damage multiplier\nExpected Daken component = (Expected Landed Daken Attacks × Average landed Daken damage) / expected Empyrean multiplier\nThe Empyrean division is a legacy analytical adjustment, not part of the BG Wiki per-hit physical equation.",
+            "Average landed Daken damage = trunc({damage} + {fstr}) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {hit}; Daken component = ({hits} expected landed Daken × {hit}) / {empyrean} = {total}. The ranged critical pDIF factor and the additional expected critical-damage multiplier remain separate.",
             &[("damage", setup.ammo_damage), ("fstr", setup.fstr_ammo), ("pdif", daken_pdif),
                 ("crit_rate", setup.crit_rate), ("crit_damage", setup.crit_damage), ("hit", daken_damage),
                 ("hits", hits.daken), ("empyrean", setup.empyrean_bonus), ("total", daken_expected_damage)],
@@ -718,9 +769,10 @@ pub fn evaluate_round<R: RandomSource>(
     let zanshin_expected_damage = hits.zanshin * zanshin_damage;
     physical_damage += zanshin_expected_damage;
     if tracing && (setup.zanshin != 0.0 || setup.zanhasso != 0.0 || hits.zanshin != 0.0) {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Zanshin expected physical damage",
-            "Zanshin attack = {attack}+{zanshin_attack}; legacy average melee pDIF = {pdif}; average_hit(D={damage}, fSTR={fstr}, pDIF={pdif}, c={crit_rate}, CD={crit_damage}) = {base}; modified Zanshin hit = {base}*{empyrean} = {hit}; Zanshin damage = {hits} expected landed Zanshin * {hit} = {total}",
+            "Zanshin Attack = Main-hand Attack + Zanshin Attack Bonus\nZanshin fSTR = Main-hand fSTR\nZanshin Base Damage = Weapon Base Damage + Zanshin fSTR\nLegacy Zanshin average pDIF uses Zanshin Attack and the main-hand Weapon-skill Cap in the midpoint equation above.\nAverage landed Zanshin damage = trunc(Zanshin Base Damage) × legacy Zanshin average pDIF × expected critical-damage multiplier\nModified Zanshin hit = Average landed Zanshin damage × expected Empyrean multiplier\nExpected Zanshin component = Expected Landed Zanshin Attacks × Modified Zanshin hit",
+            "Zanshin Attack = {attack} + {zanshin_attack}; Zanshin Base Damage = {damage} + {fstr}; legacy average melee pDIF = {pdif}; average landed Zanshin damage = trunc({damage} + {fstr}) × {pdif} × (1 + min({crit_rate}, 1) × min({crit_damage}, 1)) = {base}; modified Zanshin hit = {base} × {empyrean} = {hit}; Zanshin component = {hits} expected landed Zanshin × {hit} = {total}",
             &[("attack", setup.attack1), ("zanshin_attack", stats.get(Stat::ZanshinAttack)), ("pdif", zanshin_pdif),
                 ("damage", setup.main_damage), ("fstr", setup.fstr_main), ("crit_rate", setup.crit_rate),
                 ("crit_damage", setup.crit_damage), ("base", zanshin_base_damage), ("empyrean", setup.empyrean_bonus),
@@ -729,9 +781,10 @@ pub fn evaluate_round<R: RandomSource>(
     }
     let damage = physical_damage + magical_damage;
     if tracing {
-        ctx.record_calculation(
+        ctx.record_equation(
             "Physical and magical damage totals",
-            "physical = melee subtotal {melee} + kicks {kick} + Daken {daken} + Zanshin {zanshin} = {physical}; total damage per round = {physical}+{magical} = {damage}",
+            "Expected Physical Damage per Round = Expected melee component + Expected kick component + Expected Daken component + Expected Zanshin component\nExpected Total Damage per Round = Expected Physical Damage per Round + Expected EnSpell Damage",
+            "Physical Damage = melee {melee} + kicks {kick} + Daken {daken} + Zanshin {zanshin} = {physical}; Total Damage per Round = {physical} + {magical} = {damage}",
             &[("melee", melee_damage), ("kick", kick_expected_damage), ("daken", daken_expected_damage),
                 ("zanshin", zanshin_expected_damage), ("physical", physical_damage),
                 ("magical", magical_damage), ("damage", damage)],
@@ -761,16 +814,23 @@ pub fn evaluate_round<R: RandomSource>(
                 &[("damage", damage), ("seconds", seconds_per_round), ("dps", damage / seconds_per_round)],
             );
         }
-        let formula = match metric.name.as_ref() {
-            "Damage dealt" => "selected metric = damage per round {damage} = {value}; maximize (invert = {invert})",
-            "TP return" => "selected metric = TP per round {tp} = {value}; maximize (invert = {invert})",
-            "DPS" => "selected metric = {damage}/{seconds} = {value}; maximize (invert = {invert})",
-            "TP > Damage" => "selected metric = {damage}*{tp}*{tp}/10000 = {value}; maximize (invert = {invert})",
-            "Damage > TP" => "selected metric = {damage}*{damage}*{tp}/1000000 = {value}; maximize (invert = {invert})",
-            _ => "selected metric uses the legacy time-to-WS fallback: {time} seconds = {value}; minimize (invert = {invert})",
+        let (equation, formula) = match metric.name.as_ref() {
+            "Damage dealt" => ("Selected Metric = Expected Damage per Round",
+                "selected metric = damage per round {damage} = {value}; maximize (invert = {invert})"),
+            "TP return" => ("Selected Metric = Total Expected TP per Round",
+                "selected metric = TP per round {tp} = {value}; maximize (invert = {invert})"),
+            "DPS" => ("Selected Metric = Expected Damage per Round / Seconds per Round",
+                "selected metric = {damage}/{seconds} = {value}; maximize (invert = {invert})"),
+            "TP > Damage" => ("Selected Metric = Expected Damage per Round × (Total Expected TP per Round)² / 10000",
+                "selected metric = {damage}*{tp}*{tp}/10000 = {value}; maximize (invert = {invert})"),
+            "Damage > TP" => ("Selected Metric = (Expected Damage per Round)² × Total Expected TP per Round / 1000000",
+                "selected metric = {damage}*{damage}*{tp}/1000000 = {value}; maximize (invert = {invert})"),
+            _ => ("Selected Metric = Time to WS (legacy fallback)\nTime to WS = Seconds per Round × ((WS Threshold − Starting TP) / Total Expected TP per Round); 9999 seconds if Total Expected TP per Round = 0",
+                "selected metric uses the legacy time-to-WS fallback: {time} seconds = {value}; minimize (invert = {invert})"),
         };
-        ctx.record_calculation(
+        ctx.record_equation(
             "Selected optimization metric",
+            equation,
             formula,
             &[("damage", damage), ("tp", tp_return), ("seconds", seconds_per_round),
                 ("time", time_to_ws), ("value", value), ("invert", invert as f64)],

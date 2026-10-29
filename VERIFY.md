@@ -523,7 +523,7 @@ restart winner and pre-reorder scored output, and restore caller observers.
 
 Focused native Winit/software probes passed at **100% and 150%** scale, with
 **25 scenarios and 52 screenshots per scale**. Production controller callbacks
-exercised analytical melee/ranged/magical/hybrid WS, their sampled WS paths,
+exercised analytical melee/magical/hybrid WS, their sampled WS paths,
 single/dual-wield and H2H TP rounds, EnSpell, Quick Draw, Ninjutsu, elemental
 nukes/helixes, Kaustra, Impact, ranged/Barrage, and the existing divine zero-output
 branch. Two-restart one-slot searches covered Optimize WS, Spell, TP/Time to WS,
@@ -538,6 +538,79 @@ inspected. These were focused popup checks, not a rerun of the complete native
 workflow. The disposable probe source was removed after proof. Evidence:
 `target/calculation-popups/final-100/report.json` and
 `target/calculation-popups/final-150/report.json`.
+
+The earlier probe's Ranger WS case retained Viper Bite after profile menu updates,
+so it did not establish ranged-WS coverage. Its Barrage case also left the ability
+disabled. The BG Wiki formula-form proof below explicitly selects and checks
+those paths rather than relying on scenario names.
+
+#### BG Wiki formula form
+
+`cargo test --locked --workspace --lib --bins --tests -- --test-threads=1`
+passed all **199 tests** after adding named equations alongside the worked
+substitutions. The numerical/RNG corpus and complete-observer restoration checks
+remain unchanged in behavior. The displayed wiki reference forms are explicitly
+separated from the evaluator's existing truncation, factor order and unmodeled
+terms; this update does not recalibrate damage to the wiki.
+
+A focused native Winit/software probe passed **31 scenarios at each of 100% and
+150% scale**: 30 formula-result cases and the unchanged Simulate-page comparison.
+It explicitly selected Jishnu's Radiance and asserted ranged dispatch for
+Quicklook, sampled WS and Optimize WS; enabled and checked Barrage; covered all
+four WS families, TP rounds, spell families, and small two-restart optimization
+searches. Every formula result retained named equations, worked numeric inputs,
+random placeholders and exact accessible report text through scrolling/resizing.
+Popup closing left the main window open, progress was dismissed, and source
+resource/profile hashes were unchanged.
+
+Each scale produced **114 native screenshots**, including 900×680 and 400×280
+logical result windows. Requested and actual main/result/snapshot scales were
+asserted; the 150% popup captures were 1350×1020 and 600×420 physical pixels.
+Representative normal, compact, ranged, magic and optimization formula captures
+were inspected.
+
+The probe was compiled with `SLINT_SCALE_FACTOR` unset, then the same binary was
+launched with runtime scale 1 and 1.5. Slint 1.16 also reads that variable during
+compilation and otherwise locks the generated UI scale. The earlier `final-150`
+attempt recorded actual scale 1.0 and is not high-DPI proof; the scale-asserted
+evidence is `target/wiki-formula-popups/verified-100/report.json` and
+`target/wiki-formula-popups/verified-150/report.json`. The disposable probe source
+was removed after proof. These focused checks do not repeat the complete native
+workflow.
+
+#### Tactical Points formula form
+
+`env -u SLINT_SCALE_FACTOR cargo test --locked --workspace --lib --bins --tests -- --test-threads=1`
+passed all **199 tests** after the TP presentation update. Shared capture-only TP
+notation replaces duplicate WS/spell display helpers; `math::get_tp` remains the
+sole numerical kernel. Wiki flooring and integer range labels are distinguished
+from the evaluator's truncation, continuous delay boundaries and expected-hit
+weighting. Action-specific Store TP units, WS eligibility/retention, Regain,
+Occult Acumen and Recycle exceptions remain explicit rather than changing results.
+
+Focused native Winit/software runs passed **19 scenarios at each of 100% and
+150% scale**, with **32 captures per scale**. The cases exercised single-wield,
+dual-wield, H2H, SAM Zanshin, positive Regain, first/additional-hit and Fotia WS TP,
+actual ranged WS dispatch, probability-weighted pure magical WS TP in analytical
+and sampled modes, raw Quick Draw Store TP, EnSpell, nonzero Occult Acumen, and
+Barrage with Arcadian Beret Recycle. Four small real searches covered Optimize TP
+with Time to WS/DPS and Optimize WS/Spell with TP return.
+
+The pure magical WS cases deliberately set positive enemy magic evasion to
+exercise a fractional TP weight; the shipped zero-evasion profile bypasses that
+branch. Worked TP values and summaries matched actual results, optimizer details
+followed retained output, and closing each report left main-window editing usable
+with no progress window left open. Defaults were isolated in a temporary directory.
+
+Normal 900×680 and minimum 400×280 logical report windows were captured with
+asserted runtime scales and physical pixel dimensions. The actual native
+accessible scrollbar located the named/worked TP sections, and representative
+Regain, sampled WS, Occult Acumen and compact Quick Draw captures were inspected.
+The same scale-neutral binary served both runs. Evidence:
+`target/tp-formula-popups/inspected-100/evidence.json` and
+`target/tp-formula-popups/inspected-150/evidence.json`. The disposable probe source
+was removed after proof; these are focused TP popup checks, not a rerun of the
+complete native workflow.
 
 ## Native packaging and extracted launch
 
