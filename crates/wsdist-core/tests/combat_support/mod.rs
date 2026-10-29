@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use wsdist_core::{Catalog,build_player};
 use wsdist_core::actions::{evaluate_action,resolve_spell_name,sample_round,sample_ws};
-use wsdist_core::model::{ActionRequest,Abilities,CalcError,Enemy,EvaluationContext,LegacyF64,Metric,Player,RandomSource,RandomStream,SkillType,Slot,SpellRequest,SpellType,WsRequest,WsType};
+use wsdist_core::model::{ActionRequest,Abilities,CalcError,Enemy,EvaluationContext,HitEvent,LegacyF64,Metric,Player,RandomSource,RandomStream,SkillType,Slot,SpellRequest,SpellType,WsRequest,WsType};
 use wsdist_core::rng::{RandomSources,ScriptedTape};
 use wsdist_core::weaponskills::resolve_name;
 
@@ -24,7 +24,7 @@ pub fn index(root:&Path)->FixtureIndex {serde_json::from_value(document(&root.jo
 pub fn number(value:&Value)->f64 {serde_json::from_value::<LegacyF64>(value.clone()).expect("captured number").0}
 
 #[derive(Default)]
-pub struct ReplayCounts {pub compiled:usize,pub scripted:usize,pub hits:usize,pub uniform_draws:usize,pub legacy_errors:usize,pub last_fields:Option<Value>}
+pub struct ReplayCounts {pub compiled:usize,pub scripted:usize,pub hits:usize,pub uniform_draws:usize,pub legacy_errors:usize,pub last_fields:Option<Value>,pub scripted_trace:Option<Vec<HitEvent>>}
 
 #[derive(Clone,Debug)]
 struct UniformDraw {stream:RandomStream,low:f64,high:f64,value:f64}
@@ -160,7 +160,7 @@ pub fn replay_case(case:&Value,catalog:&Arc<Catalog>)->ReplayCounts {
     let last_fields=assert_fields(result,&expected["compiled"],label);
     assert_draws(&ctx.random.draws,&expected["compiled"]["draws"],label);
     assert_stream_snapshot(&ctx.random.inner,&expected["compiled"]["rng_after"],&format!("{label}.after"));
-    let mut counts=ReplayCounts{compiled:1,scripted:0,hits:ctx.action_trace.as_ref().unwrap().len(),uniform_draws:ctx.random.draws.len(),legacy_errors:usize::from(last_fields.is_none()),last_fields};
+    let mut counts=ReplayCounts{compiled:1,scripted:0,hits:ctx.action_trace.as_ref().unwrap().len(),uniform_draws:ctx.random.draws.len(),legacy_errors:usize::from(last_fields.is_none()),last_fields,scripted_trace:None};
     if let Some(scripted)=expected.get("scripted") {
         let tape=ScriptedTape::from_json_records(&scripted["tape"]).expect("captured strict tape");
         let mut scripted_ctx=EvaluationContext::new(Arc::clone(catalog),Recorded{inner:tape,draws:Vec::new()});
@@ -172,7 +172,8 @@ pub fn replay_case(case:&Value,catalog:&Arc<Catalog>)->ReplayCounts {
         counts.legacy_errors+=usize::from(counts.last_fields.is_none());
         assert_draws(&scripted_ctx.random.draws,&scripted["tape"],label);
         scripted_ctx.random.inner.assert_finished().expect("no unused scripted draws");
-        counts.scripted=1;counts.hits+=scripted_ctx.action_trace.as_ref().unwrap().len();
+        counts.scripted_trace=scripted_ctx.action_trace.take();
+        counts.scripted=1;counts.hits+=counts.scripted_trace.as_ref().unwrap().len();
     }
     counts
 }
