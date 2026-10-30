@@ -268,6 +268,59 @@ Evidence: `target/fixture-ingestion-optimization/`, especially
 `compile-profile-verification.json`, `numerical-work-invariance.json` and
 `numerical-report.json`.
 
+### Fixture Value lifecycle
+
+Primary corpus cases are still decoded as complete ordered `serde_json::Value`
+trees, with the same hash, JSON-validation and replay/comparison checks.
+`wsdist_fixtures::drop_value` consumes each case after replay and owned coverage
+extraction, at the original lifetime boundary. Its concrete destructor runs in
+the already optimized fixture crate; panic unwinding retains ordinary ownership.
+
+Only `legacy_parity` and `verify_numerics` explicitly select MiMalloc as their
+Rust global allocator. This applies to all Rust allocations in those two
+processes, including core replay and worker threads, not just fixture trees.
+The allocator is a core dev-dependency; no library selects a global allocator.
+The GUI and other executable roots retain their existing allocator. Native C
+allocator overriding is disabled.
+
+The lockfile selects `mimalloc 0.1.48` and `libmimalloc-sys 0.1.49` (native v3),
+with empty feature sets. Dev-package opt-level 3 for both allocator packages
+also covers the inherited test profile and ordinary development examples;
+core/app/parity code remains at opt-level zero. The native allocator needs the
+platform C/C++ build toolchain and is linked statically. Separate native-v2
+controls did not justify retaining an older transitive dependency pin.
+
+Intrinsic test timers, excluding compilation, measured:
+
+| Full-corpus parity configuration | Test time |
+| --- | ---: |
+| Unchanged system-allocator baseline | 39.44 s |
+| Optimized fixture drop and scoped MiMalloc | 32.47 s |
+
+The selected configuration saves 17.7% of this test's runtime. A capacity-hint
+prepass/custom JSON visitor matched every source value, key/array order, scalar
+kind and float bit across all 30,185 cases, but its modest decode saving did not
+justify retaining a second decoder. No parser, wire-format or fixture changes
+are part of this optimization.
+
+The persisted configuration passed all **206 workspace tests** in 151.06 s
+warm wall time, with 148.21 s summed test execution. The actual numerical
+verifier passed **30,184 exercised cases**, one inert case and all **18 million
+statistical samples**. Complete baseline/candidate reports matched every
+non-timing field, ordered key and binary64 bit except the intentional
+`delivery_hashes.Cargo.lock.sha256` change, which matches the updated lockfile.
+Only `started_unix_seconds`, `elapsed_seconds` and
+`canonical_parity.cases[*].elapsed_ms` were normalized.
+
+Compiler-artifact and dependency-graph evidence confirms the scoped profiles,
+empty allocator features and absence of either allocator package from the GUI's
+normal dependency graph. Execution was verified on Linux GNU x86-64; Windows
+MSVC execution was not exercised by this optimization run.
+Evidence: `target/corpus-value-optimization-20261030/`, especially
+`performance-comparison.json`, `selected-workspace-summary.json`,
+`selected-build-summary.json`, `selected-graph-proof.json`,
+`numerical-invariance.json`, `native-version-runs.json` and `selected-self.txt`.
+
 ### Multipart fixture storage
 
 Every stored fixture file must be smaller than **50,000,000 bytes**. Three

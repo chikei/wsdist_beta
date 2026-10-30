@@ -42,6 +42,11 @@ pub fn read_value(path: &Path, expected_content_xxh3_128: Option<&str>) -> Resul
         .map_err(|error| format!("{}: parsing fixture JSON: {error}", path.display()).into())
 }
 
+/// Drops a fixture tree within this crate's optimized compilation boundary.
+pub fn drop_value(value: Value) {
+    drop(value);
+}
+
 /// Loads a typed fixture directly from its complete logical JSON bytes.
 ///
 /// Uses the same storage and content-hash checks as [`read_value`], without a

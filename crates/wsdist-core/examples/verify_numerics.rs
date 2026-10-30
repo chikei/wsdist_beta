@@ -1,3 +1,7 @@
+// Process-wide allocator for this verification-only, allocation-heavy corpus.
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[path = "../tests/legacy_player/support.rs"]
 #[allow(dead_code)]
 mod player_support;

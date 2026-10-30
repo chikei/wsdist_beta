@@ -170,6 +170,10 @@ without optimizing application or parity-test logic. The test profile also
 optimizes only the native `rand_chacha` dependency among RNG packages. See the
 [fixture integrity and storage contract](VERIFY.md#fixture-ingestion-and-content-equality)
 and [native RNG test profile](VERIFY.md#native-rng-test-profile-optimization).
+The full-corpus test and numerical verifier additionally use an explicit,
+verification-only MiMalloc allocator and optimized fixture-tree destruction;
+the production GUI allocator is unchanged. See the
+[fixture Value lifecycle controls](VERIFY.md#fixture-value-lifecycle).
 Legacy formulas and recorded-draw numerical results are preserved, including
 known analytical/sampled discrepancies. Generator-dependent searches and
 simulations use separately hash-checked native fixed-seed goldens. Parity and

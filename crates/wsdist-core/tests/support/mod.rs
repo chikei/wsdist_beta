@@ -207,6 +207,7 @@ fn record_case(report: &mut CorpusReport, entry: &Entry, root: &Path, catalog: &
         if ui { replay_ui_numeric(&case, catalog, &mut work); }
         else if entry.operation != "player_tables" { replay(&case, catalog, &mut work); }
         tags = case.get("coverage").and_then(Value::as_array).map(|tags| tags.iter().filter_map(Value::as_str).map(str::to_owned).collect()).unwrap_or_default();
+        wsdist_fixtures::drop_value(case);
     }));
     let measured = finish_measurements();
     report.numeric_comparisons.merge(serde_json::to_value(&measured).unwrap());

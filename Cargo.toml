@@ -19,6 +19,7 @@ getrandom = "0.3"
 sha2 = "0.10"
 xxhash-rust = { version = "=0.8.15", default-features = false, features = ["xxh3"] }
 tempfile = "3"
+mimalloc = { version = "=0.1.48", default-features = false }
 parking_lot = "0.12"
 slint = { version = "=1.16.0", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "accessibility"] }
 slint-build = "=1.16.0"
@@ -38,6 +39,13 @@ codegen-units = 1
 opt-level = 3
 
 [profile.dev.package.xxhash-rust]
+opt-level = 3
+
+# Optimize the verification executables' allocator, including its native C code.
+[profile.dev.package.mimalloc]
+opt-level = 3
+
+[profile.dev.package.libmimalloc-sys]
 opt-level = 3
 
 [profile.test.package.serde_json]

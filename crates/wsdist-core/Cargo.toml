@@ -19,3 +19,4 @@ parking_lot.workspace = true
 wsdist-fixtures.workspace = true
 sha2.workspace = true
 tempfile.workspace = true
+mimalloc.workspace = true
