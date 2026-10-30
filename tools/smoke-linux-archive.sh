@@ -20,7 +20,7 @@ while (($#)); do
 done
 [[ -n "$archive" && -f "$archive" ]] || { echo 'A native Linux release archive is required' >&2; exit 2; }
 [[ "$scale" == 1 || "$scale" == 1.5 ]] || { echo '--scale must be 1 or 1.5' >&2; exit 2; }
-for tool in cc pkg-config jq tar realpath timeout; do
+for tool in cc pkg-config jq tar realpath timeout find; do
     command -v "$tool" >/dev/null || { echo "Missing archive-smoke prerequisite: $tool" >&2; exit 1; }
 done
 pkg-config --exists x11 libpng
@@ -70,9 +70,30 @@ tar --extract --gzip --file "$archive" --directory "$bundle" --no-same-owner --n
 for name in wsdist-gui defaults.json item_list.csv THIRD-PARTY-NOTICES.html PROVENANCE.txt BUILD-INFO.json; do
     [[ -f "$bundle/$name" ]] || { echo "Missing archive content: $name" >&2; exit 1; }
 done
-for name in gear.json enemies.json buffs.json pup-attachments.json; do
-    [[ -f "$bundle/data/$name" ]] || { echo "Missing bundled catalog: $name" >&2; exit 1; }
+for name in enemies.json5 buffs.json5 pup-attachments.json5; do
+    path="$bundle/data/$name"
+    [[ -f "$path" && ! -L "$path" ]] || { echo "Missing regular bundled catalog: $name" >&2; exit 1; }
 done
+# No monolithic fallback or unrelated data files belong in the archive.
+while IFS= read -r -d '' member; do
+    case "${member##*/}" in
+        gear|enemies.json5|buffs.json5|pup-attachments.json5) ;;
+        *) echo "Unexpected bundled data entry: $member" >&2; exit 1 ;;
+    esac
+done < <(find -P "$bundle/data" -mindepth 1 -maxdepth 1 -print0)
+gear_root="$bundle/data/gear"
+[[ -d "$gear_root" && ! -L "$gear_root" ]] || { echo 'Missing regular bundled gear directory' >&2; exit 1; }
+find -P "$gear_root" -mindepth 1 -print0 > "$work/bundled-gear"
+gear_count=0
+while IFS= read -r -d '' member; do
+    [[ ! -L "$member" ]] || { echo "Unexpected bundled gear symlink: $member" >&2; exit 1; }
+    if [[ -d "$member" ]]; then continue; fi
+    [[ -f "$member" && "${member##*/}" == *.json5 && "${member##*/}" != .json5 ]] || {
+        echo "Unexpected bundled gear entry: $member" >&2; exit 1
+    }
+    gear_count=$((gear_count + 1))
+done < "$work/bundled-gear"
+((gear_count > 0)) || { echo 'No bundled gear fragments' >&2; exit 1; }
 [[ -d "$bundle/icons32" && -d "$bundle/licenses" && -x "$bundle/wsdist-gui" ]]
 jq -e '.target == "x86_64-unknown-linux-gnu" and .rust_toolchain == "1.92.0"' "$bundle/BUILD-INFO.json" >/dev/null
 while IFS= read -r -d '' member; do
@@ -82,6 +103,9 @@ while IFS= read -r -d '' member; do
     esac
 done < <(find "$bundle" -mindepth 1 -maxdepth 1 -print0)
 while IFS= read -r -d '' forbidden; do
+    # Validated gear directories are inert organization, regardless of name.
+    # Do not exempt files from the Python/Qt/reference-content checks.
+    if [[ -d "$forbidden" && "$forbidden" == "$gear_root/"* ]]; then continue; fi
     echo "Unexpected Python/Qt/reference content in archive: $forbidden" >&2
     exit 1
 done < <(find "$bundle" \( -iname '*.py' -o -iname '*.pyc' -o -iname '*.pkl' -o -iname 'Qt[56]*.so*' \

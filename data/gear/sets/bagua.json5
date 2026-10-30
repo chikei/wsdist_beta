@@ -1,0 +1,183 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Bagua Charm +1",
+      name2: "Bagua Charm +1 R20",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "neck",
+      ],
+      stats: {
+        "Magic Accuracy": 25,
+      },
+    },
+    {
+      name: "Bagua Charm +2",
+      name2: "Bagua Charm +2 R25",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "neck",
+      ],
+      stats: {
+        "Magic Accuracy": 30,
+      },
+    },
+    {
+      name: "Bagua Galero +3",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "head",
+      ],
+      stats: {
+        STR: 24,
+        DEX: 24,
+        VIT: 24,
+        AGI: 24,
+        INT: 29,
+        MND: 29,
+        CHR: 29,
+        Accuracy: 37,
+        "Magic Accuracy": 46,
+        "Magic Attack": 49,
+        Evasion: 56,
+        "Magic Evasion": 95,
+        "Magic Defense": 7,
+        "Gear Haste": 6,
+      },
+    },
+    {
+      name: "Bagua Galero +4",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "head",
+      ],
+      stats: {
+        STR: 27,
+        DEX: 24,
+        VIT: 29,
+        AGI: 24,
+        INT: 34,
+        MND: 29,
+        CHR: 29,
+        Accuracy: 42,
+        "Magic Accuracy": 51,
+        "Magic Attack": 52,
+        Evasion: 81,
+        "Magic Evasion": 135,
+        "Magic Defense": 8,
+        "Gear Haste": 6,
+      },
+    },
+    {
+      name: "Bagua Mitaines +3",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "hands",
+      ],
+      stats: {
+        Evasion: 42,
+        "Magic Evasion": 57,
+        "Magic Defense": 5,
+        STR: 16,
+        DEX: 38,
+        VIT: 35,
+        AGI: 15,
+        INT: 29,
+        MND: 43,
+        CHR: 29,
+        Accuracy: 38,
+        "Magic Accuracy": 38,
+        "Magic Attack": 50,
+        "Gear Haste": 3,
+        "Magic Burst Damage": 12,
+      },
+    },
+    {
+      name: "Bagua Mitaines +4",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "hands",
+      ],
+      stats: {
+        STR: 19,
+        DEX: 38,
+        VIT: 40,
+        AGI: 15,
+        INT: 34,
+        MND: 43,
+        CHR: 29,
+        Accuracy: 43,
+        "Magic Accuracy": 43,
+        "Magic Attack": 53,
+        Evasion: 67,
+        "Magic Evasion": 97,
+        "Magic Defense": 6,
+        "Gear Haste": 3,
+        "Magic Burst Damage": 12,
+      },
+    },
+    {
+      name: "Bagua Tunic +3",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "body",
+      ],
+      stats: {
+        Evasion: 61,
+        "Magic Evasion": 100,
+        "Magic Defense": 8,
+        STR: 31,
+        DEX: 31,
+        VIT: 31,
+        AGI: 31,
+        INT: 39,
+        MND: 39,
+        CHR: 39,
+        Accuracy: 40,
+        "Magic Accuracy": 40,
+        "Magic Attack": 63,
+        "Gear Haste": 3,
+      },
+    },
+    {
+      name: "Bagua Tunic +4",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "body",
+      ],
+      stats: {
+        STR: 34,
+        DEX: 31,
+        VIT: 36,
+        AGI: 31,
+        INT: 44,
+        MND: 39,
+        CHR: 39,
+        Accuracy: 45,
+        "Magic Accuracy": 45,
+        "Magic Attack": 66,
+        Evasion: 86,
+        "Magic Evasion": 140,
+        "Magic Defense": 9,
+        "Gear Haste": 3,
+      },
+    },
+  ],
+}

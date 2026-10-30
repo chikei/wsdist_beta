@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::fs::File;
-use std::io::BufReader;
+use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use deser_core::de::{Deserialize as _, DeserializeDriver, Sink, SinkHandle};
+use deser_core::{Atom, Error as DecodeError, ErrorKind as DecodeErrorKind, State};
 use serde_json::{Map, Value};
 
 use crate::model::{
@@ -18,9 +19,6 @@ pub struct Catalog {
     pub(crate) pieces: Box<[GearPiece]>,
     slots: [Box<[GearId]>; Slot::COUNT],
     foods: Box<[GearId]>,
-    symbols: Box<[GearSymbol]>,
-    original_ids: HashMap<u32, GearId>,
-    symbol_ids: HashMap<Arc<str>, GearId>,
     name2_ids: HashMap<Arc<str>, GearId>,
     food_names: HashMap<Arc<str>, GearId>,
     enemies: Box<[EnemyRecord]>,
@@ -37,18 +35,15 @@ pub struct Catalog {
 
 impl Catalog {
     pub fn load(root: &Path) -> Result<Self, CalcError> {
-        let gear = load_gear(&root.join("data/gear.json"))?;
-        let enemies = load_enemies(&root.join("data/enemies.json"))?;
-        let buffs = load_buffs(&root.join("data/buffs.json"))?;
-        let attachments = load_attachments(&root.join("data/pup-attachments.json"))?;
+        let gear = load_gear(&root.join("data/gear"))?;
+        let enemies = load_enemies(&root.join("data/enemies.json5"))?;
+        let buffs = load_buffs(&root.join("data/buffs.json5"))?;
+        let attachments = load_attachments(&root.join("data/pup-attachments.json5"))?;
         let aliases = load_aliases(&root.join("item_list.csv"))?;
         Ok(Self {
             pieces: gear.pieces,
             slots: gear.slots,
             foods: gear.foods,
-            symbols: gear.symbols,
-            original_ids: gear.original_ids,
-            symbol_ids: gear.symbol_ids,
             name2_ids: gear.name2_ids,
             food_names: gear.food_names,
             enemies: enemies.records,
@@ -68,10 +63,7 @@ impl Catalog {
     pub fn piece(&self, id: GearId) -> &GearPiece { &self.pieces[id.index()] }
     pub fn slot(&self, slot: Slot) -> &[GearId] { &self.slots[slot.index()] }
     pub fn foods(&self) -> &[GearId] { &self.foods }
-    pub fn symbols(&self) -> &[GearSymbol] { &self.symbols }
     pub fn by_name2(&self, name: &str) -> Option<GearId> { self.name2_ids.get(name).copied() }
-    pub fn by_symbol(&self, name: &str) -> Option<GearId> { self.symbol_ids.get(name).copied() }
-    pub fn by_original_id(&self, id: u32) -> Option<GearId> { self.original_ids.get(&id).copied() }
     pub fn food_by_name(&self, name: &str) -> Option<GearId> { self.food_names.get(name).copied() }
     pub fn enemies(&self) -> &[EnemyRecord] { &self.enemies }
     pub fn enemy(&self, id: EnemyId) -> &EnemyRecord { &self.enemies[id.index()] }
@@ -91,12 +83,6 @@ impl Catalog {
     pub fn alias_by_abbreviation(&self, name: &str) -> Option<&ItemAlias> {
         self.abbreviated_aliases.get(&name.to_lowercase()).map(|index| &self.aliases[*index])
     }
-}
-
-#[derive(Debug)]
-pub struct GearSymbol {
-    pub name: Arc<str>,
-    pub id: GearId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -229,6 +215,84 @@ pub struct ItemAlias {
     pub name2: Arc<str>,
 }
 
+// Build the final ordered Serde value directly. Original numeric spans retain
+// JSON's -0 and wide-integer semantics; nonfinite JSON5 values are never null.
+struct CatalogSink<'out, 'source> {
+    out: &'out mut Value,
+    source: &'source str,
+    key: Option<String>,
+}
+
+impl CatalogSink<'_, '_> {
+    fn native_number(atom: Atom<'_>, negative: bool) -> Result<serde_json::Number, DecodeError> {
+        match atom {
+            Atom::U64(0) | Atom::I64(0) if negative => {
+                Ok(serde_json::Number::from_f64(-0.0).expect("negative zero is finite"))
+            }
+            Atom::U64(value) => Ok(value.into()),
+            Atom::I64(value) => Ok(value.into()),
+            Atom::F64(value) => serde_json::Number::from_f64(value)
+                .ok_or_else(|| DecodeError::new(DecodeErrorKind::OutOfRange, "expected a finite number")),
+            Atom::Ext(value) => {
+                let value = if let Some(value) = value.downcast_ref::<u128>() {
+                    *value as f64
+                } else if let Some(value) = value.downcast_ref::<i128>() {
+                    *value as f64
+                } else {
+                    return Err(DecodeError::new(DecodeErrorKind::InvalidType, "expected a number"));
+                };
+                Ok(serde_json::Number::from_f64(value).expect("128-bit integer fits in finite f64"))
+            }
+            _ => Err(DecodeError::new(DecodeErrorKind::InvalidType, "expected a number")),
+        }
+    }
+}
+
+impl<'de> Sink<'de> for CatalogSink<'_, '_> {
+    fn atom(&mut self, atom: Atom<'_>, state: &mut State) -> Result<(), DecodeError> {
+        *self.out = match atom {
+            Atom::Null => Value::Null,
+            Atom::Bool(value) => Value::Bool(value),
+            Atom::Str(value) | Atom::Lexical(value) => Value::String(value.into_owned()),
+            number => {
+                let literal = state.input_range().and_then(|range| self.source.get(range))
+                    .ok_or_else(|| DecodeError::new(DecodeErrorKind::Custom, "missing numeric input range"))?;
+                Value::Number(Self::native_number(number, literal.starts_with('-'))?)
+            }
+        };
+        Ok(())
+    }
+
+    fn map(&mut self, _state: &mut State) -> Result<(), DecodeError> {
+        *self.out = Value::Object(Map::new());
+        Ok(())
+    }
+
+    fn seq(&mut self, _state: &mut State) -> Result<(), DecodeError> {
+        *self.out = Value::Array(Vec::new());
+        Ok(())
+    }
+
+    fn next_key(&mut self, state: &mut State) -> Result<SinkHandle<'_, 'de>, DecodeError> {
+        Ok(String::deserialize_into(&mut self.key, state))
+    }
+
+    fn next_value(&mut self, state: &mut State) -> Result<SinkHandle<'_, 'de>, DecodeError> {
+        let out = match self.out {
+            Value::Array(values) => {
+                values.push(Value::Null);
+                values.last_mut().expect("just appended array value")
+            }
+            Value::Object(values) => {
+                let key = self.key.take().expect("map value follows its key");
+                values.entry(key).or_insert(Value::Null)
+            }
+            _ => unreachable!("only containers request a child value"),
+        };
+        Ok(SinkHandle::arena(CatalogSink { out, source: self.source, key: None }, state))
+    }
+}
+
 struct DataFile {
     path: PathBuf,
     value: Value,
@@ -236,10 +300,20 @@ struct DataFile {
 
 impl DataFile {
     fn open(path: &Path) -> Result<Self, CalcError> {
-        let file = File::open(path).map_err(|error| CalcError::data(path, "$", error.to_string()))?;
-        let value = serde_json::from_reader(BufReader::new(file)).map_err(|error| {
-            CalcError::data(path, format!("$ (line {}, column {})", error.line(), error.column()), error.to_string())
-        })?;
+        let source = fs::read_to_string(path).map_err(|error| CalcError::data(path, "$", error.to_string()))?;
+        let mut value = Value::Null;
+        let mut sink = CatalogSink { out: &mut value, source: &source, key: None };
+        {
+            let mut driver = DeserializeDriver::from_fn(|_| SinkHandle::to(&mut sink));
+            let config = deser_json5::DeserializerConfig::builder().exact_numbers(false).build();
+            let mut deserializer = deser_json5::Deserializer::from_str_with_config(&source, config);
+            deserializer.drive(&mut driver).map_err(|error| {
+                let at = error.line().zip(error.column()).map_or_else(|| "$".to_owned(), |(line, column)| {
+                    format!("$ (line {line}, column {column})")
+                });
+                CalcError::data(path, at, error.to_string())
+            })?;
+        }
         Ok(Self { path: path.to_owned(), value })
     }
 
@@ -282,12 +356,12 @@ impl DataFile {
         Ok(())
     }
 
-    fn root(&self, allowed: &[&str]) -> Result<&Map<String, Value>, CalcError> {
+    fn root(&self, allowed: &[&str], expected_version: u64) -> Result<&Map<String, Value>, CalcError> {
         let root = self.object(&self.value, "$")?;
         self.fields(root, allowed, "$")?;
         let version = self.required(root, "schema_version", "$")?;
-        if version.as_u64() != Some(1) {
-            return Err(self.error("$.schema_version", "expected schema version 1"));
+        if version.as_u64() != Some(expected_version) {
+            return Err(self.error("$.schema_version", format!("expected schema version {expected_version}")));
         }
         Ok(root)
     }
@@ -326,124 +400,197 @@ struct GearResources {
     pieces: Box<[GearPiece]>,
     slots: [Box<[GearId]>; Slot::COUNT],
     foods: Box<[GearId]>,
-    symbols: Box<[GearSymbol]>,
-    original_ids: HashMap<u32, GearId>,
-    symbol_ids: HashMap<Arc<str>, GearId>,
     name2_ids: HashMap<Arc<str>, GearId>,
     food_names: HashMap<Arc<str>, GearId>,
     empty: GearId,
 }
 
-fn load_gear(path: &Path) -> Result<GearResources, CalcError> {
-    let file = DataFile::open(path)?;
-    let root = file.root(&["schema_version", "pieces", "symbols", "slots", "foods"])?;
-    let source_pieces = file.array(file.required(root, "pieces", "$")?, "$.pieces")?;
-    let mut pieces = Vec::with_capacity(source_pieces.len());
-    let mut original_ids = HashMap::with_capacity(source_pieces.len());
-    for (index, value) in source_pieces.iter().enumerate() {
-        let at = format!("$.pieces[{index}]");
-        let object = file.object(value, &at)?;
-        file.fields(object, &["id", "name", "name2", "jobs", "type", "skill_type", "dmg", "delay", "rank", "wsc", "stats"], &at)?;
-        let original_id = file.u32(file.required(object, "id", &at)?, &format!("{at}.id"))?;
-        let id = GearId(u32::try_from(index).map_err(|_| file.error(&at, "too many gear pieces"))?);
-        if original_ids.insert(original_id, id).is_some() {
-            return Err(file.error(&format!("{at}.id"), format!("duplicate original gear ID {original_id}")));
-        }
-        let name = Arc::from(file.string(file.required(object, "name", &at)?, &format!("{at}.name"))?);
-        let name2 = Arc::from(file.string(file.required(object, "name2", &at)?, &format!("{at}.name2"))?);
-        let jobs = file.jobs(file.required(object, "jobs", &at)?, &format!("{at}.jobs"))?;
-        let job_mask = jobs.iter().fold(0, |mask, job| mask | job.mask());
-        let kind_name = file.string(file.required(object, "type", &at)?, &format!("{at}.type"))?;
-        let kind = PieceKind::from_name(kind_name).ok_or_else(|| file.error(&format!("{at}.type"), format!("unknown piece type {kind_name:?}")))?;
-        let skill_name = file.string(file.required(object, "skill_type", &at)?, &format!("{at}.skill_type"))?;
-        let skill_type = SkillType::from_name(skill_name).ok_or_else(|| file.error(&format!("{at}.skill_type"), format!("unknown skill type {skill_name:?}")))?;
-        let dmg = file.number(file.required(object, "dmg", &at)?, &format!("{at}.dmg"))?;
-        let delay = file.number(file.required(object, "delay", &at)?, &format!("{at}.delay"))?;
-        let rank = match object.get("rank") {
-            None | Some(Value::Null) => None,
-            Some(value) => Some(value.as_i64().ok_or_else(|| file.error(&format!("{at}.rank"), "expected a signed 64-bit integer or null"))?),
-        };
-        let wsc = match object.get("wsc") {
-            None | Some(Value::Null) => None,
-            Some(value) => {
-                let values = file.array(value, &format!("{at}.wsc"))?;
-                if values.len() != 2 { return Err(file.error(&format!("{at}.wsc"), "expected [stat name, percentage]")); }
-                let stat_at = format!("{at}.wsc[0]");
-                let stat = file.stat(file.string(&values[0], &stat_at)?, &stat_at)?;
-                Some(WscContribution { stat, percent: file.number(&values[1], &format!("{at}.wsc[1]"))? })
-            }
-        };
-        let stats_at = format!("{at}.stats");
-        let source_stats = file.object(file.required(object, "stats", &at)?, &stats_at)?;
-        let mut stats = Vec::with_capacity(source_stats.len());
-        for (name, value) in source_stats {
-            let stat_at = field_path(&stats_at, name);
-            let stat = Stat::from_name(name)
-                .ok_or_else(|| file.error(&stat_at, format!("unsupported gear stat {name:?}")))?;
-            stats.push(file.contribution(stat, value, &stat_at)?);
-        }
-        pieces.push(GearPiece { id, original_id, name, name2, jobs, job_mask, kind, skill_type, dmg, delay, rank, wsc, stats: stats.into_boxed_slice() });
-    }
-
-    let source_symbols = file.object(file.required(root, "symbols", "$")?, "$.symbols")?;
-    let mut symbols = Vec::with_capacity(source_symbols.len());
-    let mut symbol_ids = HashMap::with_capacity(source_symbols.len());
-    for (name, value) in source_symbols {
-        let id = gear_reference(&file, value, &field_path("$.symbols", name), &original_ids)?;
-        let name: Arc<str> = Arc::from(name.as_str());
-        symbol_ids.insert(Arc::clone(&name), id);
-        symbols.push(GearSymbol { name, id });
-    }
-    let source_slots = file.object(file.required(root, "slots", "$")?, "$.slots")?;
-    let allowed_slots: [&str; Slot::COUNT] = std::array::from_fn(|index| Slot::ALL[index].name());
-    file.fields(source_slots, &allowed_slots, "$.slots")?;
-    let mut slots: [Box<[GearId]>; Slot::COUNT] = std::array::from_fn(|_| Box::default());
-    let mut name2_ids = HashMap::with_capacity(pieces.len());
-    for &slot in Slot::ALL {
-        let at = field_path("$.slots", slot.name());
-        slots[slot.index()] = gear_references(&file, file.required(source_slots, slot.name(), "$.slots")?, &at, &original_ids)?;
-        for &id in &slots[slot.index()] {
-            name2_ids.insert(Arc::clone(&pieces[id.index()].name2), id);
-        }
-    }
-    let foods = gear_references(&file, file.required(root, "foods", "$")?, "$.foods", &original_ids)?;
-    // The original gate checks final slot/food lists, not declared-only bindings.
-    // Retain those records without normalizing their known internal stat names.
-    for id in slots.iter().flat_map(|slot| slot.iter()).chain(foods.iter()) {
-        let piece = &pieces[id.index()];
-        for contribution in &piece.stats {
-            if !contribution.stat.gear_allowed() {
-                let at = field_path(&format!("$.pieces[{}].stats", id.index()), contribution.stat.name());
-                return Err(file.error(&at, format!("unsupported gear stat {:?}", contribution.stat.name())));
-            }
-        }
-    }
-    let mut food_names = HashMap::with_capacity(foods.len());
-    for &id in &foods { food_names.insert(Arc::clone(&pieces[id.index()].name), id); }
-    let empty = if let Some(&id) = symbol_ids.get("Empty") {
-        if pieces[id.index()].name2.as_ref() != "Empty" {
-            return Err(file.error("$.symbols.Empty", "Empty must reference a piece with name2 \"Empty\""));
-        }
-        id
-    } else {
-        pieces.iter().find(|piece| piece.name2.as_ref() == "Empty").map(|piece| piece.id)
-            .ok_or_else(|| file.error("$.pieces", "missing Empty gear piece"))?
-    };
-    Ok(GearResources { pieces: pieces.into_boxed_slice(), slots, foods, symbols: symbols.into_boxed_slice(), original_ids, symbol_ids, name2_ids, food_names, empty })
+#[derive(Clone)]
+struct GearOrigin {
+    path: Arc<Path>,
+    index: usize,
+    label_field: &'static str,
 }
 
-fn gear_reference(file: &DataFile, value: &Value, at: &str, ids: &HashMap<u32, GearId>) -> Result<GearId, CalcError> {
-    let original_id = file.u32(value, at)?;
-    ids.get(&original_id).copied().ok_or_else(|| file.error(at, format!("unknown original gear ID {original_id}")))
+impl GearOrigin {
+    fn label_location(&self) -> String {
+        format!("{}: $.pieces[{}].{}", self.path.display(), self.index, self.label_field)
+    }
 }
 
-fn gear_references(file: &DataFile, value: &Value, at: &str, ids: &HashMap<u32, GearId>) -> Result<Box<[GearId]>, CalcError> {
-    let source = file.array(value, at)?;
-    let mut references = Vec::with_capacity(source.len());
-    for (index, value) in source.iter().enumerate() {
-        references.push(gear_reference(file, value, &format!("{at}[{index}]"), ids)?);
+fn gear_fragments(directory: &Path) -> Result<Vec<PathBuf>, CalcError> {
+    fn collect(directory: &Path, root: &Path, fragments: &mut Vec<(String, PathBuf)>) -> Result<(), CalcError> {
+        let entries = fs::read_dir(directory).map_err(|error| CalcError::data(directory, "$", error.to_string()))?;
+        for entry in entries {
+            let entry = entry.map_err(|error| CalcError::data(directory, "$", error.to_string()))?;
+            let path = entry.path();
+            let kind = entry.file_type().map_err(|error| CalcError::data(&path, "$", error.to_string()))?;
+            if kind.is_dir() {
+                collect(&path, root, fragments)?;
+            } else if kind.is_file() && path.extension().is_some_and(|extension| extension == "json5") {
+                let relative = path.strip_prefix(root).expect("fragment is below gear directory");
+                let relative = relative.to_str().ok_or_else(|| CalcError::data(&path, "$", "fragment path must be valid Unicode"))?;
+                fragments.push((relative.replace(std::path::MAIN_SEPARATOR, "/"), path));
+            }
+        }
+        Ok(())
     }
-    Ok(references.into_boxed_slice())
+
+    let metadata = fs::symlink_metadata(directory).map_err(|error| CalcError::data(directory, "$", error.to_string()))?;
+    if !metadata.is_dir() {
+        return Err(CalcError::data(directory, "$", "expected a gear fragment directory; symlinks are not followed"));
+    }
+    let mut fragments = Vec::new();
+    collect(directory, directory, &mut fragments)?;
+    fragments.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+    if fragments.is_empty() {
+        return Err(CalcError::data(directory, "$", "no .json5 gear fragments found"));
+    }
+    let mut case_paths = HashMap::with_capacity(fragments.len());
+    for (relative, path) in &fragments {
+        if let Some(first) = case_paths.insert(relative.to_lowercase(), path) {
+            return Err(CalcError::data(path, "$", format!("case-only fragment path collision with {}", first.display())));
+        }
+    }
+    Ok(fragments.into_iter().map(|(_, path)| path).collect())
+}
+
+fn load_gear(directory: &Path) -> Result<GearResources, CalcError> {
+    const FOOD_SLOT: u32 = 1 << Slot::COUNT;
+    let fragments = gear_fragments(directory)?;
+    let mut pieces: Vec<GearPiece> = Vec::new();
+    let mut slots: [Vec<GearId>; Slot::COUNT] = std::array::from_fn(|_| Vec::new());
+    let mut foods = Vec::new();
+    let mut name2_ids = HashMap::new();
+    let mut food_names = HashMap::new();
+    let mut selectable_labels: HashMap<Arc<str>, GearOrigin> = HashMap::new();
+    let mut food_origins: HashMap<Arc<str>, GearOrigin> = HashMap::new();
+    let mut empty: Option<(GearId, GearOrigin)> = None;
+    for path in &fragments {
+        let file = DataFile::open(path)?;
+        let root = file.root(&["schema_version", "pieces"], 2)?;
+        let source_pieces = file.array(file.required(root, "pieces", "$")?, "$.pieces")?;
+        let origin_path: Arc<Path> = Arc::from(path.as_path());
+        pieces.reserve(source_pieces.len());
+        for (index, value) in source_pieces.iter().enumerate() {
+            let at = format!("$.pieces[{index}]");
+            let object = file.object(value, &at)?;
+            file.fields(object, &["name", "name2", "jobs", "slots", "type", "skill_type", "dmg", "delay", "rank", "wsc", "stats"], &at)?;
+            let id = GearId(u32::try_from(pieces.len()).map_err(|_| file.error(&at, "too many gear pieces"))?);
+            let name: Arc<str> = Arc::from(file.string(file.required(object, "name", &at)?, &format!("{at}.name"))?);
+            let name2_field = if object.contains_key("name2") { "name2" } else { "name" };
+            let name2: Arc<str> = match object.get("name2") {
+                Some(value) => Arc::from(file.string(value, &format!("{at}.name2"))?),
+                None => Arc::clone(&name),
+            };
+            let jobs = file.jobs(file.required(object, "jobs", &at)?, &format!("{at}.jobs"))?;
+            let job_mask = jobs.iter().fold(0, |mask, job| mask | job.mask());
+            let slots_at = format!("{at}.slots");
+            let mut membership = 0;
+            for (index, value) in file.array(file.required(object, "slots", &at)?, &slots_at)?.iter().enumerate() {
+                let member_at = format!("{slots_at}[{index}]");
+                let name = file.string(value, &member_at)?;
+                let bit = if name == "food" {
+                    FOOD_SLOT
+                } else {
+                    let slot = Slot::from_name(name).ok_or_else(|| file.error(&member_at, format!("unknown gear slot {name:?}")))?;
+                    1 << slot.index()
+                };
+                if membership & bit != 0 {
+                    return Err(file.error(&member_at, format!("duplicate gear slot {name:?}")));
+                }
+                membership |= bit;
+            }
+            let kind = match object.get("type") {
+                Some(value) => {
+                    let name = file.string(value, &format!("{at}.type"))?;
+                    PieceKind::from_name(name).ok_or_else(|| file.error(&format!("{at}.type"), format!("unknown piece type {name:?}")))?
+                }
+                None => PieceKind::None,
+            };
+            let skill_type = match object.get("skill_type") {
+                Some(value) => {
+                    let name = file.string(value, &format!("{at}.skill_type"))?;
+                    SkillType::from_name(name).ok_or_else(|| file.error(&format!("{at}.skill_type"), format!("unknown skill type {name:?}")))?
+                }
+                None => SkillType::None,
+            };
+            let dmg = object.get("dmg").map(|value| file.number(value, &format!("{at}.dmg"))).transpose()?.unwrap_or(0.0);
+            let delay = object.get("delay").map(|value| file.number(value, &format!("{at}.delay"))).transpose()?.unwrap_or(0.0);
+            let rank = match object.get("rank") {
+                None | Some(Value::Null) => None,
+                Some(value) => Some(value.as_i64().ok_or_else(|| file.error(&format!("{at}.rank"), "expected a signed 64-bit integer or null"))?),
+            };
+            let wsc = match object.get("wsc") {
+                None | Some(Value::Null) => None,
+                Some(value) => {
+                    let values = file.array(value, &format!("{at}.wsc"))?;
+                    if values.len() != 2 { return Err(file.error(&format!("{at}.wsc"), "expected [stat name, percentage]")); }
+                    let stat_at = format!("{at}.wsc[0]");
+                    let stat = file.stat(file.string(&values[0], &stat_at)?, &stat_at)?;
+                    Some(WscContribution { stat, percent: file.number(&values[1], &format!("{at}.wsc[1]"))? })
+                }
+            };
+            let stats_at = format!("{at}.stats");
+            let source_stats = file.object(file.required(object, "stats", &at)?, &stats_at)?;
+            let mut stats = Vec::with_capacity(source_stats.len());
+            for (name, value) in source_stats {
+                let stat_at = field_path(&stats_at, name);
+                let stat = Stat::from_name(name)
+                    .filter(|stat| membership == 0 || stat.gear_allowed())
+                    .ok_or_else(|| file.error(&stat_at, format!("unsupported gear stat {name:?}")))?;
+                stats.push(file.contribution(stat, value, &stat_at)?);
+            }
+            let origin = GearOrigin { path: Arc::clone(&origin_path), index, label_field: name2_field };
+            if name2.as_ref() == "Empty" {
+                if let Some((_, first)) = &empty {
+                    return Err(file.error(&format!("{at}.{name2_field}"), format!("duplicate Empty gear piece; first declared at {}", first.label_location())));
+                }
+                empty = Some((id, origin.clone()));
+            }
+            if membership != 0 {
+                match selectable_labels.entry(Arc::clone(&name2)) {
+                    Entry::Vacant(entry) => { entry.insert(origin); }
+                    Entry::Occupied(entry) => {
+                        return Err(file.error(&format!("{at}.{name2_field}"), format!("duplicate selectable name2 {name2:?}; first declared at {}", entry.get().label_location())));
+                    }
+                }
+            }
+            if membership & (FOOD_SLOT - 1) != 0 {
+                name2_ids.insert(Arc::clone(&name2), id);
+                for &slot in Slot::ALL {
+                    if membership & (1 << slot.index()) != 0 { slots[slot.index()].push(id); }
+                }
+            }
+            if membership & FOOD_SLOT != 0 {
+                match food_origins.entry(Arc::clone(&name)) {
+                    Entry::Vacant(entry) => {
+                        entry.insert(GearOrigin { path: Arc::clone(&origin_path), index, label_field: "name" });
+                    }
+                    Entry::Occupied(entry) => {
+                        return Err(file.error(&format!("{at}.name"), format!("ambiguous food name {name:?}; first declared at {}", entry.get().label_location())));
+                    }
+                }
+                food_names.insert(Arc::clone(&name), id);
+                foods.push(id);
+            }
+            pieces.push(GearPiece { id, name, name2, jobs, job_mask, kind, skill_type, dmg, delay, rank, wsc, stats: stats.into_boxed_slice() });
+        }
+    }
+    let empty = empty.map(|(id, _)| id)
+        .ok_or_else(|| CalcError::data(&fragments[0], "$.pieces", "missing Empty gear piece"))?;
+    for candidates in &mut slots {
+        candidates.sort_unstable_by(|left, right| pieces[left.index()].name2.cmp(&pieces[right.index()].name2));
+    }
+    foods.sort_unstable_by(|left, right| pieces[left.index()].name2.cmp(&pieces[right.index()].name2));
+    Ok(GearResources {
+        pieces: pieces.into_boxed_slice(),
+        slots: slots.map(Vec::into_boxed_slice),
+        foods: foods.into_boxed_slice(),
+        name2_ids,
+        food_names,
+        empty,
+    })
 }
 
 struct EnemyResources {
@@ -454,7 +601,7 @@ struct EnemyResources {
 
 fn load_enemies(path: &Path) -> Result<EnemyResources, CalcError> {
     let file = DataFile::open(path)?;
-    let root = file.root(&["schema_version", "enemies"])?;
+    let root = file.root(&["schema_version", "enemies"], 1)?;
     let source = file.array(file.required(root, "enemies", "$")?, "$.enemies")?;
     let mut records = Vec::with_capacity(source.len());
     for (index, value) in source.iter().enumerate() {
@@ -490,7 +637,7 @@ fn load_enemies(path: &Path) -> Result<EnemyResources, CalcError> {
 
 fn load_buffs(path: &Path) -> Result<BuffCatalog, CalcError> {
     let file = DataFile::open(path)?;
-    let root = file.root(&["schema_version", "cor", "brd", "geo", "whm", "brd_song_limits", "cor_debuffs", "geo_debuffs", "whm_debuffs", "misc_debuffs"])?;
+    let root = file.root(&["schema_version", "cor", "brd", "geo", "whm", "brd_song_limits", "cor_debuffs", "geo_debuffs", "whm_debuffs", "misc_debuffs"], 1)?;
     let mut tables = Vec::with_capacity(BuffTableKind::ALL.len());
     for kind in BuffTableKind::ALL {
         let at = field_path("$", kind.name());
@@ -580,7 +727,7 @@ struct AttachmentResources {
 
 fn load_attachments(path: &Path) -> Result<AttachmentResources, CalcError> {
     let mut file = DataFile::open(path)?;
-    let root = file.root(&["schema_version", "attachments"])?;
+    let root = file.root(&["schema_version", "attachments"], 1)?;
     let source = file.array(file.required(root, "attachments", "$")?, "$.attachments")?;
     let mut names = HashMap::with_capacity(source.len());
     for (index, value) in source.iter().enumerate() {

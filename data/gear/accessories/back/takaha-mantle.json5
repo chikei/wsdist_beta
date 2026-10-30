@@ -1,0 +1,21 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Takaha Mantle",
+      jobs: [
+        "sam",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 15,
+        Attack: 15,
+        STR: 5,
+        "Store TP": 13,
+        Zanshin: 5,
+      },
+    },
+  ],
+}

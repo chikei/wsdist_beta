@@ -58,16 +58,22 @@ fn every_frozen_player_build_preserves_sparse_stages_and_legacy_errors() {
         }
         for ml in [-1, 51] { assert!(job_ml_sub.contains(&(job, ml, None)), "missing {job:?}/ML clamp {ml}"); }
     }
-    for piece in catalog.pieces() {
-        if catalog.foods().contains(&piece.id) {
-            assert!(foods.contains(&u64::from(piece.original_id)), "missing food {}", piece.name2);
+    let frozen = document_json(&fixtures.join("catalog.json"));
+    let gear = &frozen["documents"]["gear.json"];
+    let pieces = gear["pieces"].as_array().unwrap();
+    assert_eq!(pieces.len(), catalog.pieces().len(), "all captured declarations, including equal duplicates");
+    assert_eq!(resolve_piece_occurrences(&catalog, pieces, "player.coverage").len(), catalog.pieces().len());
+    for piece in pieces {
+        let captured_id = piece["id"].as_u64().unwrap();
+        if gear["foods"].as_array().unwrap().contains(&piece["id"]) {
+            assert!(foods.contains(&captured_id), "missing captured food {}", piece["name2"]);
         } else {
-            assert!(catalog_occurrences.iter().any(|(id, _)| *id == u64::from(piece.original_id)), "missing declared/listed/generated piece {}", piece.name2);
+            assert!(catalog_occurrences.iter().any(|(id, _)| *id == captured_id), "missing captured declared/listed/generated piece {}", piece["name2"]);
         }
     }
     for slot in wsdist_core::Slot::ALL {
-        for &id in catalog.slot(*slot) {
-            assert!(catalog_occurrences.contains(&(u64::from(catalog.piece(id).original_id), slot.name().to_owned())), "missing listed occurrence {}/{}", slot.name(), catalog.piece(id).name2);
+        for captured_id in gear["slots"][slot.name()].as_array().unwrap() {
+            assert!(catalog_occurrences.contains(&(captured_id.as_u64().unwrap(), slot.name().to_owned())), "missing captured listed occurrence {}/{captured_id}", slot.name());
         }
     }
     assert_eq!(catalog.pieces().iter().map(|piece| piece.skill_type).collect::<Vec<_>>(), immutable_skills, "Arc catalog is immutable");
@@ -170,27 +176,27 @@ fn all_23_profiles_build_their_actual_captured_effective_inputs_without_qt() {
 #[test]
 fn h2h_changes_full_value_equality_only_for_the_original_sub_identity() {
     let temporary = tempfile::tempdir().unwrap();
-    std::fs::create_dir(temporary.path().join("data")).unwrap();
-    for name in ["data/gear.json", "data/enemies.json", "data/buffs.json", "data/pup-attachments.json", "item_list.csv"] {
-        std::fs::copy(resource_root().join(name), temporary.path().join(name)).unwrap();
-    }
-    let path = temporary.path().join("data/gear.json");
-    let mut gear = document_json(&path);
-    let empty_id = gear["symbols"]["Empty"].as_u64().unwrap();
-    let new_id = gear["pieces"].as_array().unwrap().iter().map(|piece| piece["id"].as_u64().unwrap()).max().unwrap() + 1;
-    let mut distinct_empty = gear["pieces"].as_array().unwrap().iter().find(|piece| piece["id"].as_u64().unwrap() == empty_id).unwrap().clone();
-    distinct_empty["id"] = Value::from(new_id);
-    gear["pieces"].as_array_mut().unwrap().push(distinct_empty);
-    gear["symbols"]["DistinctEmptyIdentity"] = Value::from(new_id);
-    std::fs::write(&path, serde_json::to_vec(&gear).unwrap()).unwrap();
+    copy_resources(temporary.path());
+    let captured = document_json(&core_fixtures().join("catalog.json"));
+    let mut record = captured["documents"]["gear.json"]["pieces"].as_array().unwrap()
+        .iter().find(|piece| piece["name2"] == "Empty").unwrap().clone();
+    record.as_object_mut().unwrap().shift_remove("id");
+    record["name"] = Value::from("Identity Equality");
+    record["name2"] = Value::from("Identity Equality");
+    record["slots"] = Value::Array(Vec::new());
+    let fragment = serde_json::json!({"schema_version": 2, "pieces": [record.clone(), record]});
+    // JSON is a JSON5 subset and preserves float literals such as 1.0 and -0.0.
+    std::fs::write(temporary.path().join("data/gear/identity-equality.json5"), serde_json::to_vec(&fragment).unwrap()).unwrap();
     let catalog = Arc::new(Catalog::load(temporary.path()).unwrap());
-    let duplicate = catalog.by_symbol("DistinctEmptyIdentity").unwrap();
+    let identities = catalog.pieces().iter().filter(|piece| piece.name2.as_ref() == "Identity Equality").collect::<Vec<_>>();
+    assert_eq!(identities.len(), 2);
     let mut ctx = EvaluationContext::new(catalog.clone(), RejectRandom);
-    let original = catalog.piece(catalog.empty);
-    let separate = catalog.piece(duplicate);
+    let original = identities[0];
+    let separate = identities[1];
     assert!(original.value_equal(separate, &ctx.state));
     let sequence = wsdist_fixtures::read_value(&core_fixtures().join("players/005942.bitcode.zst"), None).unwrap();
-    let input = parse_input(&sequence["input"]["players"][0], &catalog, &ctx.state, "identity-equality.h2h");
+    let mut input = parse_input(&sequence["input"]["players"][0], &catalog, &ctx.state, "identity-equality.h2h");
+    input.gearset[wsdist_core::Slot::Sub.index()] = original.id;
     let mut player = Player::new([catalog.empty; 16]);
     build_player(&input, &mut ctx, &mut player).unwrap();
     assert_eq!(ctx.state.skill(original), wsdist_core::SkillType::HandToHand);

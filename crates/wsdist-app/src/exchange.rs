@@ -528,7 +528,7 @@ impl fmt::Display for ReloadReport {
 }
 
 /// Parse the complete resource set before touching session state. All name2
-/// resolutions use the new catalog's index, including its last-value-wins rule.
+/// resolutions use the new catalog's unique selectable-name index.
 /// Candidate occurrences keep their order and duplicates. The controller may
 /// rebuild models after this commit, but must not load a profile as part of it.
 pub fn reload_data(

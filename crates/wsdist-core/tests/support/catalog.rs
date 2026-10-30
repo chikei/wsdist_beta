@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use serde_json::{Value, json};
@@ -44,41 +44,59 @@ fn buff(actual: BuffValue, expected: &FixtureValue, path: &str) {
     }
 }
 
-pub fn verify(root: &Path, catalog: &Catalog, manifest: &FixtureValue) -> Value {
+pub fn verify(root: &Path, catalog: &Catalog, manifest: &FixtureValue, frozen: &FixtureValue) -> Value {
     let mut hashes = serde_json::Map::new();
     for (name, expected) in manifest["catalog_hashes"].as_object().unwrap() {
-        let hash = hash_file(&root.join("data").join(name));
-        assert_eq!(&hash, expected.as_str().unwrap(), "data/{name}: immutable exported catalog");
-        hashes.insert(format!("data/{name}"), json!(hash));
+        if name == "gear.json" { continue; }
+        let name = Path::new(name).with_extension("json5");
+        let source = player_support::document_catalog(&root.join("data").join(&name));
+        // Reconstruct the frozen export's ordered JSON, including numeric kinds.
+        // JSON5 comments, key quoting and trailing commas are not catalog changes.
+        let mut exported_json = serde_json::to_vec_pretty(&source).unwrap();
+        exported_json.push(b'\n');
+        let hash = format!("{:x}", Sha256::digest(&exported_json));
+        assert_eq!(&hash, expected.as_str().unwrap(), "data/{}: immutable exported catalog values/order", name.display());
+        hashes.insert(format!("data/{}", name.display()), json!(hash));
     }
-    let gear = player_support::document_json(&root.join("data/gear.json"));
+    // The frozen export is value evidence, not an authored-ID or source-layout
+    // contract. Match the full record multiset, including dormant duplicates.
+    let gear = &frozen["documents"]["gear.json"];
     let pieces = gear["pieces"].as_array().unwrap();
-    assert_eq!(pieces.len(), catalog.pieces().len(), "every exported original gear identity");
-    for (index, (actual, expected)) in catalog.pieces().iter().zip(pieces).enumerate() {
-        assert_eq!(actual.id.index(), index, "catalog index/order");
-        player_support::assert_piece(actual, None, expected, &format!("catalog.pieces[{index}]"));
-        assert_eq!(catalog.by_original_id(actual.original_id), Some(actual.id), "original identity lookup");
+    assert_eq!(pieces.len(), catalog.pieces().len(), "all captured gear records, including duplicate declarations");
+    let resolved = player_support::resolve_piece_occurrences(catalog, pieces, "catalog.gear");
+    let mut stat_literals = 0;
+    for (index, (&id, expected)) in resolved.iter().zip(pieces).enumerate() {
+        player_support::assert_piece(catalog.piece(id), None, expected, &format!("catalog.gear[{index}]"));
+        stat_literals += catalog.piece(id).stats.len();
     }
-    let mut names = HashMap::new();
+    let captured_membership = |values: &FixtureValue| {
+        values.as_array().unwrap().iter().map(|captured| {
+            // This relation exists entirely inside the immutable captured
+            // document; production lookup uses the already matched snapshot.
+            let index = pieces.iter().position(|piece| piece["id"] == *captured).unwrap();
+            resolved[index]
+        }).collect::<Vec<_>>()
+    };
     let mut memberships = 0;
+    let mut listed = HashSet::new();
     for &slot in Slot::ALL {
-        let expected = gear["slots"][slot.name()].as_array().unwrap().iter().map(|id| id.as_u64().unwrap() as u32).collect::<Vec<_>>();
-        let actual = catalog.slot(slot).iter().map(|id| catalog.piece(*id).original_id).collect::<Vec<_>>();
-        assert_eq!(actual, expected, "catalog.{}: ordered repeated membership", slot.name());
+        let mut expected = captured_membership(&gear["slots"][slot.name()]);
+        let mut actual = catalog.slot(slot).to_vec();
+        expected.sort_by_key(|id| id.index());
+        actual.sort_by_key(|id| id.index());
+        assert_eq!(actual, expected, "catalog.{}: captured membership without incidental source order", slot.name());
         memberships += actual.len();
-        for &id in catalog.slot(slot) { names.insert(catalog.piece(id).name2.as_ref(), id); }
+        listed.extend(actual);
     }
-    for piece in catalog.pieces() { assert_eq!(catalog.by_name2(&piece.name2), names.get(piece.name2.as_ref()).copied(), "{}: last-value-wins name2 index", piece.name2); }
-    assert_eq!(catalog.symbols().len(), gear["symbols"].as_object().unwrap().len());
-    for (actual, (name, expected)) in catalog.symbols().iter().zip(gear["symbols"].as_object().unwrap()) {
-        assert_eq!(actual.name.as_ref(), name);
-        assert_eq!(catalog.piece(actual.id).original_id as u64, expected.as_u64().unwrap());
-        assert_eq!(catalog.by_symbol(name), Some(actual.id));
-    }
-    assert_eq!(catalog.foods().iter().map(|id| catalog.piece(*id).original_id as u64).collect::<Vec<_>>(),
-        gear["foods"].as_array().unwrap().iter().map(|id| id.as_u64().unwrap()).collect::<Vec<_>>(), "food identity/order/repeats");
+    let mut expected_foods = captured_membership(&gear["foods"]);
+    let mut actual_foods = catalog.foods().to_vec();
+    expected_foods.sort_by_key(|id| id.index());
+    actual_foods.sort_by_key(|id| id.index());
+    assert_eq!(actual_foods, expected_foods, "captured food membership");
+    listed.extend(actual_foods);
+    let declarations = catalog.pieces().len() - listed.len();
 
-    let enemies = player_support::document_json(&root.join("data/enemies.json"));
+    let enemies = player_support::document_catalog(&root.join("data/enemies.json5"));
     let records = enemies["enemies"].as_array().unwrap();
     assert_eq!(catalog.enemies().len(), records.len());
     for (index, (actual, expected)) in catalog.enemies().iter().zip(records).enumerate() {
@@ -95,7 +113,7 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &FixtureValue) -> Value 
     }
     assert_eq!(to_value(catalog.enemy_menu().iter().map(|id| catalog.enemy(*id).name.as_ref()).collect::<Vec<_>>()).unwrap(), manifest["export"]["enemy_menu"], "stable descending level/name menu");
 
-    let buffs = player_support::document_json(&root.join("data/buffs.json"));
+    let buffs = player_support::document_catalog(&root.join("data/buffs.json5"));
     let mut buff_rows = 0;
     for kind in BuffTableKind::ALL {
         let table = catalog.buffs().table(kind);
@@ -123,7 +141,7 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &FixtureValue) -> Value 
         assert_eq!(catalog.buffs().table(BuffTableKind::Brd).entries()[actual.song_index].name.as_ref(), name);
         exact(actual.cap, expected, &format!("catalog.song_limits.{name}"));
     }
-    let attachments = player_support::document_json(&root.join("data/pup-attachments.json"));
+    let attachments = player_support::document_catalog(&root.join("data/pup-attachments.json5"));
     let records = attachments["attachments"].as_array().unwrap();
     assert_eq!(catalog.attachments().len(), records.len());
     for (index, (actual, expected)) in catalog.attachments().iter().zip(records).enumerate() {
@@ -148,7 +166,10 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &FixtureValue) -> Value 
         assert_eq!(hash_file(&root.join(name)), expected.as_str().unwrap(), "asset {name}");
         assets += 1;
     }
-    json!({"hashes": hashes, "pieces": pieces.len(), "slot_memberships": memberships,
-        "foods": catalog.foods().len(), "symbols": catalog.symbols().len(), "enemies": catalog.enemies().len(),
-        "buff_rows": buff_rows, "attachments": catalog.attachments().len(), "csv_rows": csv_rows.len(), "asset_hashes_checked": assets})
+    json!({"canonical_json_sha256": hashes, "pieces": pieces.len(), "slot_memberships": memberships,
+        "foods": catalog.foods().len(), "gear_values": {"record_snapshots_checked": pieces.len(),
+            "ordered_stat_literals_checked": stat_literals, "declaration_only_records_checked": declarations,
+            "identity_contract": "complete captured snapshot multiset and selectable membership; no legacy-ID, file-layout or record-order assertion"},
+        "enemies": catalog.enemies().len(), "buff_rows": buff_rows,
+        "attachments": catalog.attachments().len(), "csv_rows": csv_rows.len(), "asset_hashes_checked": assets})
 }

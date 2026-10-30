@@ -12,12 +12,15 @@ use wsdist_app::exchange::{
     parse_inventory, reload_data, select_bulk, select_inventory,
 };
 use wsdist_app::{AppPaths, ResourceError};
-use wsdist_core::model::{CandidatePools, ModelState, PieceKind};
+use wsdist_app::state::UiState;
+use wsdist_core::model::{CandidatePools, ModelState, PieceKind, Player};
+use wsdist_core::rng::RandomSources;
 use wsdist_core::{CalcError, Catalog, GearId, Job, SkillType, Slot, Stat};
 
-const REQUIRED_FILES: [&str; 5] = [
-    "data/gear.json", "data/enemies.json", "data/buffs.json",
-    "data/pup-attachments.json", "item_list.csv",
+mod resource_support;
+
+const REQUIRED_FILES: [&str; 4] = [
+    "data/enemies.json5", "data/buffs.json5", "data/pup-attachments.json5", "item_list.csv",
 ];
 const SLOT_NAMES: [&str; 16] = [
     "main", "sub", "ranged", "ammo", "head", "neck", "ear1", "ear2",
@@ -37,17 +40,20 @@ fn resource_directory() -> (TempDir, AppPaths) {
     for relative in REQUIRED_FILES {
         fs::copy(repository().join(relative), directory.path().join(relative)).unwrap();
     }
+    resource_support::copy_gear(&repository().join("data/gear"), &directory.path().join("data/gear")).unwrap();
     let paths = AppPaths::from_parts(
         Some(directory.path().as_os_str()), Path::new("unused"), Path::new("unused"),
     ).unwrap();
     (directory, paths)
 }
 
-fn load_json(path: &Path) -> JsonValue {
-    wsdist_fixtures::read_json(path).unwrap()
+fn load_catalog(path: &Path) -> JsonValue {
+    json5::from_str(&fs::read_to_string(path).unwrap()).unwrap()
 }
 
-fn save_json(path: &Path, value: &JsonValue) {
+fn save_catalog(path: &Path, value: &JsonValue) {
+    // JSON is a JSON5 subset and preserves float literals such as 1.0 and -0.0.
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
 }
 
@@ -79,17 +85,18 @@ fn named_pools(catalog: &Catalog, selected: &CandidatePools) -> Value {
     Value::Object(result)
 }
 
-fn add_piece(document: &mut JsonValue, name: &str, name2: &str, slot: Slot) -> u32 {
-    let id = document["pieces"].as_array().unwrap().iter()
-        .map(|piece| piece["id"].as_u64().unwrap()).max().unwrap() as u32 + 1;
-    let mut record = document["pieces"].as_array().unwrap().iter()
-        .find(|piece| piece["name2"] == "Empty").unwrap().clone();
-    record["id"] = json!(id);
-    record["name"] = json!(name);
-    record["name2"] = json!(name2);
-    document["pieces"].as_array_mut().unwrap().push(record);
-    document["slots"][slot.name()].as_array_mut().unwrap().push(json!(id));
-    id
+fn new_gear_fragment() -> JsonValue {
+    json!({"schema_version": 2, "pieces": []})
+}
+
+fn add_piece(document: &mut JsonValue, name: &str, name2: &str, slot: Slot) {
+    document["pieces"].as_array_mut().unwrap().push(json!({
+        "name": name,
+        "name2": name2,
+        "jobs": Job::ALL.iter().map(|job| job.name()).collect::<Vec<_>>(),
+        "slots": [slot.name()],
+        "stats": {},
+    }));
 }
 
 fn append_aliases(path: &Path, aliases: &[(&str, &str, &str)]) {
@@ -113,13 +120,13 @@ fn lua_with_names(names: [&str; 16]) -> String {
 #[test]
 fn exports_distinct_actual_sets_using_base_names_first_aliases_and_lua_escaping() {
     let (_directory, paths) = resource_directory();
-    let mut gear = load_json(&paths.data.join("gear.json"));
+    let mut gear = new_gear_fragment();
     add_piece(&mut gear, "exchange quick", "Quick augmented DA+10", Slot::Main);
     add_piece(&mut gear, "exchange tp", "TP augmented Store TP+10", Slot::Main);
     add_piece(&mut gear, "exchange ws", "WS augmented WSD+10", Slot::Main);
     add_piece(&mut gear, "exchange quoted", "Quoted augment", Slot::Sub);
     add_piece(&mut gear, "odd\"blade\\PATH", "Fallback augment", Slot::Neck);
-    save_json(&paths.data.join("gear.json"), &gear);
+    save_catalog(&paths.data.join("gear/custom/exchange.json5"), &gear);
     append_aliases(&paths.item_list, &[
         ("900001", "EXCHANGE QUICK", "FIRST QUICK"),
         ("900002", "exchange quick", "wrong quick"),
@@ -151,7 +158,7 @@ fn exports_distinct_actual_sets_using_base_names_first_aliases_and_lua_escaping(
 #[test]
 fn inventory_uses_first_abbreviated_alias_and_all_visible_base_name_variants() {
     let (_directory, paths) = resource_directory();
-    let mut gear = load_json(&paths.data.join("gear.json"));
+    let mut gear = new_gear_fragment();
     for (name, name2) in [
         ("Inventory Blade", "Inventory Blade R15A"),
         ("Inventory Blade +1", "Inventory Blade +1 R15A"),
@@ -159,7 +166,7 @@ fn inventory_uses_first_abbreviated_alias_and_all_visible_base_name_variants() {
     ] {
         add_piece(&mut gear, name, name2, Slot::Main);
     }
-    save_json(&paths.data.join("gear.json"), &gear);
+    save_catalog(&paths.data.join("gear/custom/exchange.json5"), &gear);
     append_aliases(&paths.item_list, &[
         ("900011", "Inventory Blade", "inv. blade"),
         ("900012", "Other Blade", "INV. BLADE"),
@@ -317,15 +324,6 @@ fn cancelled_and_unreadable_imports_retain_hidden_checks_but_completed_empty_imp
     }
 }
 
-fn remove_piece(document: &mut JsonValue, original_id: u32) {
-    let is_removed = |value: &JsonValue| value.as_u64() == Some(u64::from(original_id));
-    document["pieces"].as_array_mut().unwrap().retain(|piece| !is_removed(&piece["id"]));
-    document["symbols"].as_object_mut().unwrap().retain(|_, value| !is_removed(value));
-    for slot in document["slots"].as_object_mut().unwrap().values_mut() {
-        slot.as_array_mut().unwrap().retain(|id| !is_removed(id));
-    }
-    document["foods"].as_array_mut().unwrap().retain(|id| !is_removed(id));
-}
 
 #[test]
 fn reload_remaps_all_sets_preserves_candidate_duplicates_and_resets_identity_overrides() {
@@ -350,19 +348,23 @@ fn reload_remaps_all_sets_preserves_candidate_duplicates_and_resets_identity_ove
     model.set_skill(surviving_weapon, SkillType::Dagger);
     let generation = model.generation();
 
-    let mut gear = load_json(&paths.data.join("gear.json"));
-    remove_piece(&mut gear, catalog.piece(removed_weapon).original_id);
-    remove_piece(&mut gear, catalog.piece(removed_head).original_id);
-    gear["pieces"].as_array_mut().unwrap().reverse();
-    let surviving_record = gear["pieces"].as_array_mut().unwrap().iter_mut()
-        .find(|piece| piece["id"].as_u64() == Some(u64::from(catalog.piece(surviving_weapon).original_id))).unwrap();
-    surviving_record["stats"]["Attack"] = json!(999);
-    save_json(&paths.data.join("gear.json"), &gear);
-    let mut enemies = load_json(&paths.data.join("enemies.json"));
+    for fragment in resource_support::gear_fragments(&paths.data.join("gear")).unwrap() {
+        let mut gear = load_catalog(&fragment);
+        let records = gear["pieces"].as_array_mut().unwrap();
+        records.retain(|record| !matches!(resource_support::record_name2(record),
+            Some("Heishi Shorinken R15" | "Malignance Chapeau")));
+        records.reverse();
+        if let Some(record) = records.iter_mut().find(|record|
+            resource_support::record_name2(record) == Some("Naegling")) {
+            record["stats"]["Attack"] = json!(999);
+        }
+        save_catalog(&fragment, &gear);
+    }
+    let mut enemies = load_catalog(&paths.data.join("enemies.json5"));
     let toad = enemies["enemies"].as_array_mut().unwrap().iter_mut()
         .find(|enemy| enemy["Name"] == "Apex Toad").unwrap();
     toad["Defense"] = json!(2345);
-    save_json(&paths.data.join("enemies.json"), &enemies);
+    save_catalog(&paths.data.join("enemies.json5"), &enemies);
     append_aliases(&paths.item_list, &[("900020", "Reload test alias", "reload abbreviation")]);
 
     let report = reload_data(&paths, &mut catalog, &mut sets, &mut candidates, &mut model).unwrap();
@@ -385,7 +387,6 @@ fn reload_remaps_all_sets_preserves_candidate_duplicates_and_resets_identity_ove
     }
     assert_eq!(candidates[0], vec![piece(&catalog, "Naegling"), piece(&catalog, "Naegling"), piece(&catalog, "Daybreak")]);
     assert_eq!(candidates[Slot::Head.index()], vec![catalog.empty]);
-    assert_ne!(piece(&catalog, "Naegling"), surviving_weapon);
     assert_eq!(catalog.piece(piece(&catalog, "Naegling")).stat(Stat::from_name("Attack").unwrap()), 999.0);
     assert_eq!(catalog.alias_by_abbreviation("reload abbreviation").unwrap().id.as_ref(), "900020");
     assert_eq!(catalog.enemy(catalog.enemy_by_name("Apex Toad").unwrap())
@@ -413,14 +414,15 @@ fn any_invalid_required_resource_retains_every_reload_argument_and_reports_its_p
     let mut model = ModelState::new(catalog.pieces().len());
     model.set_skill(catalog.empty, SkillType::HandToHand);
     let generation = model.generation();
-    for relative in REQUIRED_FILES {
-        let file = paths.root.join(relative);
+    let (fragment, _) = resource_support::piece_fragment(&paths.data.join("gear"), "Empty").unwrap();
+    let files = REQUIRED_FILES.map(|relative| paths.root.join(relative)).into_iter().chain([fragment]);
+    for file in files {
         let original = fs::read(&file).unwrap();
-        fs::write(&file, if relative.ends_with(".csv") { "not;a;catalog\n" } else { "{" }).unwrap();
+        fs::write(&file, if file.extension().is_some_and(|extension| extension == "csv") { "not;a;catalog\n" } else { "{" }).unwrap();
         match reload_data(&paths, &mut catalog, &mut sets, &mut candidates, &mut model) {
             Err(ResourceError::Catalog(CalcError::Data { path, .. })) => assert_eq!(path, file),
             Err(error) => panic!("unexpected error {error}"),
-            Ok(_) => panic!("invalid {relative} was accepted"),
+            Ok(_) => panic!("invalid {} was accepted", file.display()),
         }
         assert!(Arc::ptr_eq(&catalog, &old));
         assert_eq!(sets, before_sets);
@@ -431,12 +433,120 @@ fn any_invalid_required_resource_retains_every_reload_argument_and_reports_its_p
     }
 }
 
+#[test]
+fn nested_custom_fragments_reload_atomically_and_remap_ui_selections_by_name() {
+    let (_directory, paths) = resource_directory();
+    let mut state = UiState::new(Arc::clone(&CATALOG), RandomSources::from_seed(11), None);
+    let mut head = new_gear_fragment();
+    add_piece(&mut head, "Reload custom head", "Reload custom head", Slot::Head);
+    let head_file = paths.data.join("gear/custom/nested/head.json5");
+    save_catalog(&head_file, &head);
+    let mut waist = new_gear_fragment();
+    add_piece(&mut waist, "Reload temporary waist", "Reload temporary waist", Slot::Waist);
+    let waist_file = paths.data.join("gear/custom/temporary.json5");
+    save_catalog(&waist_file, &waist);
+
+    let report = state.reload_data(&paths).unwrap();
+    assert!(report.removed_equipped.is_empty());
+    assert!(report.removed_candidates.is_empty());
+    let head = piece(&state.engine.catalog, "Reload custom head");
+    let waist = piece(&state.engine.catalog, "Reload temporary waist");
+    assert!(state.gear.radios[0][Slot::Head.index()].items.is_visible(head));
+    assert!(state.gear.candidates[Slot::Head.index()].items.is_visible(head));
+    for source in GearSource::ALL {
+        state.select_gear(source, Slot::Head, head).unwrap();
+    }
+    state.select_gear(GearSource::Ws, Slot::Waist, waist).unwrap();
+    state.gear.candidates[Slot::Head.index()].set_checked(head, true);
+    state.gear.candidates[Slot::Waist.index()].set_checked(waist, true);
+    state.gear.visible_slots = [Slot::Head, Slot::Waist, Slot::Feet];
+    state.gear.optimizer_slot = Slot::Head;
+    state.active_tab = 3;
+    state.damage_limit = true;
+    state.verbose_swaps = true;
+    state.set_raw("defaults_tp_entry", &json!("1777")).unwrap();
+    state.engine.state.set_skill(state.engine.catalog.empty, SkillType::HandToHand);
+    state.last_player = Some(Player::new(state.gear.equipped[0]));
+
+    let old_catalog = Arc::clone(&state.engine.catalog);
+    let before_profile = state.effective_profile();
+    let before_sets = state.gear.equipped;
+    let before_candidates = state.gear.candidate_pools();
+    let before_radios: [[Option<GearId>; 16]; 3] = std::array::from_fn(|source|
+        std::array::from_fn(|slot| state.gear.radios[source][slot].selected));
+    let before_choices = state.controls.iter().map(|(&key, control)|
+        (key, control.choices.clone())).collect::<Vec<_>>();
+    let before_food = state.cached_food;
+    let food_name = before_food.map(|id| old_catalog.piece(id).name2.to_string());
+    let generation = state.engine.state.generation();
+    let session = (state.active_tab, state.gear.visible_slots, state.gear.optimizer_slot,
+        state.damage_limit, state.verbose_swaps, state.whm_selections.clone(),
+        state.sub_job_level, state.main_weapon_skill, state.ranged_weapon_skill);
+    let bad_file = paths.data.join("gear/custom/nested/broken.json5");
+    fs::write(&bad_file, "{broken").unwrap();
+    match state.reload_data(&paths) {
+        Err(ResourceError::Catalog(CalcError::Data { path, .. })) => assert_eq!(path, bad_file),
+        Err(error) => panic!("unexpected reload error {error}"),
+        Ok(_) => panic!("a malformed newly discovered fragment was accepted"),
+    }
+    assert!(Arc::ptr_eq(&state.engine.catalog, &old_catalog));
+    assert_eq!(state.effective_profile(), before_profile);
+    assert_eq!(state.gear.equipped, before_sets);
+    assert_eq!(state.gear.candidate_pools(), before_candidates);
+    for (source, radios) in before_radios.iter().enumerate() {
+        for (slot, selected) in radios.iter().enumerate() {
+            assert_eq!(state.gear.radios[source][slot].selected, *selected);
+        }
+    }
+    assert_eq!(state.controls.iter().map(|(&key, control)|
+        (key, control.choices.clone())).collect::<Vec<_>>(), before_choices);
+    assert_eq!(state.cached_food, before_food);
+    assert_eq!(state.last_player.as_ref().unwrap().gearset, before_sets[0]);
+    assert_eq!(state.engine.state.override_for(state.engine.catalog.empty), Some(SkillType::HandToHand));
+    assert_eq!(state.engine.state.generation(), generation);
+    assert_eq!((state.active_tab, state.gear.visible_slots, state.gear.optimizer_slot,
+        state.damage_limit, state.verbose_swaps, state.whm_selections.clone(),
+        state.sub_job_level, state.main_weapon_skill, state.ranged_weapon_skill), session);
+
+    fs::remove_file(bad_file).unwrap();
+    let moved_head = paths.data.join("gear/00-remapped/custom-head.json5");
+    fs::create_dir_all(moved_head.parent().unwrap()).unwrap();
+    fs::rename(head_file, moved_head).unwrap();
+    fs::remove_file(waist_file).unwrap();
+    let report = state.reload_data(&paths).unwrap();
+    assert!(!Arc::ptr_eq(&state.engine.catalog, &old_catalog));
+    assert_eq!(report.removed_equipped, vec![RemovedEquipped {
+        source: GearSource::Ws, slot: Slot::Waist, name2: "Reload temporary waist".to_owned(),
+    }]);
+    assert_eq!(report.removed_candidates, vec![RemovedCandidate {
+        slot: Slot::Waist, name2: "Reload temporary waist".to_owned(),
+    }]);
+    let head = piece(&state.engine.catalog, "Reload custom head");
+    for source in GearSource::ALL {
+        assert_eq!(state.gear.equipped[source.index()][Slot::Head.index()], head);
+        assert_eq!(state.gear.radios[source.index()][Slot::Head.index()].selected, Some(head));
+        assert!(state.gear.radios[source.index()][Slot::Head.index()].items.is_visible(head));
+    }
+    assert_eq!(state.gear.equipped[GearSource::Ws.index()][Slot::Waist.index()], state.engine.catalog.empty);
+    assert_eq!(state.gear.candidate_pools()[Slot::Head.index()], [head]);
+    assert!(state.gear.candidate_pools()[Slot::Waist.index()].is_empty());
+    assert!(state.engine.catalog.by_name2("Reload temporary waist").is_none());
+    assert_eq!(state.text("defaults_tp_entry"), "1777");
+    assert_eq!(state.cached_food.map(|id| state.engine.catalog.piece(id).name2.to_string()), food_name);
+    assert!(state.last_player.is_none());
+    assert_eq!(state.engine.state.override_for(state.engine.catalog.empty), None);
+    assert_ne!(state.engine.state.generation(), generation);
+    assert_eq!((state.active_tab, state.gear.visible_slots, state.gear.optimizer_slot,
+        state.damage_limit, state.verbose_swaps, state.whm_selections.clone(),
+        state.sub_job_level, state.main_weapon_skill, state.ranged_weapon_skill), session);
+}
+
 fn icon_catalog(paths: &AppPaths) -> Catalog {
-    let mut gear = load_json(&paths.data.join("gear.json"));
+    let mut gear = new_gear_fragment();
     add_piece(&mut gear, "Icon alias", "Icon alias augmented", Slot::Head);
     add_piece(&mut gear, "Shared icon alias", "Shared icon alias", Slot::Head);
     add_piece(&mut gear, "No icon alias", "No icon alias", Slot::Head);
-    save_json(&paths.data.join("gear.json"), &gear);
+    save_catalog(&paths.data.join("gear/custom/exchange.json5"), &gear);
     append_aliases(&paths.item_list, &[
         ("000100", "ICON ALIAS", "icon alias"),
         ("000101", "icon alias", "conflicting icon alias"),

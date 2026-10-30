@@ -201,7 +201,7 @@ Its non-generic `read_value` now keeps concrete bitcode/Zstandard decoding insid
 the optimized helper crate and returns the final ordered native fixture value.
 The fixture, codec, compression and hash packages are optimized alongside the
 test-only `rand_chacha` override. Core/app and parity/test code stays at opt-level
-zero. Explicit `read_json_value`/`read_json` readers handle metadata and resources;
+zero. Explicit `read_json_value`/`read_json` readers handle strict JSON metadata;
 binary payload readers never fall back to JSON or multipart storage.
 Typed conversion borrows native values rather than cloning or materializing
 `serde_json::Value`. Metadata is still fully validated before typed projection,
@@ -358,8 +358,9 @@ features. Codec upgrades that change the wire schema require a versioned migrati
 deserialize typed inputs by borrowing it; `to_value` constructs native observation
 trees directly. Neither path creates a JSON value tree or a JSON byte roundtrip.
 Abilities and recorded RNG tapes use typed streaming deserializers rather than
-hidden JSON intermediaries. Genuine application profile/control/resource APIs
-and produced reports remain JSON at their actual boundaries.
+hidden JSON intermediaries. Application profiles, control payloads and produced
+reports remain JSON; editable catalogs under `data/` use JSON5 at their file
+boundary.
 
 Before replacement, every original logical JSON stream passed both its active
 XXH3 and immutable original-index SHA-256 checks. Every staged compressed case
@@ -486,13 +487,121 @@ original contents before promotion.
 
 ## Coverage
 
+### Editable JSON5 catalogs
+
+`data/gear/**/*.json5` and the fixed `data/{enemies,buffs,pup-attachments}.json5`
+catalogs use `deser-json5 0.10.2` events to populate the existing ordered
+`serde_json::Value` directly, without a second lexer or intermediate value tree.
+The loader accepts comments, unquoted identifier keys, single-quoted strings
+and trailing commas; it does not fall back to the old `.json` names.
+
+Numeric handling retains signed zero, integer/float kinds and the finite-float
+fallback outside 64-bit integer ranges. Nonfinite JSON5 values are rejected even
+in nullable fields and arbitrary attachment metadata. Profiles, `defaults.json`,
+fixture metadata and reports remain JSON.
+
+Catalog-mutating test helpers retain JSON-subset serialization because it
+preserves integral floating literals and `-0.0`. The initial single-file JSON5
+conversion preserved original string/numeric tokens and order. Frozen manifests
+retain their original export hashes; non-gear catalogs still reconstruct ordered
+pretty JSON plus its final LF for `canonical_json_sha256` checks. Gear now compares
+materialized payload multiplicity, ordered literal contributions and selectable
+memberships against the existing frozen catalog, not source layout or legacy IDs.
+
+The Linux migration proof passed all **223 workspace tests** with
+`env -u SLINT_SCALE_FACTOR cargo test --locked --workspace --lib --bins --tests --quiet -- --test-threads=1`.
+A disposable native catalog probe loaded all four real resources, saved and
+reloaded a JSON5 stat edit, and preserved negative zero, wide integers and literal
+Unicode line/paragraph separators. It rejected nonfinite optional fields and
+trailing input with source-position diagnostics, and confirmed refusal of old
+filenames. Its source was removed after proof.
+The release numerical verifier passed **30,184 exercised cases**, one inert
+evidence case and zero failures, including all four frozen catalog hashes.
+
+The rebuilt Linux archive contains only `.json5` catalogs under `data/`. Its
+production GUI rendered at 760×900 and closed cleanly from an unrelated empty
+working directory with `WSDIST_DATA_DIR` unset; the screenshot was inspected.
+This was a 100% scale startup/render/close smoke, not a full UI-workflow or
+Windows run. Evidence: `target/json5-migration/numeric-smoke.json`,
+`target/json5-migration/numerical-report.json` and
+`target/json5-migration/archive-smoke/{report.json,window.json,gui.png}`.
+
+The migrated native UI smoke driver also built successfully with
+`cargo build --locked -p wsdist-app --example ui_smoke`.
+
+### Split ID-free gear fragments
+
+Gear uses schema version **2** under the authoritative resource root's
+`data/gear/`; the other three catalogs retain schema version **1**. Every fragment
+contains `schema_version` and `pieces`. Records require `name`, `jobs`, `slots`
+and `stats`; `name2` defaults to `name`, `type`/`skill_type` to `"None"`,
+`dmg`/`delay` to zero, and `rank`/`wsc` to null. Physical slot tags and `"food"`
+replace separate numeric membership tables. An empty slot list keeps a record
+declaration-only. Authored IDs, symbol aliases and the monolithic gear fallback
+were removed.
+
+Discovery collects regular exact-`.json5` files recursively without following
+symlinks, sorts normalized relative paths ordinally, and rejects case-only path
+collisions. Selectable variant-name and food-base-name conflicts report both
+origins rather than overriding earlier files. Runtime IDs are dense catalog-local
+indices; slot/food collections sort by variant name, independently of file
+placement. Profiles and reload continue to resolve equipment by variant name.
+Shared Empty remains a single required record. All fragments must load before
+the replacement catalog commits; this does not promise a concurrent filesystem
+snapshot.
+
+The split preserves **2,137 records** in **148 fragments**, including **95 named
+armor-set files**. `data/gear/sets/nyame.json5` contains all **80 Nyame records**
+across all five armor slots, ranks and paths, including its unlisted variants.
+Other named families likewise stay together rather than being duplicated among
+slot files. Weapon skills, loose armor, accessories and cape families use the
+remaining category files.
+
+The Linux workspace check passed **230 tests** with
+`env -u SLINT_SCALE_FACTOR SLINT_EMIT_DEBUG_INFO=1 cargo test --locked --workspace --all-targets -- --test-threads=1`.
+Frozen case payloads/indexes were not regenerated. Test-only replay resolves
+captured full snapshots and normalizes only recognized legacy gear-identity
+projections; candidate order, optimizer-local identities, RNG and numerical
+results remain strict. The release numerical verifier passed **30,184 exercised
+cases**, one inert evidence case and zero failures, including all **18 million**
+statistical samples.
+
+A disposable native Winit/software controller smoke compared every original
+payload, ordered stat literal and slot/food membership against the runtime
+catalog, and checked the complete Nyame file. It added and selected a nested
+custom fragment, observed a **DEX +7** edit in actual displayed Player Stats,
+moved the fragment to force generated-ID remapping without losing selection or
+stats, rejected malformed new data without changing the catalog/selection/session
+override, then repaired and removed the custom gear. Custom selection and edited
+Stats screenshots were inspected. Evidence:
+`target/gear-fragments/native/{report.json,01-custom-helm.png,02-edited-player-stats.png}`
+and `target/gear-fragments/numerical-report.json`.
+
+Linux packaging and the extracted production executable passed at 100% scale
+from an unrelated empty working directory with `WSDIST_DATA_DIR` unset; the
+native surface was inspected. The nested-directory archive regression was
+observed failing before its hygiene fix and passing afterward with valid gear
+beneath `data/gear/fixtures/migration/`. File/content bans outside that inert
+organization remain active. Evidence:
+`target/gear-fragments/archive-smoke/{report.json,window.json,gui.png}` and
+`target/gear-fragments/archive-regression-{before,after}/report.json`.
+
+All three Windows scripts parsed with `System.Management.Automation 7.6.9`.
+A disposable .NET probe compiled the actual shared C# metadata helper and
+exercised regular file/directory, symlink/junction, non-link reparse, and ordinal
+soft-hyphen filename boundaries. Evidence:
+`target/gear-fragments/windows-syntax-report.json`. Windows native metadata APIs,
+packaging and execution were not run. Disposable probe sources were removed;
+this proof does not claim a rerun of the complete native UI workflow.
+
 ### Catalog, model, kernels and actions
 
-Catalog checks compare complete materialized records, identity-based IDs,
-ordered/repeated slot/food membership, duplicate-name resolution, optional
-rank/WSC, literal numeric values, CSV aliases and asset hashes. The gear-stat
-allowlist applies to final slot/food members as in the original validator;
-declared-only records retain known internal identities without normalization.
+Catalog checks compare complete materialized gear payload multiplicity,
+selectable slot/food memberships, optional rank/WSC, ordered literal numeric
+values, CSV aliases and asset hashes. Recursive discovery, cross-fragment
+conflicts and transactional reload have behavior coverage. The gear-stat allowlist
+applies only to selectable slot/food members; declaration-only records retain
+known internal stats without normalization.
 
 Stat storage retains presence and insertion order across 294 known identities.
 Player cases cover ordered base/gear/buff/final construction, every captured
@@ -623,8 +732,9 @@ Saving atomically replaces same-directory JSON only after serialization,
 flush and sync; independent unknown keys and other jobs survive. String `"0"`
 retains Python truthiness; saved effective checkboxes are booleans. Corrupt
 external profiles block saving rather than being overwritten. Job activation
-re-reads the current profile file. Reload validates the complete JSON/CSV set
-before committing, remaps by name2, reports removals and resets H2H overrides.
+re-reads the current profile file. Reload validates the complete JSON5/CSV
+catalog set before committing, remaps by name2, reports removals and resets H2H
+overrides.
 Cancelled/unreadable imports retain candidates; completed empty/unrecognized
 imports clear them. Native clipboard ownership survives exports; all 16 typed
 base-name/CSV lines come from the actual Quicklook, TP or WS source.

@@ -11,6 +11,9 @@ rust-version = "1.92"
 wsdist-fixtures = { path = "crates/wsdist-fixtures" }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+json5 = "1.3.6"
+deser-core = { version = "=0.10.2", default-features = false, features = ["std"] }
+deser-json5 = { version = "=0.10.2", default-features = false, features = ["std", "speedups"] }
 bitcode = { version = "=0.6.9", default-features = false, features = ["serde", "std"] }
 zstd = { version = "=0.14.3", default-features = false }
 indexmap = { version = "=2.14.2", features = ["serde"] }

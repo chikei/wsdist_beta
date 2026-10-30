@@ -1,0 +1,260 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape CHR DA",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape CHR Weapon Skill Damage",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape DEX Crit Rate",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape DEX DA",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape DEX Dual Wield",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape DEX Store TP",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape INT DA",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape INT Store TP",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape INT Weapon Skill Damage",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape MND DA",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape MND Weapon Skill Damage",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape STR Crit Rate",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape STR DA",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Campestres's Cape",
+      name2: "Campestres's Cape STR Weapon Skill Damage",
+      jobs: [
+        "smn",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

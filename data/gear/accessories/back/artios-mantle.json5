@@ -1,0 +1,260 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle CHR DA",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle CHR Weapon Skill Damage",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle DEX Crit Rate",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle DEX DA",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle DEX Dual Wield",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle DEX Store TP",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle INT DA",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle INT Store TP",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle STR Crit Rate",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle STR DA",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle VIT DA",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Artio's Mantle",
+      name2: "Artio's Mantle VIT Weapon Skill Damage",
+      jobs: [
+        "bst",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

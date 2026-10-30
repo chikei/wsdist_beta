@@ -9,11 +9,12 @@ use wsdist_app::{
 };
 use wsdist_core::CalcError;
 
-const REQUIRED_FILES: [&str; 5] = [
-    "data/gear.json",
-    "data/enemies.json",
-    "data/buffs.json",
-    "data/pup-attachments.json",
+mod resource_support;
+
+const REQUIRED_FILES: [&str; 4] = [
+    "data/enemies.json5",
+    "data/buffs.json5",
+    "data/pup-attachments.json5",
     "item_list.csv",
 ];
 
@@ -23,6 +24,7 @@ fn populate_resources(root: &Path) {
     for relative in REQUIRED_FILES {
         fs::copy(source.join(relative), root.join(relative)).unwrap();
     }
+    resource_support::copy_gear(&source.join("data/gear"), &root.join("data/gear")).unwrap();
 }
 
 fn executable_at(root: &Path) -> PathBuf {
@@ -80,7 +82,7 @@ fn relative_override_is_resolved_against_the_supplied_working_directory() {
     .unwrap();
     let root = launch_directory.path().join("portable archive");
     assert_eq!(paths.root, root);
-    assert_data_error(load_resources_at(paths), &root.join("data/gear.json"));
+    assert_data_error(load_resources_at(paths), &root.join("data/gear"));
 }
 
 #[test]
@@ -97,7 +99,7 @@ fn invalid_selected_roots_never_fall_back_to_other_valid_roots() {
     .unwrap();
     assert_data_error(
         load_resources_at(executable_root),
-        &missing.path().join("data/gear.json"),
+        &missing.path().join("data/gear"),
     );
 
     let override_root = AppPaths::from_parts(
@@ -108,8 +110,25 @@ fn invalid_selected_roots_never_fall_back_to_other_valid_roots() {
     .unwrap();
     assert_data_error(
         load_resources_at(override_root),
-        &missing.path().join("data/gear.json"),
+        &missing.path().join("data/gear"),
     );
+}
+
+#[test]
+fn legacy_monolith_never_replaces_the_required_gear_fragment_directory() {
+    let archive = TempDir::new().unwrap();
+    populate_resources(archive.path());
+    let gear = archive.path().join("data/gear");
+    let (fragment, _) = resource_support::piece_fragment(&gear, "Empty").unwrap();
+    fs::copy(fragment, archive.path().join("data/gear.json5")).unwrap();
+    fs::remove_dir_all(&gear).unwrap();
+    let paths = AppPaths::from_parts(
+        None,
+        &executable_at(archive.path()),
+        Path::new("unused"),
+    )
+    .unwrap();
+    assert_data_error(load_resources_at(paths), &gear);
 }
 
 #[test]
@@ -142,12 +161,16 @@ fn unresolved_executable_or_working_directory_paths_are_rejected() {
 }
 
 #[test]
-fn each_missing_required_file_reports_its_selected_root_path() {
-    for relative in REQUIRED_FILES {
+fn each_missing_required_resource_reports_its_selected_root_path() {
+    for relative in REQUIRED_FILES.into_iter().chain(["data/gear"]) {
         let archive = TempDir::new().unwrap();
         populate_resources(archive.path());
         let missing_path = archive.path().join(relative);
-        fs::remove_file(&missing_path).unwrap();
+        if missing_path.is_dir() {
+            fs::remove_dir_all(&missing_path).unwrap();
+        } else {
+            fs::remove_file(&missing_path).unwrap();
+        }
         let paths = AppPaths::from_parts(
             None,
             &executable_at(archive.path()),
@@ -160,11 +183,15 @@ fn each_missing_required_file_reports_its_selected_root_path() {
 
 #[test]
 fn each_invalid_required_file_reports_its_path_instead_of_a_partial_catalog() {
-    for relative in REQUIRED_FILES {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let (fragment, _) = resource_support::piece_fragment(&source.join("data/gear"), "Empty").unwrap();
+    let mut files = REQUIRED_FILES.map(PathBuf::from).to_vec();
+    files.push(fragment.strip_prefix(&source).unwrap().to_path_buf());
+    for relative in files {
         let archive = TempDir::new().unwrap();
         populate_resources(archive.path());
-        let invalid_path = archive.path().join(relative);
-        let invalid_content = if relative.ends_with(".csv") {
+        let invalid_path = archive.path().join(&relative);
+        let invalid_content = if relative.extension() == Some(OsStr::new("csv")) {
             "not,a,catalog\n"
         } else {
             "{"
@@ -272,7 +299,7 @@ fn startup_error_exposes_the_failing_file_and_close_hides_the_window() {
         Path::new("unused"),
     )
     .unwrap();
-    let missing_path = archive.path().join("data/gear.json");
+    let missing_path = archive.path().join("data/gear");
     let error = match load_resources_at(paths) {
         Err(error) => error,
         Ok(_) => panic!("an archive with no data unexpectedly loaded"),

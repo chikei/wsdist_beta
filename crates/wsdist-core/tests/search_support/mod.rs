@@ -33,9 +33,9 @@ pub fn fixture(root: &Path, entry: &IndexedCase) -> Value {
         .unwrap_or_else(|error| panic!("{error}"))
 }
 
-/// Canonical and oracle-local records are loaded by the production JSON loader.
-/// Only the local records' absent source IDs gain test-local inert catalog IDs.
-/// They never enter the application's name/slot indices or alter the shipped data.
+/// Canonical and oracle-local records use the production fragment loader.
+/// Local identities belong only to this captured case; records remain unlisted
+/// and retain their complete values without authored catalog IDs.
 pub struct FrozenCatalog {
     pub catalog: Arc<Catalog>,
     locals: HashMap<String, GearId>,
@@ -60,32 +60,44 @@ impl FrozenCatalog {
             }
         }
         static CATALOGS: LazyLock<Mutex<HashMap<String, Arc<Catalog>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+        static BASE: LazyLock<Arc<Catalog>> = LazyLock::new(|| Arc::new(Catalog::load(&resource_root()).unwrap()));
+        static BASE_SNAPSHOTS: LazyLock<Vec<Value>> = LazyLock::new(|| BASE.pieces().iter().map(player_support::piece_snapshot).collect());
         let mut records = BTreeMap::new();
         collect(input, &mut records);
         let key = serde_json::to_string(&records).unwrap();
         let mut cache = CATALOGS.lock();
         let catalog = Arc::clone(cache.entry(key).or_insert_with(|| {
-            if records.is_empty() { return Arc::new(Catalog::load(&resource_root()).unwrap()); }
+            if records.is_empty() { return Arc::clone(&BASE); }
             let root = tempfile::tempdir().unwrap();
-            fs::create_dir(root.path().join("data")).unwrap();
-            for name in ["enemies.json", "buffs.json", "pup-attachments.json"] {
-                fs::copy(resource_root().join("data").join(name), root.path().join("data").join(name)).unwrap();
-            }
-            fs::copy(resource_root().join("item_list.csv"), root.path().join("item_list.csv")).unwrap();
-            let mut gear = document_json(&resource_root().join("data/gear.json"));
-            let pieces = gear["pieces"].as_array_mut().unwrap();
-            for (index, record) in records.values().enumerate() {
+            player_support::copy_resources(root.path());
+            let pieces = records.values().map(|record| {
                 let mut record = record.clone();
                 let object = record.as_object_mut().unwrap();
                 object.shift_remove("local_identity");
-                object.insert("id".to_owned(), Value::from(8_000_000_u32 + index as u32));
-                pieces.push(record);
-            }
-            fs::write(root.path().join("data/gear.json"), serde_json::to_vec(&gear).unwrap()).unwrap();
+                object.shift_remove("id");
+                object.insert("slots".to_owned(), Value::Array(Vec::new()));
+                record
+            }).collect::<Vec<_>>();
+            // JSON is a JSON5 subset and preserves integer/float/signed-zero literals.
+            let fragment = serde_json::json!({"schema_version": 2, "pieces": pieces});
+            fs::write(root.path().join("data/gear/oracle-local.json5"), serde_json::to_vec(&fragment).unwrap()).unwrap();
             Arc::new(Catalog::load(root.path()).unwrap())
         }));
-        let locals: HashMap<_, _> = records.keys().enumerate().map(|(index, identity)| {
-            (identity.clone(), catalog.by_original_id(8_000_000_u32 + index as u32).unwrap())
+        // Reserve the complete canonical multiset first. A local record equal
+        // to a dormant canonical declaration still requires a separate runtime
+        // identity, just as it does when equal to a selectable record.
+        let mut used = if records.is_empty() {
+            std::collections::HashSet::new()
+        } else {
+            player_support::resolve_piece_occurrences(&catalog, &BASE_SNAPSHOTS, "canonical records").into_iter().collect()
+        };
+        let locals: HashMap<_, _> = records.iter().map(|(identity, record)| {
+            let id = catalog.pieces().iter()
+                .find(|piece| !used.contains(&piece.id) && player_support::piece_matches(piece, record))
+                .map(|piece| piece.id)
+                .unwrap_or_else(|| panic!("no distinct unlisted record for local identity {identity}"));
+            used.insert(id);
+            (identity.clone(), id)
         }).collect();
         Self { catalog, locals }
     }
@@ -95,7 +107,7 @@ impl FrozenCatalog {
         if let Some(identity) = value.get("local_identity").and_then(Value::as_str) {
             *self.locals.get(identity).unwrap_or_else(|| panic!("unregistered local identity {identity}"))
         } else {
-            self.catalog.by_original_id(value["id"].as_u64().expect("canonical original ID") as u32).unwrap()
+            player_support::resolve_piece(&self.catalog, value, "frozen gear")
         }
     }
 
@@ -104,24 +116,7 @@ impl FrozenCatalog {
     }
 
     pub fn player(&self, value: &Value, state: &ModelState, label: &str) -> PlayerInput {
-        let mut normalized = value.clone();
-        for slot in Slot::ALL {
-            let record = &mut normalized["gearset"][slot.name()];
-            self.normalize_record(record);
-        }
-        player_support::parse_input(&normalized, &self.catalog, state, label)
-    }
-
-    fn normalize_record(&self, value: &mut Value) {
-        if value.get("original").is_some() {
-            self.normalize_record(&mut value["original"]);
-            self.normalize_record(&mut value["effective"]);
-        } else if let Some(identity) = value.get("local_identity").and_then(Value::as_str) {
-            let id = self.locals[identity];
-            let object = value.as_object_mut().unwrap();
-            object.shift_remove("local_identity");
-            object.insert("id".to_owned(), Value::from(self.catalog.piece(id).original_id));
-        }
+        player_support::parse_input_with_resolver(value, &self.catalog, state, label, |record, _| self.gear(record))
     }
 
     pub fn context(&self, seeds: &Value) -> EvaluationContext<RandomSources> {
@@ -129,17 +124,7 @@ impl FrozenCatalog {
     }
 
     pub fn assert_piece(&self, actual: GearId, state: Option<&ModelState>, source: &Value, label: &str) {
-        let piece = self.catalog.piece(actual);
-        if source.get("id").is_none() {
-            // Choice records and unpickled workers lose source identity. The
-            // actual input/job already selected the piece; compare every field.
-            let mut normalized = source.clone();
-            normalized.as_object_mut().unwrap().shift_remove("local_identity");
-            normalized["id"] = Value::from(piece.original_id);
-            player_support::assert_piece(piece, state, &normalized, label);
-        } else {
-            player_support::assert_piece(piece, state, source, label);
-        }
+        player_support::assert_piece(self.catalog.piece(actual), state, source, label);
     }
 
     pub fn assert_gearset(&self, actual: &Gearset, state: &ModelState, expected: &Value, label: &str) {

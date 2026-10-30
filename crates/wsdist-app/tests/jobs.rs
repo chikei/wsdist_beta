@@ -157,8 +157,10 @@ fn search_inputs(case: &Value) -> (CalculationInputs, Engine) {
 fn optimize_action(case: &Value, catalog: &Catalog) -> GuiAction {
     let input = &case["input"];
     let candidates: CandidatePools = std::array::from_fn(|index| {
-        input["candidate_pools"][Slot::ALL[index].name()].as_array().unwrap().iter()
-            .map(|piece| catalog.by_original_id(piece["id"].as_u64().unwrap() as u32).unwrap()).collect()
+        let slot = Slot::ALL[index];
+        input["candidate_pools"][slot.name()].as_array().unwrap().iter().enumerate()
+            .map(|(candidate, piece)| support::resolve_piece(catalog, piece,
+                &format!("worker candidate_pools.{}[{candidate}]", slot.name()))).collect()
     });
     GuiAction::Optimize {
         kind: AnalyticalKind::Ws, metric: Arc::from(input["request"]["input_metric"].as_str().unwrap()),
@@ -420,7 +422,7 @@ fn optimizer_progress_is_nonterminal_and_final_set_matches_the_frozen_complete_s
         assert_eq!(player.gearset, result.gearset, "winning player uses the returned gearset");
         for slot in Slot::ALL {
             let piece = completion.context.catalog.piece(result.gearset[slot.index()]);
-            assert_eq!(wsdist_fixtures::to_value((piece.original_id, &piece.name2)).unwrap(), expected["gearset"][slot.index()],
+            assert_eq!(piece.name2.as_ref(), expected["gearset"][slot.index()][1].as_str().unwrap(),
                 "worker winning gearset/{}", slot.name());
         }
         assert_eq!(wsdist_fixtures::to_value(&result.legacy_output).unwrap(), expected["legacy_output"]);

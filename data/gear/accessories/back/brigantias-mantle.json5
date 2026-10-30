@@ -1,0 +1,311 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle AGI Crit Rate",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle AGI DA",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle AGI Dual Wield",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle AGI Store TP",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle AGI Weapon Skill Damage",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle DEX Crit Rate",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle DEX DA",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle DEX Dual Wield",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle DEX Store TP",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle INT DA",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle INT Store TP",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle STR Crit Rate",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle STR DA",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle VIT DA",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Brigantia's Mantle",
+      name2: "Brigantia's Mantle VIT Weapon Skill Damage",
+      jobs: [
+        "drg",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

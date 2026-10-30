@@ -1,0 +1,329 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape DEX Crit Rate",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape DEX DA",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape DEX Dual Wield",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape DEX Store TP",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape INT DA",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape INT Magic Attack",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Magic Attack": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape INT Store TP",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape INT Weapon Skill Damage",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape MND DA",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape MND Weapon Skill Damage",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape MND Weapon Skill Damage (Magic)",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape STR Crit Rate",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape STR DA",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape STR Weapon Skill Damage",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Skillchain Bonus": 10,
+      },
+    },
+    {
+      name: "Lugh's Cape",
+      name2: "Lugh's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "sch",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Skillchain Bonus": 10,
+      },
+    },
+  ],
+}

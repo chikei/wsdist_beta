@@ -80,16 +80,18 @@ fn calculations_follow_the_earliest_restart_winner_without_overwriting_the_calle
 
 #[test]
 fn calculations_retain_pre_reorder_damage_and_tp_with_the_scored_earring_provenance() {
-    let (catalog, result, _) = traced_fixture("search-simulation/final-jse-reorder-without-output-rescore");
+    let (_, result, _) = traced_fixture("search-simulation/final-jse-reorder-without-output-rescore");
     let output = step(&result, "Action evaluation output");
     assert_eq!(value(output, "damage"), result.legacy_output[0]);
     assert_eq!(value(output, "tp_return"), result.legacy_output[1]);
     assert_eq!(value(step(&result, "Single-start search score"), "score"), result.metric);
     let provenance = step(&result, "Retained output provenance");
+    assert!(provenance.formula.contains("runtime catalog-local index"));
+    assert!(provenance.formula.contains("These indices identify this loaded catalog only."));
     assert_ne!(value(provenance, "scored_ear1"), value(provenance, "scored_ear2"));
     assert_eq!(value(provenance, "scored_ear1"), value(provenance, "final_ear2"));
     assert_eq!(value(provenance, "scored_ear2"), value(provenance, "final_ear1"));
-    assert_eq!(value(provenance, "final_ear1"), f64::from(catalog.catalog.piece(result.gearset[Slot::Ear1.index()]).original_id));
-    assert_eq!(value(provenance, "final_ear2"), f64::from(catalog.catalog.piece(result.gearset[Slot::Ear2.index()]).original_id));
+    assert_eq!(value(provenance, "final_ear1"), result.gearset[Slot::Ear1.index()].index() as f64);
+    assert_eq!(value(provenance, "final_ear2"), result.gearset[Slot::Ear2.index()].index() as f64);
     assert_eq!(result.calculation.iter().filter(|step| step.label == "Action evaluation output").count(), 1);
 }

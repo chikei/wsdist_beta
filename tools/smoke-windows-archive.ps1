@@ -9,6 +9,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'The archive must be exercised natively on Windows' }
+. (Join-Path $PSScriptRoot 'windows-file-type.ps1')
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $Archive = (Resolve-Path -LiteralPath $Archive).Path
 if (-not $Output) { $Output = Join-Path $root 'target/archive-smoke' }
@@ -116,15 +117,54 @@ public static class WsdistNativeWindow {
     foreach ($name in @('wsdist-gui.exe', 'defaults.json', 'item_list.csv', 'THIRD-PARTY-NOTICES.html', 'PROVENANCE.txt', 'BUILD-INFO.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $bundle $name) -PathType Leaf)) { throw "Missing archive content: $name" }
     }
-    foreach ($name in @('gear.json', 'enemies.json', 'buffs.json', 'pup-attachments.json')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $bundle "data/$name") -PathType Leaf)) { throw "Missing bundled catalog: $name" }
+    foreach ($name in @('enemies.json5', 'buffs.json5', 'pup-attachments.json5')) {
+        $path = Join-Path $bundle "data/$name"
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing bundled catalog: $name" }
+        $item = Get-Item -LiteralPath $path -Force
+        if (-not (Get-WsdistFileType $item).IsFile) {
+            throw "Bundled catalog is not a regular file: $path"
+        }
     }
+    # Require the fragment directory, and reject monolithic fallback catalogs.
+    $allowedData = @('gear', 'enemies.json5', 'buffs.json5', 'pup-attachments.json5')
+    foreach ($item in Get-ChildItem -LiteralPath (Join-Path $bundle 'data') -Force) {
+        if ($allowedData -cnotcontains $item.Name) { throw "Unexpected bundled data entry: $($item.FullName)" }
+    }
+    $gearRoot = Join-Path $bundle 'data/gear'
+    $gearDirectory = Get-Item -LiteralPath $gearRoot -Force
+    if (-not (Get-WsdistFileType $gearDirectory).IsDirectory) {
+        throw 'Missing regular bundled gear directory'
+    }
+    $gearDirectories = [Collections.Generic.Stack[string]]::new()
+    $gearDirectories.Push($gearRoot)
+    $gearCount = 0
+    while ($gearDirectories.Count -gt 0) {
+        foreach ($item in Get-ChildItem -LiteralPath $gearDirectories.Pop() -Force) {
+            $type = Get-WsdistFileType $item
+            if ($type.IsSymlink) { throw "Unexpected bundled gear symlink: $($item.FullName)" }
+            if ($type.IsDirectory) {
+                $gearDirectories.Push($item.FullName)
+            } elseif ($type.IsFile -and
+                [string]::Equals($item.Extension, '.json5', [StringComparison]::Ordinal) -and
+                -not [string]::Equals($item.Name, '.json5', [StringComparison]::Ordinal)) {
+                $gearCount++
+            } else {
+                throw "Unexpected bundled gear entry: $($item.FullName)"
+            }
+        }
+    }
+    if ($gearCount -eq 0) { throw 'No bundled gear fragments' }
     foreach ($name in @('icons32', 'licenses')) {
         if (-not (Test-Path -LiteralPath (Join-Path $bundle $name) -PathType Container)) { throw "Missing archive directory: $name" }
     }
     $allowed = @('wsdist-gui.exe', 'data', 'defaults.json', 'item_list.csv', 'icons32', 'licenses', 'THIRD-PARTY-NOTICES.html', 'PROVENANCE.txt', 'BUILD-INFO.json')
     foreach ($item in Get-ChildItem -LiteralPath $bundle -Force) { if ($item.Name -notin $allowed) { throw "Unexpected archive root entry: $($item.Name)" } }
+    $gearPrefix = [IO.Path]::TrimEndingDirectorySeparator($gearRoot) + [IO.Path]::DirectorySeparatorChar
     foreach ($item in Get-ChildItem -LiteralPath $bundle -Recurse -Force) {
+        # Directory names inside validated gear are inert organization, not
+        # reference-code content. Keep all file/content hygiene checks active.
+        if ((Get-WsdistFileType $item).IsDirectory -and
+            $item.FullName.StartsWith($gearPrefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
         if ($item.Name -match '\.(py|pyc|pkl)$|^(Qt[56]|python).*\.dll$|^(fixtures|migration)$') { throw "Unexpected Python/Qt/reference content: $($item.FullName)" }
     }
     $build = Get-Content -LiteralPath (Join-Path $bundle 'BUILD-INFO.json') -Raw | ConvertFrom-Json

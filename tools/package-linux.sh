@@ -37,11 +37,25 @@ trap 'rm -rf -- "$work"' EXIT
 payload="$work/payload"
 mkdir -p -- "$payload/data" "$payload/licenses/crates"
 cp -- "$binary" "$payload/wsdist-gui"
-for name in gear.json enemies.json buffs.json pup-attachments.json; do
-    [[ -f "$root/data/$name" ]] || { echo "Missing required catalog: $root/data/$name" >&2; exit 1; }
+for name in enemies.json5 buffs.json5 pup-attachments.json5; do
+    path="$root/data/$name"
+    [[ -f "$path" && ! -L "$path" ]] || { echo "Missing regular required catalog: $path" >&2; exit 1; }
+    cp -- "$path" "$payload/data/"
 done
-# Only inert JSON catalogs and the application resources are shipped.
-for path in "$root"/data/*.json; do cp -- "$path" "$payload/data/"; done
+gear_root="$root/data/gear"
+[[ -d "$gear_root" && ! -L "$gear_root" ]] || { echo "Missing regular gear directory: $gear_root" >&2; exit 1; }
+# Match runtime discovery: exact lowercase extension, regular files only, and
+# never follow symlinked files or directories. Preserve every nested path.
+find -P "$gear_root" -type f -name '*.json5' ! -name '.json5' -print0 > "$work/gear-fragments"
+gear_count=0
+mkdir -p -- "$payload/data/gear"
+while IFS= read -r -d '' path; do
+    destination="$payload/data/gear/${path#"$gear_root/"}"
+    mkdir -p -- "${destination%/*}"
+    cp -- "$path" "$destination"
+    gear_count=$((gear_count + 1))
+done < "$work/gear-fragments"
+((gear_count > 0)) || { echo "No gear fragments found: $gear_root" >&2; exit 1; }
 cp -- "$root/defaults.json" "$root/item_list.csv" "$payload/"
 cp -R -- "$root/icons32" "$payload/icons32"
 cp -- "$root/tools/licenses/PROVENANCE.txt" "$payload/PROVENANCE.txt"

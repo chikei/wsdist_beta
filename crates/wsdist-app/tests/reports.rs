@@ -40,8 +40,13 @@ fn catalog() -> Arc<Catalog> {
 // second call to build_player/evaluate_action/summarize_distribution.
 fn captured_player(value: &Value, catalog: &Catalog) -> Player {
     let gearset = std::array::from_fn(|index| {
-        let piece = &value["gearset"][Slot::ALL[index].name()];
-        catalog.by_original_id(piece["id"].as_u64().unwrap() as u32).unwrap()
+        let slot = Slot::ALL[index];
+        let piece = &value["gearset"][slot.name()];
+        let path = format!("captured player.gearset.{}", slot.name());
+        let name = piece["name2"].as_str().unwrap_or_else(|| panic!("{path}: missing captured name2"));
+        // Boundary snapshots may contain effective skill overrides, not the
+        // original catalog payload. Selectable labels identify canonical gear.
+        catalog.by_name2(name).unwrap_or_else(|| support::resolve_piece(catalog, piece, &path))
     });
     let mut player = Player::new(gearset);
     player.main_job = Job::parse_player_name(value["main_job"].as_str().unwrap()).unwrap();

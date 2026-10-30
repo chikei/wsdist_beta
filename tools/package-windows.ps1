@@ -10,6 +10,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 if (-not $IsWindows -or [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne 'X64') {
     throw 'Packaging requires native x86_64 Windows'
 }
+. (Join-Path $PSScriptRoot 'windows-file-type.ps1')
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $Output) { $Output = Join-Path $root 'target/dist' }
 $Output = [IO.Path]::GetFullPath($Output)
@@ -42,11 +43,44 @@ try {
     $null = [IO.Directory]::CreateDirectory((Join-Path $payload 'data'))
     $null = [IO.Directory]::CreateDirectory((Join-Path $payload 'licenses/crates'))
     Copy-Item -LiteralPath $binary -Destination (Join-Path $payload 'wsdist-gui.exe')
-    foreach ($name in @('gear.json', 'enemies.json', 'buffs.json', 'pup-attachments.json')) {
+    foreach ($name in @('enemies.json5', 'buffs.json5', 'pup-attachments.json5')) {
         $path = Join-Path $root "data/$name"
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing required catalog: $path" }
+        $item = Get-Item -LiteralPath $path -Force
+        if (-not (Get-WsdistFileType $item).IsFile) {
+            throw "Required catalog is not a regular file: $path"
+        }
+        Copy-Item -LiteralPath $path -Destination (Join-Path $payload 'data')
     }
-    Get-ChildItem -LiteralPath (Join-Path $root 'data') -Filter '*.json' -File | Copy-Item -Destination (Join-Path $payload 'data')
+    $gearRoot = Join-Path $root 'data/gear'
+    $gearDirectory = Get-Item -LiteralPath $gearRoot -Force
+    if (-not (Get-WsdistFileType $gearDirectory).IsDirectory) {
+        throw "Missing regular gear directory: $gearRoot"
+    }
+    # Enumerate explicitly without following name-surrogate links/junctions.
+    # Culture comparisons and -Filter are not exact extension checks.
+    $gearDirectories = [Collections.Generic.Stack[string]]::new()
+    $gearDirectories.Push($gearRoot)
+    $gearCount = 0
+    $null = [IO.Directory]::CreateDirectory((Join-Path $payload 'data/gear'))
+    while ($gearDirectories.Count -gt 0) {
+        foreach ($item in Get-ChildItem -LiteralPath $gearDirectories.Pop() -Force) {
+            $type = Get-WsdistFileType $item
+            if ($type.IsSymlink) { continue }
+            if ($type.IsDirectory) {
+                $gearDirectories.Push($item.FullName)
+            } elseif ($type.IsFile -and
+                [string]::Equals($item.Extension, '.json5', [StringComparison]::Ordinal) -and
+                -not [string]::Equals($item.Name, '.json5', [StringComparison]::Ordinal)) {
+                $relative = [IO.Path]::GetRelativePath($gearRoot, $item.FullName)
+                $destination = Join-Path (Join-Path $payload 'data/gear') $relative
+                $null = [IO.Directory]::CreateDirectory((Split-Path -Parent $destination))
+                Copy-Item -LiteralPath $item.FullName -Destination $destination
+                $gearCount++
+            }
+        }
+    }
+    if ($gearCount -eq 0) { throw "No gear fragments found: $gearRoot" }
     foreach ($name in @('defaults.json', 'item_list.csv')) { Copy-Item -LiteralPath (Join-Path $root $name) -Destination $payload }
     Copy-Item -LiteralPath (Join-Path $root 'icons32') -Destination (Join-Path $payload 'icons32') -Recurse
     Copy-Item -LiteralPath (Join-Path $root 'tools/licenses/PROVENANCE.txt') -Destination (Join-Path $payload 'PROVENANCE.txt')

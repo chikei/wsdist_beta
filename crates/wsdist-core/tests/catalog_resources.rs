@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use serde_json::{Map, Value, json};
 use tempfile::TempDir;
@@ -14,22 +13,50 @@ fn resource_root() -> PathBuf {
 }
 
 fn document(root: &Path, name: &str) -> Value {
-    serde_json::from_slice(&fs::read(root.join(name)).unwrap()).unwrap()
+    json5::from_str(&fs::read_to_string(root.join(name)).unwrap()).unwrap()
 }
 
 fn copied_resources() -> TempDir {
     let temporary = tempfile::tempdir().unwrap();
-    fs::create_dir(temporary.path().join("data")).unwrap();
-    for name in ["data/gear.json", "data/enemies.json", "data/buffs.json", "data/pup-attachments.json", "item_list.csv"] {
+    fs::create_dir_all(temporary.path().join("data/gear")).unwrap();
+    for name in ["data/enemies.json5", "data/buffs.json5", "data/pup-attachments.json5", "item_list.csv"] {
         fs::copy(resource_root().join(name), temporary.path().join(name)).unwrap();
     }
+    let slots = Slot::ALL.iter().map(|slot| slot.name()).collect::<Vec<_>>();
+    write_fragment(temporary.path(), "test.json5", vec![
+        test_piece("Empty", &slots),
+        test_piece("Example weapon", &["main", "sub"]),
+        test_piece("Example food", &["food"]),
+    ]);
     temporary
+}
+
+fn test_piece(name: &str, slots: &[&str]) -> Value {
+    json!({
+        "name": name, "name2": name, "jobs": ["war", "mnk"], "slots": slots,
+        "type": "None", "skill_type": "None", "dmg": 0, "delay": 0,
+        "rank": null, "wsc": null, "stats": {},
+    })
+}
+
+fn write_fragment(root: &Path, relative: &str, pieces: Vec<Value>) {
+    let path = root.join("data/gear").join(relative);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, serde_json::to_vec_pretty(&json!({"schema_version": 2, "pieces": pieces})).unwrap()).unwrap();
 }
 
 fn alter(root: &Path, name: &str, change: impl FnOnce(&mut Value)) {
     let mut value = document(root, name);
     change(&mut value);
+    // JSON is a JSON5 subset; this writer retains integer/float kinds and -0.0.
     fs::write(root.join(name), serde_json::to_vec_pretty(&value).unwrap()).unwrap();
+}
+
+fn alter_with_raw_number(root: &Path, name: &str, literal: &str, change: impl FnOnce(&mut Value, Value)) {
+    let mut value = document(root, name);
+    change(&mut value, json!("RAW_JSON5_NUMBER"));
+    let source = serde_json::to_string(&value).unwrap().replace("\"RAW_JSON5_NUMBER\"", literal);
+    fs::write(root.join(name), source).unwrap();
 }
 
 fn assert_number(actual: f64, expected: &Value) {
@@ -61,89 +88,234 @@ fn assert_data_error(root: &Path, file: &str, json_path: &str) -> String {
     }
 }
 
-fn append_piece(document: &mut Value, symbol: &str, id: u32, mut piece: Value) {
-    piece["id"] = json!(id);
+fn assert_data_error_file(root: &Path, file: &str) {
+    match Catalog::load(root) {
+        Err(CalcError::Data { path, .. }) => assert_eq!(path, root.join(file)),
+        Err(error) => panic!("expected a data error, got {error}"),
+        Ok(_) => panic!("expected {file} to be rejected"),
+    }
+}
+
+fn append_piece(document: &mut Value, piece: Value) {
     document["pieces"].as_array_mut().unwrap().push(piece);
-    document["symbols"][symbol] = json!(id);
 }
 
 #[test]
-fn real_equipment_preserves_all_records_and_ordered_membership() {
-    let root = resource_root();
-    let source = document(&root, "data/gear.json");
-    let catalog = Arc::new(Catalog::load(&root).unwrap());
-    let source_pieces = source["pieces"].as_array().unwrap();
-    assert_eq!(catalog.pieces().len(), source_pieces.len());
-    for (index, expected) in source_pieces.iter().enumerate() {
-        let original_id = expected["id"].as_u64().unwrap() as u32;
-        let id = catalog.by_original_id(original_id).unwrap();
-        assert_eq!(id.index(), index);
-        let actual = catalog.piece(id);
-        assert_eq!(actual.original_id, original_id);
-        assert_eq!(actual.name.as_ref(), expected["name"].as_str().unwrap());
-        assert_eq!(actual.name2.as_ref(), expected["name2"].as_str().unwrap());
-        let jobs: Vec<_> = expected["jobs"].as_array().unwrap().iter().map(|job| job.as_str().unwrap()).collect();
-        assert_eq!(actual.jobs.iter().map(|job| job.name()).collect::<Vec<_>>(), jobs);
-        for &job in Job::ALL {
-            assert_eq!(actual.eligible_for(job), jobs.contains(&job.name()));
-        }
-        assert_eq!(actual.kind.name(), expected["type"].as_str().unwrap());
-        assert_eq!(actual.skill_type.name(), expected["skill_type"].as_str().unwrap());
-        assert_number(actual.dmg, &expected["dmg"]);
-        assert_number(actual.delay, &expected["delay"]);
-        assert_eq!(actual.rank, expected["rank"].as_i64());
-        if expected["wsc"].is_null() {
-            assert_eq!(actual.wsc, None);
-        } else {
-            let wsc = actual.wsc.unwrap();
-            assert_eq!(wsc.stat.name(), expected["wsc"][0].as_str().unwrap());
-            assert_number(wsc.percent, &expected["wsc"][1]);
-        }
-        let stats = expected["stats"].as_object().unwrap();
-        assert_eq!(actual.stats.len(), stats.len());
-        for (actual, (name, expected)) in actual.stats.iter().zip(stats) {
-            assert_eq!(actual.stat.name(), name);
-            assert_number(actual.value, expected);
-            assert_eq!(&actual.literal, expected.as_number().unwrap());
-        }
-    }
-
-    let mut names = HashMap::new();
-    for &slot in Slot::ALL {
-        let expected: Vec<_> = source["slots"][slot.name()].as_array().unwrap().iter().map(|id| id.as_u64().unwrap() as u32).collect();
-        let actual: Vec<_> = catalog.slot(slot).iter().map(|id| catalog.piece(*id).original_id).collect();
-        assert_eq!(actual, expected, "{} membership", slot.name());
-        for original_id in expected {
-            let id = catalog.by_original_id(original_id).unwrap();
-            names.insert(catalog.piece(id).name2.as_ref(), id);
-        }
-    }
-    for piece in catalog.pieces() {
-        assert_eq!(catalog.by_name2(&piece.name2), names.get(piece.name2.as_ref()).copied());
-    }
-    let source_symbols = source["symbols"].as_object().unwrap();
-    assert_eq!(catalog.symbols().len(), source_symbols.len());
-    for (actual, (name, expected)) in catalog.symbols().iter().zip(source_symbols) {
-        assert_eq!(actual.name.as_ref(), name);
-        assert_eq!(catalog.piece(actual.id).original_id, expected.as_u64().unwrap() as u32);
-        assert_eq!(catalog.by_symbol(name), Some(actual.id));
-    }
-    let expected_foods: Vec<_> = source["foods"].as_array().unwrap().iter().map(|id| id.as_u64().unwrap() as u32).collect();
-    assert_eq!(catalog.foods().iter().map(|id| catalog.piece(*id).original_id).collect::<Vec<_>>(), expected_foods);
-    let mut food_names = HashMap::new();
-    for &id in catalog.foods() { food_names.insert(catalog.piece(id).name.as_ref(), id); }
-    for (name, id) in food_names { assert_eq!(catalog.food_by_name(name), Some(id)); }
-    assert_eq!(catalog.piece(catalog.empty).name2.as_ref(), "Empty");
-    for symbol in ["Duty_Flanchard0", "Duty_Flanchard"] {
-        assert_eq!(catalog.piece(catalog.by_symbol(symbol).unwrap()).stat(Stat::Da), 8.0);
+fn json5_literals_preserve_attachment_order_and_exact_number_kinds() {
+    let temporary = copied_resources();
+    fs::write(temporary.path().join("data/pup-attachments.json5"), r#"{
+  // Catalogs accept editable JSON5, including nested trailing commas.
+  schema_version: 0x1,
+  attachments: [
+    {
+      Name: 'Artificer\'s test',
+      Element: 'Fire',
+      Capacity: 0x2,
+      values: {
+        positive: +7,
+        negative: -0x10,
+        hex: 0x20000000000001,
+        hex_above_u64: 0x10000000000000000,
+        hex_below_i64: -0x8000000000000001,
+        hex_negative_zero: -0x0,
+        leading: .125,
+        trailing: 12.,
+        negative_zero: -0.0, /* Keep the floating-point sign bit. */
+      },
+      notes: ['first', 'second',],
+    },
+    {Name: 'Second attachment', Element: 'Ice', Capacity: 1,},
+  ],
+}"#).unwrap();
+    let catalog = Catalog::load(temporary.path()).unwrap();
+    assert_eq!(catalog.attachments().iter().map(|value| value["Name"].as_str().unwrap()).collect::<Vec<_>>(), [
+        "Artificer's test", "Second attachment",
+    ]);
+    let attachment = catalog.attachment_by_name("Artificer's test").unwrap();
+    assert_eq!(attachment.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(), [
+        "Name", "Element", "Capacity", "values", "notes",
+    ]);
+    assert_eq!(attachment["Capacity"].as_u64(), Some(2));
+    assert_eq!(attachment["notes"], json!(["first", "second"]));
+    let values = attachment["values"].as_object().unwrap();
+    assert_eq!(values.keys().map(String::as_str).collect::<Vec<_>>(), [
+        "positive", "negative", "hex", "hex_above_u64", "hex_below_i64", "hex_negative_zero",
+        "leading", "trailing", "negative_zero",
+    ]);
+    assert_eq!(values["positive"].as_u64(), Some(7));
+    assert_eq!(values["negative"].as_i64(), Some(-16));
+    assert_eq!(values["hex"].as_u64(), Some(9_007_199_254_740_993));
+    for (name, expected) in [
+        ("leading", 0.125f64), ("trailing", 12.0), ("negative_zero", -0.0),
+        ("hex_above_u64", 18_446_744_073_709_551_616.0),
+        ("hex_below_i64", -9_223_372_036_854_775_808.0), ("hex_negative_zero", -0.0),
+    ] {
+        assert!(values[name].is_f64(), "{name} lost its floating-point kind");
+        assert_eq!(values[name].as_f64().unwrap().to_bits(), expected.to_bits(), "{name}");
     }
 }
+
+#[test]
+fn invalid_json5_identifies_the_catalog_and_source_position() {
+    let temporary = copied_resources();
+    fs::write(temporary.path().join("data/pup-attachments.json5"), concat!(
+        "// editable JSON5\n",
+        "{\n",
+        "  schema_version: ?,\n",
+        "}\n",
+    )).unwrap();
+    assert_data_error(temporary.path(), "data/pup-attachments.json5", "$ (line 3, column 19)");
+}
+
+#[test]
+fn json5_non_finite_literals_in_required_fields_are_rejected() {
+    for (file, pointer) in [
+        ("data/gear/test.json5", "/pieces/0/dmg"),
+        ("data/enemies.json5", "/enemies/0/Level"),
+        ("data/buffs.json5", "/whm/Haste/Magic Haste"),
+        ("data/pup-attachments.json5", "/attachments/0/Capacity"),
+    ] {
+        for literal in ["NaN", "Infinity", "-Infinity"] {
+            let temporary = copied_resources();
+            alter_with_raw_number(temporary.path(), file, literal, |source, number| {
+                *source.pointer_mut(pointer).unwrap() = number;
+            });
+            assert_data_error_file(temporary.path(), file);
+        }
+    }
+}
+
+#[test]
+fn json5_non_finite_literals_cannot_become_null_in_optional_or_extra_fields() {
+    type Change = fn(&mut Value, Value);
+    let cases: &[(&str, Change)] = &[
+        ("data/gear/test.json5", |source, number| { source["pieces"][0]["rank"] = number; }),
+        ("data/gear/test.json5", |source, number| { source["pieces"][0]["wsc"] = number; }),
+        ("data/pup-attachments.json5", |source, number| {
+            source["attachments"][0]["numeric_extra"] = json!({"values": [number]});
+        }),
+    ];
+    for &(file, change) in cases {
+        for literal in ["NaN", "Infinity", "-Infinity", "1e400"] {
+            let temporary = copied_resources();
+            alter_with_raw_number(temporary.path(), file, literal, change);
+            assert_data_error_file(temporary.path(), file);
+        }
+    }
+}
+
+#[test]
+fn json5_raw_negative_zero_preserves_float_semantics_and_is_not_an_integer() {
+    let temporary = copied_resources();
+    alter_with_raw_number(temporary.path(), "data/gear/test.json5", "-0", |source, number| {
+        source["pieces"][0]["delay"] = number.clone();
+        source["pieces"][0]["stats"] = json!({"STR": number});
+    });
+    alter_with_raw_number(temporary.path(), "data/pup-attachments.json5", "-0", |source, number| {
+        source["attachments"][0]["numeric_extra"] = json!({
+            "NaN": 7, "Infinity": number, "text": "-0 NaN Infinity 123", "values": [11, 13],
+        });
+    });
+    let path = temporary.path().join("data/pup-attachments.json5");
+    let source = fs::read_to_string(&path).unwrap()
+        .replacen("\"NaN\":", "NaN:", 1).replacen("\"Infinity\":", "Infinity:", 1);
+    fs::write(path, source).unwrap();
+    let catalog = Catalog::load(temporary.path()).unwrap();
+    let piece = &catalog.pieces()[0];
+    let expected_bits = (-0.0f64).to_bits();
+    assert_eq!(piece.delay.to_bits(), expected_bits);
+    let stat = &piece.stats[0];
+    assert_eq!(stat.stat, Stat::Str);
+    assert_eq!(stat.value.to_bits(), expected_bits);
+    assert!(stat.literal.is_f64(), "raw -0 lost its floating-point kind");
+    assert_eq!(stat.literal.as_f64().unwrap().to_bits(), expected_bits);
+    let metadata = &catalog.attachments()[0]["numeric_extra"];
+    assert_eq!(metadata.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(),
+        ["NaN", "Infinity", "text", "values"]);
+    assert_eq!(metadata["NaN"], 7);
+    assert_eq!(metadata["values"], json!([11, 13]));
+    let extra = &metadata["Infinity"];
+    assert!(extra.is_f64(), "raw -0 in extra metadata lost its floating-point kind");
+    assert_eq!(extra.as_f64().unwrap().to_bits(), expected_bits);
+
+    for (file, collection, field) in [
+        ("data/gear/test.json5", "pieces", "rank"),
+        ("data/pup-attachments.json5", "attachments", "Capacity"),
+    ] {
+        let temporary = copied_resources();
+        alter_with_raw_number(temporary.path(), file, "-0", |source, number| {
+            source[collection][0][field] = number;
+        });
+        assert_data_error_file(temporary.path(), file);
+    }
+}
+
+#[test]
+fn json5_out_of_range_decimal_integers_remain_finite_floating_numbers() {
+    for (literal, expected_bits) in [
+        ("18446744073709551616", 0x43f0_0000_0000_0000u64), // 2^64, just above u64.
+        ("-9223372036854775809", 0xc3e0_0000_0000_0000), // Just below i64, rounded to -2^63.
+        ("340282366920938463463374607431768211456", 0x47f0_0000_0000_0000), // 2^128, just above u128.
+    ] {
+        let temporary = copied_resources();
+        alter_with_raw_number(temporary.path(), "data/gear/test.json5", literal, |source, number| {
+            source["pieces"][0]["delay"] = number.clone();
+            source["pieces"][0]["stats"] = json!({"STR": number});
+        });
+        alter_with_raw_number(temporary.path(), "data/pup-attachments.json5", literal, |source, number| {
+            source["attachments"][0]["numeric_extra"] = json!({"values": [number]});
+        });
+        let catalog = Catalog::load(temporary.path()).unwrap();
+        let piece = &catalog.pieces()[0];
+        assert_eq!(piece.delay.to_bits(), expected_bits, "{literal}");
+        let stat = &piece.stats[0];
+        assert_eq!(stat.stat, Stat::Str);
+        assert_eq!(stat.value.to_bits(), expected_bits, "{literal}");
+        assert!(stat.literal.is_f64(), "{literal} lost its floating-point kind");
+        assert_eq!(stat.literal.as_f64().unwrap().to_bits(), expected_bits, "{literal}");
+        let extra = &catalog.attachments()[0]["numeric_extra"]["values"][0];
+        assert!(extra.is_f64(), "{literal} in extra metadata lost its floating-point kind");
+        assert_eq!(extra.as_f64().unwrap().to_bits(), expected_bits, "{literal}");
+    }
+}
+
+#[test]
+fn json5_documents_reject_trailing_values_even_when_unfinished() {
+    let temporary = copied_resources();
+    let name = "data/enemies.json5";
+    let source = fs::read_to_string(temporary.path().join(name)).unwrap();
+    for suffix in ["0", "[", "{", "null"] {
+        fs::write(temporary.path().join(name), format!("{source}\n{suffix}")).unwrap();
+        assert_data_error_file(temporary.path(), name);
+    }
+    fs::write(temporary.path().join(name), format!("{source}\n// trailing comment\n/* complete */\n")).unwrap();
+    let expected = Catalog::load(&resource_root()).unwrap();
+    let actual = Catalog::load(temporary.path()).unwrap();
+    let menu = |catalog: &Catalog| catalog.enemy_menu().iter()
+        .map(|id| {
+            let enemy = catalog.enemy(*id);
+            (enemy.name.to_string(), enemy.level.to_bits())
+        }).collect::<Vec<_>>();
+    assert_eq!(menu(&actual), menu(&expected));
+}
+
+#[test]
+fn json5_strings_preserve_literal_unicode_line_and_paragraph_separators() {
+    let temporary = copied_resources();
+    let text = "left\u{2028}middle\u{2029}right";
+    alter(temporary.path(), "data/pup-attachments.json5", |source| {
+        source["attachments"][0]["text_extra"] = json!(text);
+    });
+    let catalog = Catalog::load(temporary.path()).unwrap();
+    assert_eq!(catalog.attachments()[0]["text_extra"].as_str(), Some(text));
+}
+
 
 #[test]
 fn real_enemies_and_attachments_preserve_records_and_menu_order() {
     let root = resource_root();
     let catalog = Catalog::load(&root).unwrap();
-    let enemies = document(&root, "data/enemies.json");
+    let enemies = document(&root, "data/enemies.json5");
     let records = enemies["enemies"].as_array().unwrap();
     assert_eq!(catalog.enemies().len(), 11);
     assert_eq!(catalog.enemies().len(), records.len());
@@ -174,7 +346,7 @@ fn real_enemies_and_attachments_preserve_records_and_menu_order() {
         "Apex Bat", "Apex Toad", "Apex Bats",
     ]);
     for &id in catalog.enemy_menu() { assert_eq!(catalog.enemy_by_name(&catalog.enemy(id).name), Some(id)); }
-    let attachments = document(&root, "data/pup-attachments.json");
+    let attachments = document(&root, "data/pup-attachments.json5");
     let source = attachments["attachments"].as_array().unwrap();
     assert_eq!(catalog.attachments().len(), 113);
     assert_eq!(catalog.attachments().len(), source.len());
@@ -206,7 +378,7 @@ fn assert_buff_value(actual: BuffValue, expected: &Value) {
 fn real_buffs_retain_numeric_units_requirements_and_source_order() {
     let root = resource_root();
     let catalog = Catalog::load(&root).unwrap();
-    let source = document(&root, "data/buffs.json");
+    let source = document(&root, "data/buffs.json5");
     for kind in BuffTableKind::ALL {
         let table = catalog.buffs().table(kind);
         let expected_table = source[kind.name()].as_object().unwrap();
@@ -268,138 +440,236 @@ fn real_csv_retains_all_rows_and_first_matching_aliases() {
 }
 
 #[test]
-fn sparse_original_ids_collisions_and_repeated_members_preserve_identity() {
+fn nested_fragments_keep_selection_order_independent_of_file_placement() {
     let temporary = copied_resources();
-    let original_count = document(temporary.path(), "data/gear.json")["pieces"].as_array().unwrap().len();
-    alter(temporary.path(), "data/gear.json", |source| {
-        let sparse = |id: u64| 1000 + id * 3;
-        for piece in source["pieces"].as_array_mut().unwrap() {
-            piece["id"] = json!(sparse(piece["id"].as_u64().unwrap()));
-        }
-        for value in source["symbols"].as_object_mut().unwrap().values_mut() {
-            *value = json!(sparse(value.as_u64().unwrap()));
-        }
-        for members in source["slots"].as_object_mut().unwrap().values_mut() {
-            for value in members.as_array_mut().unwrap() { *value = json!(sparse(value.as_u64().unwrap())); }
-        }
-        for value in source["foods"].as_array_mut().unwrap() { *value = json!(sparse(value.as_u64().unwrap())); }
-        source["pieces"][0]["stats"] = json!({"Attack": 17});
-        let mut first = source["pieces"][15].clone();
-        first["name2"] = json!("Collision");
-        let mut last = first.clone();
-        last["stats"]["Attack"] = json!(23);
-        let mut unlisted = first.clone();
-        unlisted["stats"]["Attack"] = json!(99);
-        append_piece(source, "CollisionFirst", 3_000_000_000, first);
-        append_piece(source, "CollisionLast", 3_000_000_001, last);
-        append_piece(source, "CollisionUnlisted", u32::MAX, unlisted);
-        source["slots"]["main"].as_array_mut().unwrap().extend([json!(3_000_000_000u32), json!(3_000_000_000u32)]);
-        source["slots"]["feet"].as_array_mut().unwrap().push(json!(3_000_000_001u32));
-        let food = source["foods"][0].clone();
-        source["foods"].as_array_mut().unwrap().extend([food.clone(), food]);
-        // Object key order is not the legacy traversal order.
-        let old_slots = source["slots"].as_object().unwrap();
-        let mut reordered = Map::new();
-        reordered.insert("feet".to_owned(), old_slots["feet"].clone());
-        for &slot in Slot::ALL {
-            if slot != Slot::Feet { reordered.insert(slot.name().to_owned(), old_slots[slot.name()].clone()); }
-        }
-        source["slots"] = Value::Object(reordered);
-    });
-    let catalog = Catalog::load(temporary.path()).unwrap();
-    for index in 0..original_count {
-        let original_id = 1000 + index as u32 * 3;
-        assert_eq!(catalog.by_original_id(original_id).unwrap().index(), index);
+    let root = temporary.path();
+    let mut alpha = test_piece("Alpha blade", &["main", "head"]);
+    alpha["jobs"] = json!(["nin"]);
+    alpha["type"] = json!("Food");
+    alpha["stats"] = json!({"Attack": 23});
+    let mut declared = alpha.clone();
+    declared["slots"] = json!([]);
+    declared["stats"] = json!({"Attack": 99});
+    let mut other_declared = declared.clone();
+    other_declared["stats"] = json!({"Attack": 101});
+    let mut zulu = test_piece("Zulu blade", &["main", "sub"]);
+    zulu["name"] = json!("Aardvark base weapon");
+    let mut alpha_meal = test_piece("Alpha meal", &["food"]);
+    alpha_meal["name"] = json!("Zulu meal base");
+    let mut zulu_meal = test_piece("Zulu meal", &["food"]);
+    zulu_meal["name"] = json!("Alpha meal base");
+    write_fragment(root, "z/weapons.json5", vec![
+        zulu,
+        alpha_meal,
+    ]);
+    write_fragment(root, "a/armor.json5", vec![
+        alpha, declared, other_declared, zulu_meal,
+    ]);
+    fs::write(root.join("data/gear/ignored.JSON5"), "not JSON5").unwrap();
+    fs::write(root.join("data/gear/ignored.json"), "not JSON5").unwrap();
+    fs::write(root.join("data/gear.json5"), "not a fallback catalog").unwrap();
+    fs::create_dir(root.join("data/gear/directory.json5")).unwrap();
+    let catalog = Catalog::load(root).unwrap();
+    let alpha = catalog.by_name2("Alpha blade").unwrap();
+    assert_eq!(catalog.piece(alpha).stat(Stat::Attack), 23.0);
+    assert!(catalog.piece(alpha).eligible_for(Job::Nin));
+    assert!(!catalog.piece(alpha).eligible_for(Job::War));
+    assert!(catalog.slot(Slot::Main).contains(&alpha));
+    assert!(catalog.slot(Slot::Head).contains(&alpha));
+    assert!(!catalog.foods().contains(&alpha), "type and directory must not infer membership");
+    let declarations = catalog.pieces().iter().filter(|piece| piece.name2.as_ref() == "Alpha blade").collect::<Vec<_>>();
+    assert_eq!(declarations.len(), 3);
+    for piece in declarations.iter().filter(|piece| piece.id != alpha) {
+        assert!(!Slot::ALL.iter().any(|slot| catalog.slot(*slot).contains(&piece.id)));
+        assert!(!catalog.foods().contains(&piece.id));
     }
-    let first = catalog.by_symbol("CollisionFirst").unwrap();
-    let last = catalog.by_symbol("CollisionLast").unwrap();
-    let unlisted = catalog.by_symbol("CollisionUnlisted").unwrap();
-    assert_eq!([first.index(), last.index(), unlisted.index()], [original_count, original_count + 1, original_count + 2]);
-    assert_eq!(catalog.by_original_id(u32::MAX), Some(unlisted));
-    assert_eq!(catalog.by_name2("Collision"), Some(last));
-    assert_eq!(catalog.piece(last).stat(Stat::Attack), 23.0);
-    let main = catalog.slot(Slot::Main);
-    assert_eq!(&main[main.len() - 2..], [first, first]);
-    let foods = catalog.foods();
-    assert_eq!(&foods[foods.len() - 2..], [foods[0], foods[0]]);
-    assert_eq!(catalog.piece(catalog.empty).original_id, 1000);
-    assert_eq!(catalog.piece(catalog.empty).stat(Stat::Attack), 17.0);
-    assert_eq!(catalog.symbols().iter().rev().take(3).map(|symbol| symbol.name.as_ref()).collect::<Vec<_>>(), ["CollisionUnlisted", "CollisionLast", "CollisionFirst"]);
+    assert_eq!(catalog.by_name2("Alpha meal"), None);
+    assert_eq!(catalog.piece(catalog.food_by_name("Zulu meal base").unwrap()).name2.as_ref(), "Alpha meal");
+    assert_eq!(catalog.food_by_name("Alpha meal"), None);
+    assert_eq!(catalog.slot(Slot::Main).iter().map(|id| catalog.piece(*id).name2.as_ref()).collect::<Vec<_>>(),
+        ["Alpha blade", "Empty", "Example weapon", "Zulu blade"]);
+    assert_eq!(catalog.foods().iter().map(|id| catalog.piece(*id).name2.as_ref()).collect::<Vec<_>>(),
+        ["Alpha meal", "Example food", "Zulu meal"]);
+    assert_eq!(catalog.pieces().iter().filter(|piece| piece.name2.as_ref() == "Empty").count(), 1);
+    for &slot in Slot::ALL { assert!(catalog.slot(slot).contains(&catalog.empty)); }
+    for (index, piece) in catalog.pieces().iter().enumerate() { assert_eq!(piece.id.index(), index); }
+    let membership = |catalog: &Catalog| {
+        let slots = Slot::ALL.iter().map(|slot| catalog.slot(*slot).iter()
+            .map(|id| catalog.piece(*id).name2.to_string()).collect::<Vec<_>>()).collect::<Vec<_>>();
+        let foods = catalog.foods().iter().map(|id| catalog.piece(*id).name2.to_string()).collect::<Vec<_>>();
+        (slots, foods)
+    };
+    fs::rename(root.join("data/gear/a/armor.json5"), root.join("data/gear/z/armor.json5")).unwrap();
+    fs::rename(root.join("data/gear/z/weapons.json5"), root.join("data/gear/a/weapons.json5")).unwrap();
+    let moved = Catalog::load(root).unwrap();
+    assert_eq!(membership(&moved), membership(&catalog));
+    assert_eq!(moved.piece(moved.by_name2("Alpha blade").unwrap()).stat(Stat::Attack), 23.0);
+}
+
+#[test]
+fn selectable_labels_cannot_conflict_across_fragments_or_selection_kinds() {
+    for (first_slot, second_slot) in [("main", "feet"), ("food", "main"), ("food", "food")] {
+        let temporary = copied_resources();
+        write_fragment(temporary.path(), "a.json5", vec![test_piece("Conflicting selection", &[first_slot])]);
+        let mut conflicting = test_piece("Conflicting selection", &[second_slot]);
+        conflicting["stats"] = json!({"Attack": 99});
+        write_fragment(temporary.path(), "nested/z.json5", vec![conflicting]);
+        let message = assert_data_error(temporary.path(), "data/gear/nested/z.json5", "$.pieces[0].name2");
+        assert!(message.contains("Conflicting selection"), "{message}");
+        assert!(message.contains(&temporary.path().join("data/gear/a.json5").display().to_string()), "{message}");
+        assert!(message.contains("$.pieces[0].name2"), "{message}");
+    }
+}
+
+#[test]
+fn food_base_name_ambiguity_reports_both_origins_instead_of_overriding() {
+    let temporary = copied_resources();
+    let mut first = test_piece("Shared meal", &["food"]);
+    first["name2"] = json!("Shared meal R0");
+    let mut second = first.clone();
+    second["name2"] = json!("Shared meal R1");
+    write_fragment(temporary.path(), "a.json5", vec![first]);
+    write_fragment(temporary.path(), "nested/z.json5", vec![second]);
+    let message = assert_data_error(temporary.path(), "data/gear/nested/z.json5", "$.pieces[0].name");
+    assert!(message.contains("Shared meal"), "{message}");
+    assert!(message.contains(&temporary.path().join("data/gear/a.json5").display().to_string()), "{message}");
+    assert!(message.contains("$.pieces[0].name"), "{message}");
+}
+
+#[test]
+fn missing_and_empty_fragment_directories_never_fall_back_to_a_monolith() {
+    for missing in [false, true] {
+        let temporary = copied_resources();
+        fs::remove_dir_all(temporary.path().join("data/gear")).unwrap();
+        if !missing { fs::create_dir(temporary.path().join("data/gear")).unwrap(); }
+        fs::write(temporary.path().join("data/gear.json5"), r#"{"schema_version":2,"pieces":[]}"#).unwrap();
+        assert_data_error(temporary.path(), "data/gear", "$");
+    }
+}
+
+#[test]
+fn nested_fragment_read_parse_and_record_errors_keep_the_fragment_path() {
+    let temporary = copied_resources();
+    let file = "data/gear/nested/broken.json5";
+    write_fragment(temporary.path(), "nested/broken.json5", vec![]);
+    fs::write(temporary.path().join(file), [0xff]).unwrap();
+    assert_data_error(temporary.path(), file, "$");
+    fs::write(temporary.path().join(file), "{\n schema_version: ?,\n}").unwrap();
+    match Catalog::load(temporary.path()).unwrap_err() {
+        CalcError::Data { path, json_path, .. } => {
+            assert_eq!(path, temporary.path().join(file));
+            assert!(json_path.starts_with("$ (line 2, column "), "{json_path}");
+        }
+        error => panic!("expected a fragment data error, got {error}"),
+    }
+    write_fragment(temporary.path(), "nested/broken.json5", vec![test_piece("Broken", &["feet"])]);
+    alter(temporary.path(), file, |source| { source["schema_version"] = json!(1); });
+    assert_data_error(temporary.path(), file, "$.schema_version");
+    alter(temporary.path(), file, |source| {
+        source["schema_version"] = json!(2);
+        source["pieces"][0]["stats"]["Attack1"] = json!(7);
+    });
+    assert_data_error(temporary.path(), file, "$.pieces[0].stats.Attack1");
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn case_only_fragment_paths_are_rejected_before_their_records_can_conflict() {
+    let temporary = copied_resources();
+    write_fragment(temporary.path(), "Sets/Armor.json5", vec![test_piece("Shared armor", &["head"])]);
+    write_fragment(temporary.path(), "sets/armor.json5", vec![test_piece("Shared armor", &["head"])]);
+    let message = assert_data_error(temporary.path(), "data/gear/sets/armor.json5", "$");
+    assert!(message.contains("case-only"), "{message}");
+    assert!(message.contains(&temporary.path().join("data/gear/Sets/Armor.json5").display().to_string()), "{message}");
+}
+
+#[cfg(unix)]
+#[test]
+fn symlinked_files_directories_and_roots_are_not_followed() {
+    use std::os::unix::fs::symlink;
+
+    let temporary = copied_resources();
+    let outside = tempfile::tempdir().unwrap();
+    fs::write(outside.path().join("broken.json5"), "not JSON5").unwrap();
+    let directory = temporary.path().join("data/gear");
+    symlink(outside.path(), directory.join("linked-directory")).unwrap();
+    symlink(outside.path().join("broken.json5"), directory.join("linked-file.json5")).unwrap();
+    symlink(outside.path().join("missing.json5"), directory.join("dangling.json5")).unwrap();
+    symlink(&directory, directory.join("cycle")).unwrap();
+    let catalog = Catalog::load(temporary.path()).unwrap();
+    assert!(catalog.by_name2("Example weapon").is_some());
+    fs::rename(&directory, temporary.path().join("data/previous-gear")).unwrap();
+    symlink(temporary.path().join("data/previous-gear"), &directory).unwrap();
+    assert_data_error(temporary.path(), "data/gear", "$");
 }
 
 #[test]
 fn gear_equality_preserves_presence_job_order_and_exact_numeric_literals() {
     let temporary = copied_resources();
-    alter(temporary.path(), "data/gear.json", |source| {
-        let mut piece = source["pieces"][15].clone();
-        piece["name"] = json!("Equality weapon");
-        piece["name2"] = json!("Equality weapon");
-        piece["jobs"] = json!(["war", "mnk"]);
+    alter(temporary.path(), "data/gear/test.json5", |source| {
+        let mut piece = test_piece("Equality weapon", &[]);
         piece["stats"] = json!({"STR": 0, "Accuracy": 1});
-        append_piece(source, "OrderedStats", 100_000, piece.clone());
+        append_piece(source, piece.clone());
         let mut reordered = Map::new();
         reordered.insert("Accuracy".to_owned(), json!(1.0));
         reordered.insert("STR".to_owned(), json!(-0.0));
         piece["stats"] = Value::Object(reordered);
-        append_piece(source, "ReorderedStats", 100_001, piece.clone());
+        append_piece(source, piece.clone());
         piece["stats"] = json!({"Accuracy": 1});
-        append_piece(source, "AbsentZero", 100_002, piece.clone());
+        append_piece(source, piece.clone());
         piece["stats"] = json!({"STR": 0, "Accuracy": 1});
         piece["jobs"] = json!(["mnk", "war"]);
-        append_piece(source, "ReorderedJobs", 100_003, piece.clone());
+        append_piece(source, piece.clone());
         piece["jobs"] = json!(["war", "mnk"]);
         piece["stats"] = json!({"STR": 9_007_199_254_740_992u64});
-        append_piece(source, "ExactInteger", 100_004, piece.clone());
+        append_piece(source, piece.clone());
         piece["stats"] = json!({"STR": 9_007_199_254_740_993u64});
-        append_piece(source, "NeighborInteger", 100_005, piece.clone());
+        append_piece(source, piece.clone());
         piece["stats"] = json!({"STR": 9_007_199_254_740_992.0});
-        append_piece(source, "EqualFloat", 100_006, piece);
+        append_piece(source, piece);
     });
     let catalog = Catalog::load(temporary.path()).unwrap();
     let state = ModelState::new(catalog.pieces().len());
-    let piece = |name| catalog.piece(catalog.by_symbol(name).unwrap());
-    let ordered = piece("OrderedStats");
-    let reordered = piece("ReorderedStats");
+    let pieces = catalog.pieces().iter().filter(|piece| piece.name2.as_ref() == "Equality weapon").collect::<Vec<_>>();
+    let ordered = pieces[0];
+    let reordered = pieces[1];
     assert_eq!(ordered.stats.iter().map(|entry| entry.stat).collect::<Vec<_>>(), [Stat::Str, Stat::Accuracy]);
     assert_eq!(reordered.stats.iter().map(|entry| entry.stat).collect::<Vec<_>>(), [Stat::Accuracy, Stat::Str]);
     assert!(ordered.value_equal(reordered, &state));
     assert!(reordered.stats[1].literal.as_f64().unwrap().is_sign_negative());
-    let absent = piece("AbsentZero");
+    let absent = pieces[2];
     assert_eq!(ordered.stat(Stat::Str), absent.stat(Stat::Str));
     assert!(!ordered.value_equal(absent, &state));
-    assert!(!ordered.value_equal(piece("ReorderedJobs"), &state));
-    let integer = piece("ExactInteger");
-    let neighbor = piece("NeighborInteger");
+    assert!(!ordered.value_equal(pieces[3], &state));
+    let integer = pieces[4];
+    let neighbor = pieces[5];
     assert_eq!(integer.stat(Stat::Str), neighbor.stat(Stat::Str));
     assert!(!integer.value_equal(neighbor, &state));
-    assert!(integer.value_equal(piece("EqualFloat"), &state));
+    assert!(integer.value_equal(pieces[6], &state));
 }
 
 #[test]
 fn optional_rank_and_wsc_are_not_inferred_or_normalized() {
     let temporary = copied_resources();
-    alter(temporary.path(), "data/gear.json", |source| {
-        let mut piece = source["pieces"][15].clone();
-        piece["name2"] = json!("Optional weapon R30");
-        piece["rank"] = Value::Null;
-        piece["wsc"] = Value::Null;
-        append_piece(source, "NullOptions", 100_000, piece.clone());
+    alter(temporary.path(), "data/gear/test.json5", |source| {
+        let mut piece = test_piece("Optional weapon R30", &[]);
+        append_piece(source, piece.clone());
         piece.as_object_mut().unwrap().remove("rank");
         piece.as_object_mut().unwrap().remove("wsc");
-        append_piece(source, "AbsentOptions", 100_001, piece.clone());
+        append_piece(source, piece.clone());
         piece["rank"] = json!(-5);
         piece["wsc"] = json!(["CHR", 3.75]);
         piece["dmg"] = json!(12.5);
         piece["delay"] = json!(-0.0);
-        append_piece(source, "ExplicitOptions", 100_002, piece);
+        append_piece(source, piece);
     });
     let catalog = Catalog::load(temporary.path()).unwrap();
-    for symbol in ["NullOptions", "AbsentOptions"] {
-        let piece = catalog.piece(catalog.by_symbol(symbol).unwrap());
+    let pieces = catalog.pieces().iter().filter(|piece| piece.name2.as_ref() == "Optional weapon R30").collect::<Vec<_>>();
+    for piece in &pieces[..2] {
         assert_eq!(piece.rank, None);
         assert_eq!(piece.wsc, None);
     }
-    let piece = catalog.piece(catalog.by_symbol("ExplicitOptions").unwrap());
+    let piece = pieces[2];
     assert_eq!(piece.rank, Some(-5));
     assert_eq!(piece.wsc.unwrap().stat, Stat::Chr);
     assert_eq!(piece.wsc.unwrap().percent, 3.75);
@@ -415,8 +685,8 @@ fn unknown_and_internal_only_gear_stats_report_exact_spelling_and_path() {
         ("main Sword Skill", "$.pieces[0].stats[\"main Sword Skill\"]"),
     ] {
         let temporary = copied_resources();
-        alter(temporary.path(), "data/gear.json", |source| { source["pieces"][0]["stats"][name] = json!(1); });
-        let message = assert_data_error(temporary.path(), "data/gear.json", path);
+        alter(temporary.path(), "data/gear/test.json5", |source| { source["pieces"][0]["stats"][name] = json!(1); });
+        let message = assert_data_error(temporary.path(), "data/gear/test.json5", path);
         assert!(message.contains(name), "missing exact spelling in {message}");
     }
 }
@@ -424,40 +694,43 @@ fn unknown_and_internal_only_gear_stats_report_exact_spelling_and_path() {
 #[test]
 fn declared_only_internal_stats_are_preserved_but_rejected_in_slot_lists() {
     let temporary = copied_resources();
-    alter(temporary.path(), "data/gear.json", |source| {
-        let mut piece = source["pieces"][0].clone();
-        piece["name2"] = json!("Declared internal stat");
+    alter(temporary.path(), "data/gear/test.json5", |source| {
+        let mut piece = test_piece("Declared internal stat", &[]);
         piece["stats"] = json!({"Dark Magic Skill": 20});
-        append_piece(source, "DeclaredInternal", u32::MAX, piece);
+        append_piece(source, piece);
     });
     let catalog = Catalog::load(temporary.path()).unwrap();
-    let id = catalog.by_symbol("DeclaredInternal").unwrap();
+    let id = catalog.pieces().iter().find(|piece| piece.name2.as_ref() == "Declared internal stat").unwrap().id;
     assert_eq!(catalog.piece(id).stat(Stat::DarkMagicSkill), 20.0);
     assert!(!catalog.slot(Slot::Main).contains(&id));
 
     let index = catalog.pieces().len() - 1;
-    alter(temporary.path(), "data/gear.json", |source| {
-        source["slots"]["main"].as_array_mut().unwrap().push(json!(u32::MAX));
+    alter(temporary.path(), "data/gear/test.json5", |source| {
+        source["pieces"][index]["slots"] = json!(["main"]);
     });
-    assert_data_error(temporary.path(), "data/gear.json", &format!("$.pieces[{index}].stats[\"Dark Magic Skill\"]"));
+    assert_data_error(temporary.path(), "data/gear/test.json5", &format!("$.pieces[{index}].stats[\"Dark Magic Skill\"]"));
 }
 
 #[test]
-fn malformed_references_and_typed_values_report_the_specific_field() {
+fn malformed_schema_and_typed_values_report_the_specific_field() {
     type Change = fn(&mut Value);
     let cases: &[(&str, &str, Change)] = &[
-        ("data/gear.json", "$.pieces[1].id", |source| { source["pieces"][1]["id"] = source["pieces"][0]["id"].clone(); }),
-        ("data/gear.json", "$.symbols.Dangling", |source| { source["symbols"]["Dangling"] = json!(u32::MAX); }),
-        ("data/gear.json", "$.slots.main[0]", |source| { source["slots"]["main"][0] = json!(u32::MAX); }),
-        ("data/gear.json", "$.foods[0]", |source| { source["foods"][0] = json!(u32::MAX); }),
-        ("data/gear.json", "$.pieces[0].jobs[0]", |source| { source["pieces"][0]["jobs"][0] = json!("War"); }),
-        ("data/gear.json", "$.pieces[0].wsc[1]", |source| { source["pieces"][0]["wsc"] = json!(["STR", "not a number"]); }),
-        ("data/gear.json", "$.symbols.Empty", |source| { source["symbols"]["Empty"] = source["pieces"][1]["id"].clone(); }),
-        ("data/enemies.json", "$.enemies[0][\"Magic Defense\"]", |source| { source["enemies"][0].as_object_mut().unwrap().remove("Magic Defense"); }),
-        ("data/buffs.json", "$.cor.Chaos[\"Attack%\"].potency.XI", |source| { source["cor"]["Chaos"]["Attack%"]["potency"].as_object_mut().unwrap().remove("XI"); }),
-        ("data/buffs.json", "$.brd_song_limits[\"Honor March\"]", |source| { source["brd_song_limits"].as_object_mut().unwrap().remove("Honor March"); }),
-        ("data/buffs.json", "$.misc_debuffs[\"Box Step (sub)\"][\"job requirement\"][0]", |source| { source["misc_debuffs"]["Box Step (sub)"]["job requirement"][0] = json!("dancer"); }),
-        ("data/pup-attachments.json", "$.attachments[0].Capacity", |source| { source["attachments"][0]["Capacity"] = json!("two"); }),
+        ("data/gear/test.json5", "$.schema_version", |source| { source["schema_version"] = json!(1); }),
+        ("data/gear/test.json5", "$.pieces[1].id", |source| { source["pieces"][1]["id"] = json!(7); }),
+        ("data/gear/test.json5", "$.symbols", |source| { source["symbols"] = json!({}); }),
+        ("data/gear/test.json5", "$.pieces[0].slots", |source| { source["pieces"][0].as_object_mut().unwrap().remove("slots"); }),
+        ("data/gear/test.json5", "$.pieces[0].slots[0]", |source| { source["pieces"][0]["slots"] = json!(["ears"]); }),
+        ("data/gear/test.json5", "$.pieces[0].slots[1]", |source| { source["pieces"][0]["slots"] = json!(["main", "main"]); }),
+        ("data/gear/test.json5", "$.pieces[0].jobs[0]", |source| { source["pieces"][0]["jobs"][0] = json!("War"); }),
+        ("data/gear/test.json5", "$.pieces[0].wsc[1]", |source| { source["pieces"][0]["wsc"] = json!(["STR", "not a number"]); }),
+        ("data/enemies.json5", "$.schema_version", |source| { source["schema_version"] = json!(2); }),
+        ("data/buffs.json5", "$.schema_version", |source| { source["schema_version"] = json!(2); }),
+        ("data/pup-attachments.json5", "$.schema_version", |source| { source["schema_version"] = json!(2); }),
+        ("data/enemies.json5", "$.enemies[0][\"Magic Defense\"]", |source| { source["enemies"][0].as_object_mut().unwrap().remove("Magic Defense"); }),
+        ("data/buffs.json5", "$.cor.Chaos[\"Attack%\"].potency.XI", |source| { source["cor"]["Chaos"]["Attack%"]["potency"].as_object_mut().unwrap().remove("XI"); }),
+        ("data/buffs.json5", "$.brd_song_limits[\"Honor March\"]", |source| { source["brd_song_limits"].as_object_mut().unwrap().remove("Honor March"); }),
+        ("data/buffs.json5", "$.misc_debuffs[\"Box Step (sub)\"][\"job requirement\"][0]", |source| { source["misc_debuffs"]["Box Step (sub)"]["job requirement"][0] = json!("dancer"); }),
+        ("data/pup-attachments.json5", "$.attachments[0].Capacity", |source| { source["attachments"][0]["Capacity"] = json!("two"); }),
     ];
     for &(file, path, change) in cases {
         let temporary = copied_resources();
@@ -467,28 +740,29 @@ fn malformed_references_and_typed_values_report_the_specific_field() {
 }
 
 #[test]
-fn an_empty_piece_is_required_but_need_not_be_listed_or_have_a_symbol() {
+fn one_shared_empty_piece_is_required_but_need_not_be_listed() {
     let temporary = copied_resources();
-    alter(temporary.path(), "data/gear.json", |source| {
-        let empty_id = source["symbols"]["Empty"].clone();
-        source["symbols"].as_object_mut().unwrap().remove("Empty");
-        for members in source["slots"].as_object_mut().unwrap().values_mut() {
-            members.as_array_mut().unwrap().retain(|id| id != &empty_id);
-        }
+    alter(temporary.path(), "data/gear/test.json5", |source| {
+        source["pieces"][0]["slots"] = json!([]);
         source["pieces"][0]["stats"] = json!({"STR": 5});
     });
     let catalog = Catalog::load(temporary.path()).unwrap();
     assert_eq!(catalog.piece(catalog.empty).name2.as_ref(), "Empty");
     assert_eq!(catalog.piece(catalog.empty).stat(Stat::Str), 5.0);
     assert_eq!(catalog.by_name2("Empty"), None);
-    alter(temporary.path(), "data/gear.json", |source| { source["pieces"][0]["name2"] = json!("No empty piece"); });
-    assert_data_error(temporary.path(), "data/gear.json", "$.pieces");
+    write_fragment(temporary.path(), "z/duplicate-empty.json5", vec![test_piece("Empty", &[])]);
+    let message = assert_data_error(temporary.path(), "data/gear/z/duplicate-empty.json5", "$.pieces[0].name2");
+    assert!(message.contains("duplicate Empty"), "{message}");
+    assert!(message.contains(&temporary.path().join("data/gear/test.json5").display().to_string()), "{message}");
+    fs::remove_file(temporary.path().join("data/gear/z/duplicate-empty.json5")).unwrap();
+    alter(temporary.path(), "data/gear/test.json5", |source| { source["pieces"][0]["name2"] = json!("No empty piece"); });
+    assert_data_error(temporary.path(), "data/gear/test.json5", "$.pieces");
 }
 
 #[test]
 fn enemy_name_collisions_keep_first_menu_position_and_last_sorted_value() {
     let temporary = copied_resources();
-    alter(temporary.path(), "data/enemies.json", |source| {
+    alter(temporary.path(), "data/enemies.json5", |source| {
         let mut high = source["enemies"][0].clone();
         high["Name"] = json!("Repeated enemy");
         high["Level"] = json!(2000);

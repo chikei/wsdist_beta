@@ -220,7 +220,7 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
     }
     for pool in &mut candidates { pool.retain(|&id| engine.catalog.piece(id).eligible_for(request.player.main_job)); }
     let mut starting = request.player.gearset;
-    let empty = engine.catalog.by_symbol("Empty").ok_or_else(|| CalcError::Input { operation: "optimize", field: "Empty", message: "catalog has no Empty piece".into() })?;
+    let empty = engine.catalog.empty;
     for &slot in Slot::ALL {
         let index = slot.index();
         if !engine.catalog.piece(starting[index]).eligible_for(request.player.main_job) { starting[index] = empty; }
@@ -358,11 +358,11 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
             scratch.calculation.push(CalculationStep {
                 label: "Retained output provenance",
                 equation: None,
-                formula: "Damage and TP above use the last accepted scored set before final earring ordering: ear1 item ID = {scored_ear1}; ear2 item ID = {scored_ear2}. The returned set has ear1 item ID = {final_ear1}; ear2 item ID = {final_ear2}. The retained damage/TP are not recomputed for that final ordering.",
-                values: vec![("scored_ear1", f64::from(engine.catalog.piece(scored_ear1).original_id)),
-                    ("scored_ear2", f64::from(engine.catalog.piece(scored_ear2).original_id)),
-                    ("final_ear1", f64::from(engine.catalog.piece(best_set[Slot::Ear1.index()]).original_id)),
-                    ("final_ear2", f64::from(engine.catalog.piece(best_set[Slot::Ear2.index()]).original_id))],
+                formula: "Damage and TP above use the last accepted scored set before final earring ordering: ear1 runtime catalog-local index = {scored_ear1}; ear2 runtime catalog-local index = {scored_ear2}. The returned set has ear1 runtime catalog-local index = {final_ear1}; ear2 runtime catalog-local index = {final_ear2}. These indices identify this loaded catalog only. The retained damage/TP are not recomputed for that final ordering.",
+                values: vec![("scored_ear1", scored_ear1.index() as f64),
+                    ("scored_ear2", scored_ear2.index() as f64),
+                    ("final_ear1", best_set[Slot::Ear1.index()].index() as f64),
+                    ("final_ear2", best_set[Slot::Ear2.index()].index() as f64)],
             });
         }
         scratch.calculation.push(CalculationStep {

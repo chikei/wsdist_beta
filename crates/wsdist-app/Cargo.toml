@@ -26,6 +26,7 @@ slint-build.workspace = true
 winresource.workspace = true
 
 [dev-dependencies]
+json5.workspace = true
 wsdist-fixtures.workspace = true
 sha2.workspace = true
 image.workspace = true

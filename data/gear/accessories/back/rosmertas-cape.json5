@@ -1,0 +1,311 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape AGI Crit Rate",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape AGI DA",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape AGI Dual Wield",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape AGI Store TP",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape AGI Weapon Skill Damage",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape DEX Crit Rate",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape DEX DA",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape DEX Dual Wield",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape DEX Store TP",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape INT DA",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape INT Store TP",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape INT Weapon Skill Damage",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape MND DA",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape MND Weapon Skill Damage",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape STR Crit Rate",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape STR DA",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rosmerta's Cape",
+      name2: "Rosmerta's Cape STR Weapon Skill Damage",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

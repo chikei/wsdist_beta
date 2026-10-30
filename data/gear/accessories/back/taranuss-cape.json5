@@ -1,0 +1,329 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape DEX Crit Rate",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape DEX DA",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape DEX Dual Wield",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape DEX Store TP",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape INT DA",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape INT Magic Attack",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Magic Attack": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape INT Store TP",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape INT Weapon Skill Damage",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape MND DA",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape MND Weapon Skill Damage",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape MND Weapon Skill Damage (Magic)",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape STR Crit Rate",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape STR DA",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape STR Weapon Skill Damage",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Burst Damage": 5,
+      },
+    },
+    {
+      name: "Taranus's Cape",
+      name2: "Taranus's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "blm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Magic Burst Damage": 5,
+      },
+    },
+  ],
+}

@@ -54,8 +54,9 @@ pub fn num(value: f64) -> Value { to_value(LegacyF64(value)).unwrap() }
 pub fn nums(values: &[f64]) -> Value { Value::Array(values.iter().copied().map(num).collect()) }
 
 pub fn piece_value(cat: &FrozenCatalog, id: GearId) -> Value {
-    let piece = cat.catalog.piece(id);
-    Value::Array(vec![Value::from(piece.original_id), Value::String(piece.name2.to_string())])
+    // Full captured snapshots select the runtime piece; its name2 label stays
+    // meaningful when runtime catalog-local indices change.
+    Value::String(cat.catalog.piece(id).name2.to_string())
 }
 
 pub fn gearset_value(cat: &FrozenCatalog, gearset: &Gearset) -> Value {
@@ -204,6 +205,53 @@ pub fn trace_value(trace: &SearchTrace, cat: &FrozenCatalog) -> Value {
 
 pub const NATIVE_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/native");
 
+fn normalize_native_gear(observation: &mut Value) {
+    fn field(value: &mut Value, key: &str, normalize: fn(&mut Value)) {
+        if let Some(value) = value.as_object_mut().and_then(|fields| fields.get_mut(key)) { normalize(value); }
+    }
+    fn each(value: &mut Value, normalize: fn(&mut Value)) {
+        for value in value.as_array_mut().expect("native projection array") { normalize(value); }
+    }
+    fn piece(value: &mut Value) {
+        let captured = value.as_array().expect("frozen native gear projection");
+        assert_eq!(captured.len(), 2, "frozen native gear identity/label pair");
+        assert!(captured[0].as_u64().is_some(), "frozen native gear source identity");
+        assert!(captured[1].as_str().is_some(), "frozen native gear label");
+        *value = captured[1].clone();
+    }
+    fn pieces(value: &mut Value) { each(value, piece); }
+    fn pools(value: &mut Value) { each(value, pieces); }
+    fn player(value: &mut Value) { field(value, "gearset", pieces); }
+    fn similar(value: &mut Value) { each(value, |swap| field(swap, "gear", piece)); }
+    fn result(value: &mut Value) {
+        field(value, "gearset", pieces);
+        field(value, "player", player);
+        field(value, "accepted", |accepted| each(accepted, |candidate| field(candidate, "gearset", pieces)));
+        field(value, "similar", similar);
+    }
+    fn event(value: &mut Value) {
+        match value["kind"].as_str().expect("native trace event kind") {
+            "choice" => {
+                field(value, "pool", pieces);
+                field(value, "selected", piece);
+            }
+            "full_player_dt_verification" | "evaluate_metric" => field(value, "player", player),
+            "pass_return" => field(value, "similar", similar),
+            "build_return" => {
+                field(value, "starting", pieces);
+                field(value, "filtered", pools);
+                field(value, "player", player);
+            }
+            _ => {}
+        }
+    }
+    // Normalize only gear-bearing projections. Interned optimizer IDs, cursors,
+    // candidate order, numeric observations, and random draws remain exact.
+    field(observation, "result", result);
+    field(observation, "trace", |trace| each(trace, event));
+    field(observation, "steps", |steps| each(steps, normalize_native_gear));
+}
+
 pub fn expect_native(id: &str, legacy_sha256: &str, actual: &Value) {
     static INDEX: LazyLock<Value> = LazyLock::new(|| {
         let index = wsdist_fixtures::read_json_value(&Path::new(NATIVE_ROOT).join("index.json")).expect("native golden index");
@@ -213,11 +261,12 @@ pub fn expect_native(id: &str, legacy_sha256: &str, actual: &Value) {
     let entry = INDEX["cases"].as_array().unwrap().iter().find(|entry| entry["id"].as_str() == Some(id))
         .unwrap_or_else(|| panic!("no native golden for {id}; regenerate with examples/regenerate_native_goldens"));
     assert_eq!(entry["legacy_sha256"].as_str().unwrap(), legacy_sha256, "{id}: native golden legacy provenance");
-    let doc = wsdist_fixtures::read_value(&Path::new(NATIVE_ROOT).join(entry["path"].as_str().unwrap()),
+    let mut doc = wsdist_fixtures::read_value(&Path::new(NATIVE_ROOT).join(entry["path"].as_str().unwrap()),
         Some(entry["content_xxh3_128"].as_str().unwrap())).unwrap();
     assert_eq!(doc["id"], entry["id"], "{id}: native golden identity");
     assert_eq!(doc["legacy_case"]["path"], entry["legacy_path"], "{id}: native golden legacy path");
     assert_eq!(doc["legacy_case"]["sha256"], entry["legacy_sha256"], "{id}: native golden legacy source SHA-256");
+    normalize_native_gear(&mut doc["observation"]);
     assert_json_eq(actual, &doc["observation"], id);
 }
 

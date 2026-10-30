@@ -11,6 +11,10 @@ use wsdist_core::weaponskills::{WsScaling, resolve_name, weaponskill_info};
 #[path = "../support/observation.rs"]
 pub mod observation;
 
+#[path = "../legacy_player/support.rs"]
+#[allow(dead_code)]
+mod player_support;
+
 // An empty strict random protocol: setup must never draw, choose, or reseed.
 // These are rejected operations, not a no-op generator or numerical fallback.
 #[derive(Clone)]
@@ -85,8 +89,8 @@ pub fn boundary_player(case: &Value, catalog: &Catalog) -> Player {
     let mut gearset = [catalog.empty; Slot::COUNT];
     for &slot in Slot::ALL {
         let piece = &captured["gearset"][slot.name()];
-        let original_id = piece["id"].as_u64().expect("original gear ID") as u32;
-        let id = catalog.by_original_id(original_id).unwrap_or_else(|| panic!("{label}: {} missing original gear ID {original_id}", slot.name()));
+        let original = &case["input"]["player"]["gearset"][slot.name()];
+        let id = player_support::resolve_piece(catalog, original, &format!("{label}.gearset.{}", slot.name()));
         // Setup reads the base main name, not an alias or a future player build.
         assert_eq!(catalog.piece(id).name.as_ref(), piece["name"].as_str().unwrap(), "{label}: {} base name", slot.name());
         gearset[slot.index()] = id;

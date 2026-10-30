@@ -1,0 +1,226 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape DEX Crit Rate",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape DEX DA",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape DEX Dual Wield",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape DEX Store TP",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape DEX Weapon Skill Damage",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape INT DA",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape INT Store TP",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape INT Weapon Skill Damage",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape STR Crit Rate",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape STR DA",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape STR Weapon Skill Damage",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape VIT DA",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ogma's cape",
+      name2: "Ogma's cape VIT Weapon Skill Damage",
+      jobs: [
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

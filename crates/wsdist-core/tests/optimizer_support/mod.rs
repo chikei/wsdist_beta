@@ -226,13 +226,16 @@ pub fn assert_draw_count(actual: &CountingRandom, evidence: &Value, label: &str)
 }
 
 pub fn assert_changes(catalog: &FrozenCatalog, before: &ModelState, after: &ModelState, expected: &Value, label: &str) {
-    let changed: Vec<_> = catalog.catalog.pieces().iter().filter(|piece| before.skill(piece) != after.skill(piece)).collect();
+    let mut changed: std::collections::HashSet<_> = catalog.catalog.pieces().iter()
+        .filter(|piece| before.skill(piece) != after.skill(piece)).map(|piece| piece.id).collect();
     let expected = expected.as_array().unwrap();
     assert_eq!(changed.len(), expected.len(), "{label}: identity-local metadata changes");
-    for (piece, expected) in changed.iter().zip(expected) {
-        assert_eq!(piece.original_id as u64, expected["catalog_id"].as_u64().unwrap(), "{label}: mutated catalog identity");
-        assert_eq!(before.skill(piece).name(), expected["before"]["skill_type"].as_str().unwrap(), "{label}: prior skill");
-        assert_eq!(after.skill(piece).name(), expected["after"]["skill_type"].as_str().unwrap(), "{label}: effective skill");
+    for (index, expected) in expected.iter().enumerate() {
+        let path = format!("{label}.metadata_changes[{index}]");
+        let id = catalog.gear(&expected["before"]);
+        assert!(changed.remove(&id), "{path}: changed runtime catalog-local identity {}", id.index());
+        catalog.assert_piece(id, Some(before), &expected["before"], &format!("{path}.before"));
+        catalog.assert_piece(id, Some(after), &expected["after"], &format!("{path}.after"));
     }
 }
 
@@ -514,7 +517,7 @@ pub fn assert_sequence_legacy(case: &Value, run: &SequenceRun, catalog: &FrozenC
         assert_pass_observation(&expected["steps"][index], step, catalog, &format!("{label}.step[{index}]"));
     }
     assert_changes(catalog, &run.before, &run.state, &expected["catalog_metadata_changes"], label);
-    let empty = catalog.catalog.piece(catalog.catalog.by_symbol("Empty").unwrap());
+    let empty = catalog.catalog.piece(catalog.catalog.empty);
     assert_eq!(run.state.skill(empty), SkillType::HandToHand, "{label}: sequential shared Empty override");
     assert_eq!(run.isolated.skill(empty), SkillType::None, "{label}: independent session override boundary");
 }

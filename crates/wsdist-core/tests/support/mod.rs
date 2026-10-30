@@ -278,7 +278,10 @@ pub fn verify_corpus(root: &Path) -> CorpusReport {
             "note": "Oracle hashes are frozen provenance, not a claim that Python or its source is executed by this verifier."});
         let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
         start_measurements();
-        let catalog_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catalog::verify(&resource_root(), &catalog, &manifest)));
+        let catalog_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let frozen = player_support::document_json(&root.join("catalog.json"));
+            catalog::verify(&resource_root(), &catalog, &manifest, &frozen)
+        }));
         report.numeric_comparisons.merge(serde_json::to_value(finish_measurements()).unwrap());
         match catalog_result {
             Ok(value) => report.catalog = value,

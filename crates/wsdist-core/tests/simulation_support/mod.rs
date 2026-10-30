@@ -64,7 +64,7 @@ fn assert_model_changes(frozen: &FrozenCatalog, state: &ModelState, changes: &Va
         let expected = changes.iter().find(|change| frozen.gear(&change["before"]) == piece.id);
         let expected_skill = expected.map_or(piece.skill_type, |change|
             SkillType::from_name(change["after"]["skill_type"].as_str().unwrap()).unwrap());
-        assert_eq!(state.skill(piece), expected_skill, "{label}: metadata state for original identity {}", piece.original_id);
+        assert_eq!(state.skill(piece), expected_skill, "{label}: metadata state for runtime catalog-local identity {}", piece.id.index());
         if let Some(change) = expected {
             assert_eq!(piece.skill_type.name(), change["before"]["skill_type"].as_str().unwrap(), "{label}: shared catalog remains immutable");
         }

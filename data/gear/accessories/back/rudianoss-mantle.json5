@@ -1,0 +1,345 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle AGI Crit Rate",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle AGI DA",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle AGI Dual Wield",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle AGI Store TP",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle AGI Weapon Skill Damage",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle DEX Crit Rate",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle DEX DA",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle DEX Dual Wield",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle DEX Store TP",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle INT DA",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle INT Store TP",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle MND DA",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle MND Weapon Skill Damage",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle STR Crit Rate",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle STR DA",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle VIT DA",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Rudianos's Mantle",
+      name2: "Rudianos's Mantle VIT Weapon Skill Damage",
+      jobs: [
+        "pld",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

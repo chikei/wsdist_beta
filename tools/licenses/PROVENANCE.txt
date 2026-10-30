@@ -8,10 +8,12 @@ Project contributors and the original asset rights holders retain their rights.
 Before redistributing a build, establish the permissions applicable to those
 materials independently of the third-party software licenses below.
 
-The equipment, enemy, buff and attachment JSON catalogs were materialized from
-the original repository's Python catalogs in a one-time migration. defaults.json,
-item_list.csv and icons32 are retained repository assets. Their conversion or
-inclusion here does not establish a new license or independent game accuracy.
+The equipment, enemy, buff and attachment catalogs under data/ are now JSON5.
+They were originally materialized as JSON from the repository's Python catalogs
+in a one-time migration, then converted to JSON5 without changing their values,
+numeric literals or ordering. defaults.json, item_list.csv and icons32 are
+retained repository assets. Their conversion or inclusion here does not establish
+a new license or independent game accuracy.
 No Python implementation, reference snapshot, capture program, numerical fixture,
 Qt runtime, or Python runtime is part of this native distribution.
 The local wsdist-app/wsdist-core crates are explicitly unpublished and excluded

@@ -1,0 +1,294 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle DEX Crit Rate",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle DEX DA",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle DEX Dual Wield",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle DEX Store TP",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle INT DA",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle INT Magic Attack",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Magic Attack": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle INT Store TP",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle STR Crit Rate",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle STR DA",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle VIT DA",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Ankou's Mantle",
+      name2: "Ankou's Mantle VIT Weapon Skill Damage",
+      jobs: [
+        "drk",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

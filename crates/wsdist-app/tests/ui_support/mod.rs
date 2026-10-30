@@ -66,7 +66,6 @@ pub fn assert_stats(actual: &Stats, expected: &Value, label: &str) {
 
 pub fn assert_piece_state(state: &UiState, id: GearId, expected: &Value, label: &str) {
     let piece = state.engine.catalog.piece(id);
-    assert_eq!(u64::from(piece.original_id), expected["catalog_id"].as_u64().unwrap(), "{label}: catalog identity");
     support::assert_piece(piece, None, &expected["original"], &format!("{label}.original"));
     support::assert_piece(piece, Some(&state.engine.state), &expected["effective"], &format!("{label}.effective"));
 }

@@ -1,9 +1,10 @@
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use wsdist_fixtures::Value;
 use wsdist_core::model::{
-    Abilities, ActiveEffects, CalcError, EffectBucket, EvaluationContext, GearPiece, Job,
+    Abilities, ActiveEffects, CalcError, EffectBucket, EvaluationContext, GearId, GearPiece, Job,
     LegacyF64, ModelState, Player, PlayerInput, PlayerStage, RandomSource, RandomStream,
     SkillType, Slot, WscContribution,
 };
@@ -43,6 +44,35 @@ pub fn app_fixtures() -> PathBuf {
 
 pub fn document_json(path: &Path) -> Value {
     wsdist_fixtures::read_json_value(path).unwrap_or_else(|error| panic!("{error}"))
+}
+
+pub fn document_catalog(path: &Path) -> Value {
+    let source = std::fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    json5::from_str(&source).unwrap_or_else(|error| panic!("{}: {error}", path.display()))
+}
+
+pub fn copy_resources(destination: &Path) {
+    fn copy_fragments(source: &Path, destination: &Path) {
+        std::fs::create_dir_all(destination).unwrap();
+        for entry in std::fs::read_dir(source).unwrap() {
+            let entry = entry.unwrap();
+            let kind = entry.file_type().unwrap();
+            if kind.is_dir() {
+                copy_fragments(&entry.path(), &destination.join(entry.file_name()));
+            } else if kind.is_file()
+                && entry.path().extension().is_some_and(|extension| extension == "json5")
+            {
+                std::fs::copy(entry.path(), destination.join(entry.file_name())).unwrap();
+            }
+        }
+    }
+    let source = resource_root();
+    std::fs::create_dir_all(destination.join("data")).unwrap();
+    for name in ["data/enemies.json5", "data/buffs.json5", "data/pup-attachments.json5", "item_list.csv"] {
+        std::fs::copy(source.join(name), destination.join(name)).unwrap();
+    }
+    copy_fragments(&source.join("data/gear"), &destination.join("data/gear"));
 }
 
 pub fn fixture(root: &Path, entry: &Value) -> Value {
@@ -109,7 +139,7 @@ pub fn assert_metadata(player: &Player, expected: &Value, path: &str) {
 }
 
 pub fn assert_piece(piece: &GearPiece, state: Option<&ModelState>, expected: &Value, path: &str) {
-    assert_eq!(u64::from(piece.original_id), expected["id"].as_u64().unwrap(), "{path}.id");
+    // Captured IDs are evidence-local labels, not identities of this catalog.
     assert_eq!(piece.name.as_ref(), expected["name"].as_str().unwrap(), "{path}.name");
     assert_eq!(piece.name2.as_ref(), expected["name2"].as_str().unwrap(), "{path}.name2");
     assert_eq!(piece.jobs.iter().map(|job| job.name()).collect::<Vec<_>>(), expected["jobs"].as_array().unwrap().iter().map(|job| job.as_str().unwrap()).collect::<Vec<_>>(), "{path}.jobs/order");
@@ -136,7 +166,110 @@ pub fn assert_piece(piece: &GearPiece, state: Option<&ModelState>, expected: &Va
     }
 }
 
+pub fn piece_snapshot(piece: &GearPiece) -> Value {
+    let stats = piece.stats.iter().map(|entry| (
+        entry.stat.name().to_owned(), wsdist_fixtures::to_value(&entry.literal).unwrap(),
+    )).collect::<wsdist_fixtures::Map>();
+    Value::Object([
+        ("name", Value::String(piece.name.to_string())),
+        ("name2", Value::String(piece.name2.to_string())),
+        ("jobs", Value::Array(piece.jobs.iter().map(|job| Value::String(job.name().to_owned())).collect())),
+        ("type", Value::String(piece.kind.name().to_owned())),
+        ("skill_type", Value::String(piece.skill_type.name().to_owned())),
+        ("dmg", wsdist_fixtures::to_value(piece.dmg).unwrap()),
+        ("delay", wsdist_fixtures::to_value(piece.delay).unwrap()),
+        ("rank", wsdist_fixtures::to_value(piece.rank).unwrap()),
+        ("wsc", piece.wsc.map_or(Value::Null, |value| Value::Array(vec![
+            Value::String(value.stat.name().to_owned()), wsdist_fixtures::to_value(value.percent).unwrap(),
+        ]))),
+        ("stats", Value::Object(stats)),
+    ].into_iter().map(|(name, value)| (name.to_owned(), value)).collect())
+}
+
+pub fn piece_matches(piece: &GearPiece, expected: &Value) -> bool {
+    if Some(piece.name.as_ref()) != expected["name"].as_str()
+        || Some(piece.name2.as_ref()) != expected["name2"].as_str()
+        || Some(piece.kind.name()) != expected["type"].as_str()
+        || Some(piece.skill_type.name()) != expected["skill_type"].as_str()
+        || piece.dmg.to_bits() != number(&expected["dmg"]).to_bits()
+        || piece.delay.to_bits() != number(&expected["delay"]).to_bits()
+        || piece.rank != expected["rank"].as_i64()
+    {
+        return false;
+    }
+    let jobs = expected["jobs"].as_array().unwrap();
+    if piece.jobs.len() != jobs.len()
+        || !piece.jobs.iter().zip(jobs).all(|(job, expected)| Some(job.name()) == expected.as_str())
+    {
+        return false;
+    }
+    match (piece.wsc, expected["wsc"].as_array()) {
+        (Some(actual), Some(expected))
+            if Some(actual.stat.name()) == expected[0].as_str()
+                && actual.percent.to_bits() == number(&expected[1]).to_bits() => {}
+        (None, None) if expected["wsc"].is_null() => {}
+        _ => return false,
+    }
+    let stats = expected["stats"].as_object().unwrap();
+    piece.stats.len() == stats.len()
+        && piece.stats.iter().zip(stats).all(|(actual, (name, expected))| {
+            actual.stat.name() == name
+                && wsdist_fixtures::to_value(&actual.literal).unwrap() == *expected
+        })
+}
+
+pub fn resolve_piece(catalog: &Catalog, captured: &Value, path: &str) -> GearId {
+    let original = captured.get("original").unwrap_or(captured);
+    let name2 = original["name2"].as_str().unwrap();
+    // Listed records have an unambiguous name2. Dormant duplicate declarations
+    // instead match their complete ordered snapshot; equal duplicates are
+    // interchangeable until a case explicitly requests distinct identities.
+    catalog.by_name2(name2).filter(|&id| piece_matches(catalog.piece(id), original))
+        .or_else(|| catalog.pieces().iter().find(|piece| piece_matches(piece, original)).map(|piece| piece.id))
+        .unwrap_or_else(|| panic!("{path}: no catalog record matches captured snapshot {name2:?}"))
+}
+
+pub fn resolve_piece_occurrences(catalog: &Catalog, captured: &[Value], path: &str) -> Vec<GearId> {
+    let mut used = HashSet::new();
+    captured.iter().enumerate().map(|(index, expected)| {
+        let preferred = catalog.by_name2(expected["name2"].as_str().unwrap())
+            .filter(|id| !used.contains(id) && piece_matches(catalog.piece(*id), expected));
+        let id = preferred.or_else(|| catalog.pieces().iter()
+            .find(|piece| !used.contains(&piece.id) && piece_matches(piece, expected))
+            .map(|piece| piece.id))
+            .unwrap_or_else(|| panic!("{path}[{index}]: no unmatched record for captured snapshot {:?}", expected["name2"]));
+        used.insert(id);
+        id
+    }).collect()
+}
+
 pub fn parse_input(value: &Value, catalog: &Catalog, state: &ModelState, path: &str) -> PlayerInput {
+    let mut identities = HashMap::new();
+    let mut used = HashSet::new();
+    parse_input_with_resolver(value, catalog, state, path, |original, label| {
+        let captured = original.get("id").and_then(Value::as_u64);
+        if let Some(id) = captured.and_then(|id| identities.get(&id).copied()) {
+            return id;
+        }
+        let mut id = resolve_piece(catalog, original, label);
+        if captured.is_some() && used.contains(&id) {
+            id = catalog.pieces().iter()
+                .find(|piece| !used.contains(&piece.id) && piece_matches(piece, original))
+                .map(|piece| piece.id)
+                .unwrap_or_else(|| panic!("{label}: distinct captured identities need distinct matching records"));
+        }
+        if let Some(captured) = captured {
+            identities.insert(captured, id);
+            used.insert(id);
+        }
+        id
+    })
+}
+
+pub fn parse_input_with_resolver(
+    value: &Value, catalog: &Catalog, state: &ModelState, path: &str,
+    mut resolve: impl FnMut(&Value, &str) -> GearId,
+) -> PlayerInput {
     let main_job = Job::parse_player_name(value["main_job"].as_str().unwrap()).unwrap();
     let sub_name = value["sub_job"].as_str().unwrap();
     let sub_job = if sub_name.eq_ignore_ascii_case("none") { None } else { Some(Job::parse_player_name(sub_name).unwrap()) };
@@ -146,7 +279,7 @@ pub fn parse_input(value: &Value, catalog: &Catalog, state: &ModelState, path: &
         let slot = Slot::ALL[index];
         let record = &source_gear[slot.name()];
         let original = record.get("original").unwrap_or(record);
-        let id = catalog.by_original_id(original["id"].as_u64().unwrap() as u32).unwrap();
+        let id = resolve(original, &format!("{path}.gearset.{}", slot.name()));
         assert_piece(catalog.piece(id), None, original, &format!("{path}.gearset.{}.original", slot.name()));
         if let Some(effective) = record.get("effective") {
             assert_piece(catalog.piece(id), Some(state), effective, &format!("{path}.gearset.{}.effective", slot.name()));
@@ -228,14 +361,21 @@ pub fn compare_build(
     let changed: Vec<_> = ctx.catalog.pieces().iter().filter(|piece| before_skills[piece.id.index()] != ctx.state.skill(piece)).collect();
     let expected_changes = expected["catalog_skill_type_changes"].as_array().unwrap();
     assert_eq!(changed.len(), expected_changes.len(), "{path}: catalog skill changes");
-    for (piece, expected) in changed.iter().zip(expected_changes) {
-        assert_eq!(u64::from(piece.original_id), expected["id"].as_u64().unwrap(), "{path}: changed identity/order");
-        assert_eq!(before_skills[piece.id.index()].name(), expected["before"].as_str().unwrap(), "{path}: changed skill before");
+    let mut expected_ids = HashSet::new();
+    for expected in expected_changes {
+        let captured_id = expected["id"].as_u64().unwrap();
+        let slot = Slot::ALL.iter().find(|slot| initial[slot.name()]["id"].as_u64() == Some(captured_id))
+            .unwrap_or_else(|| panic!("{path}: changed captured identity {captured_id} is not equipped"));
+        let id = player.gearset[slot.index()];
+        assert!(expected_ids.insert(id), "{path}: distinct captured changes share one runtime identity");
+        let piece = ctx.catalog.piece(id);
+        assert_eq!(before_skills[id.index()].name(), expected["before"].as_str().unwrap(), "{path}: changed skill before");
         assert_eq!(ctx.state.skill(piece).name(), expected["after"].as_str().unwrap(), "{path}: changed skill after");
-        assert_piece(piece, Some(&ctx.state), &expected["after_piece"], &format!("{path}.changed_piece.{}", piece.original_id));
-        let sharing: Vec<_> = Slot::ALL.iter().filter(|slot| player.gearset[slot.index()] == piece.id).map(|slot| slot.name()).collect();
+        assert_piece(piece, Some(&ctx.state), &expected["after_piece"], &format!("{path}.changed_piece.{}", piece.name2));
+        let sharing: Vec<_> = Slot::ALL.iter().filter(|slot| player.gearset[slot.index()] == id).map(|slot| slot.name()).collect();
         assert_eq!(sharing, expected["equipped_slots_sharing_identity"].as_array().unwrap().iter().map(|slot| slot.as_str().unwrap()).collect::<Vec<_>>(), "{path}: shared slots");
     }
+    assert_eq!(changed.iter().map(|piece| piece.id).collect::<HashSet<_>>(), expected_ids, "{path}: changed runtime identities");
 }
 
 pub fn compare_profile_build(player: &Player, ctx: &EvaluationContext<RejectRandom>, expected: &Value, path: &str) {

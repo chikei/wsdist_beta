@@ -1,0 +1,566 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Crit Rate",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Crit Rate (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI DA",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Dual Wield",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Store TP",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Store TP (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Weapon Skill Damage",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Weapon Skill Damage (Magic)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape AGI Weapon Skill Damage (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Crit Rate",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Crit Rate (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX DA",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Dual Wield",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Store TP",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Store TP (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape DEX Weapon Skill Damage (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape INT DA",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape INT Magic Attack",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Magic Attack": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape INT Store TP",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape INT Weapon Skill Damage",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape MND DA",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape MND Weapon Skill Damage",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape MND Weapon Skill Damage (Magic)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR Crit Rate",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR Crit Rate (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR DA",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR Store TP (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR Weapon Skill Damage",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Sucellos's Cape",
+      name2: "Sucellos's Cape STR Weapon Skill Damage (Ranged)",
+      jobs: [
+        "rdm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+  ],
+}

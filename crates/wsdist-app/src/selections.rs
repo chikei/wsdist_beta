@@ -16,15 +16,9 @@ pub struct SlotModel {
 
 impl SlotModel {
     fn new(catalog: &Catalog, slot: Slot) -> Self {
-        let mut master = catalog.slot(slot).iter().map(|&id| {
-            catalog.by_name2(&catalog.piece(id).name2).expect("catalog slot names are indexed")
-        }).collect::<Vec<_>>();
-        master.sort_by(|&a, &b| catalog.piece(a).name2.cmp(&catalog.piece(b).name2));
-        let mut unique = master.clone();
-        unique.dedup();
-        let members = Arc::new(unique.iter().copied().collect());
-        let master: Arc<[GearId]> = master.into();
-        Self { visible: Arc::clone(&master), master, unique: unique.into(), members }
+        let master: Arc<[GearId]> = catalog.slot(slot).into();
+        let members = Arc::new(master.iter().copied().collect());
+        Self { visible: Arc::clone(&master), unique: Arc::clone(&master), master, members }
     }
 
     pub fn contains(&self, id: GearId) -> bool { self.members.contains(&id) }
@@ -93,17 +87,13 @@ impl GearModels {
         let dual = can_dual_wield(main, sub);
         for slot in Slot::ALL {
             if !main_change && *slot != Slot::Sub { continue; }
-            // Filter the source records before resolving GUI name2 aliases: duplicate
-            // names can have different jobs while the GUI's lookup still selects the last record.
-            let mut visible = catalog.slot(*slot).iter().copied().filter(|&id| {
+            // Catalog candidates are unique and name2-sorted; filtering keeps that order.
+            let visible: Arc<[GearId]> = catalog.slot(*slot).iter().copied().filter(|&id| {
                 let piece = catalog.piece(id);
                 piece.eligible_for(main) && (*slot != Slot::Sub ||
                     matches!(piece.kind, PieceKind::Shield | PieceKind::Grip | PieceKind::None) ||
                     (dual && piece.kind == PieceKind::Weapon))
-            }).map(|id| catalog.by_name2(&catalog.piece(id).name2).expect("catalog slot names are indexed"))
-                .filter(|id| self.candidates[slot.index()].items.contains(*id)).collect::<Vec<_>>();
-            visible.sort_by(|&a, &b| catalog.piece(a).name2.cmp(&catalog.piece(b).name2));
-            let visible: Arc<[GearId]> = visible.into();
+            }).collect();
             for radios in &mut self.radios { radios[slot.index()].items.visible = Arc::clone(&visible); }
             let candidates = &mut self.candidates[slot.index()];
             candidates.items.visible = visible;
@@ -112,7 +102,7 @@ impl GearModels {
                 for &id in catalog.slot(Slot::Sub) {
                     let piece = catalog.piece(id);
                     if piece.eligible_for(main) && piece.kind == PieceKind::Weapon {
-                        if let Some(id) = catalog.by_name2(&piece.name2) { candidates.set_checked(id, false); }
+                        candidates.set_checked(id, false);
                     }
                 }
             }

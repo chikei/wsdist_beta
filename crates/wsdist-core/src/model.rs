@@ -155,7 +155,6 @@ pub struct WscContribution {
 #[derive(Debug)]
 pub struct GearPiece {
     pub id: GearId,
-    pub original_id: u32,
     pub name: Arc<str>,
     pub name2: Arc<str>,
     pub jobs: Box<[Job]>,

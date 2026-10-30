@@ -23,6 +23,9 @@ use wsdist_core::rng::RandomSources;
 use wsdist_core::stats::Stats;
 use wsdist_fixtures::Value as FixtureValue;
 
+#[path = "../tests/resource_support/mod.rs"]
+mod resource_support;
+
 type Result<T, E = Box<dyn Error>> = std::result::Result<T, E>;
 
 fn main() -> Result<()> {
@@ -77,9 +80,10 @@ fn fixture(root: &Path, index: &FixtureValue, id: &str) -> Result<FixtureValue> 
 
 fn copy_resources(source: &AppPaths, destination: &AppPaths) -> Result<()> {
     fs::create_dir(&destination.data)?;
-    for name in ["gear.json", "buffs.json", "enemies.json", "pup-attachments.json"] {
+    for name in ["buffs.json5", "enemies.json5", "pup-attachments.json5"] {
         fs::copy(source.data.join(name), destination.data.join(name))?;
     }
+    resource_support::copy_gear(&source.data.join("gear"), &destination.data.join("gear"))?;
     fs::copy(&source.item_list, &destination.item_list)?;
     fs::create_dir(&destination.icons)?;
     for entry in fs::read_dir(&source.icons)? {
@@ -2181,23 +2185,25 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Fix
     let relaunched = Desktop::with_random(load_resources_at(paths.clone())?, RandomSources::from_seed(11))?;
     if relaunched.controller.borrow().ui.effective_profile() != saved { return Err("Save/relaunch lost effective widget/gear state".into()); }
     drop(relaunched);
-    let original = fs::read(paths.data.join("gear.json"))?;
+    let (gear_path, mut edited) = resource_support::piece_fragment(&paths.data.join("gear"), "Heishi Shorinken R15")?;
+    let original = fs::read(&gear_path)?;
     let old_catalog = desktop.controller.borrow().ui.engine.catalog.clone();
-    fs::write(paths.data.join("gear.json"), b"{broken")?;
+    fs::write(&gear_path, b"{broken")?;
     desktop.window.invoke_action("reload-data".into());
     if !std::sync::Arc::ptr_eq(&old_catalog, &desktop.controller.borrow().ui.engine.catalog) { return Err("Failed reload changed catalog".into()); }
-    fs::write(paths.data.join("gear.json"), &original)?;
+    fs::write(&gear_path, &original)?;
     desktop.window.invoke_action("reload-data".into());
     if std::sync::Arc::ptr_eq(&old_catalog, &desktop.controller.borrow().ui.engine.catalog) { return Err("Successful reload failed to replace catalog".into()); }
     // Edit one existing item's inert stat record; the actual Stats action must
     // observe the change, then restore the original catalog before simulation.
-    let mut edited: Value = wsdist_fixtures::read_json(&paths.data.join("gear.json"))
-        .map_err(|error| -> Box<dyn Error> { error })?;
     let piece = edited["pieces"].as_array_mut().ok_or("Gear records are missing")?.iter_mut()
-        .find(|piece| piece["name2"] == "Heishi Shorinken R15").ok_or("Editable main weapon is missing")?;
+        .find(|piece| resource_support::record_name2(piece) == Some("Heishi Shorinken R15")
+            && piece["slots"].as_array().is_some_and(|slots| !slots.is_empty()))
+        .ok_or("Editable main weapon is missing")?;
     let original_str = piece["stats"]["STR"].as_i64().unwrap_or(0);
     piece["stats"]["STR"] = json!(original_str + 10);
-    fs::write(paths.data.join("gear.json"), serde_json::to_vec(&edited)?)?;
+    // JSON is a JSON5 subset and preserves float literals such as 1.0 and -0.0.
+    fs::write(&gear_path, serde_json::to_vec(&edited)?)?;
     desktop.window.invoke_action("reload-data".into());
     tab(desktop, 3).await?;
     compute(desktop, "Quicklook Gear Stats").await?;
@@ -2206,10 +2212,10 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Fix
         return Err(format!("Edited main-weapon STR did not reach the displayed result {expected_str}").into());
     }
     snapshot(&desktop.window, output, "05-edited-data-stats", &mut screenshots)?;
-    fs::write(paths.data.join("gear.json"), &original)?;
+    fs::write(&gear_path, &original)?;
     desktop.window.invoke_action("reload-data".into());
     tab(desktop, 0).await?;
-    checks.push(json!({"workflow": "existing-item JSON edit", "item": "Heishi Shorinken R15",
+    checks.push(json!({"workflow": "existing-item JSON5 edit", "item": "Heishi Shorinken R15",
         "edit": "STR +10", "expected_displayed_STR": expected_str}));
     checks.push(json!({"workflow": "atomic save/relaunch and reload", "invalid_reload": "old catalog retained", "valid_reload": "new catalog committed"}));
 

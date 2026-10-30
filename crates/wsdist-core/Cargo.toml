@@ -8,6 +8,8 @@ publish = false
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+deser-core.workspace = true
+deser-json5.workspace = true
 thiserror.workspace = true
 csv.workspace = true
 rayon.workspace = true
@@ -16,6 +18,7 @@ getrandom.workspace = true
 parking_lot.workspace = true
 
 [dev-dependencies]
+json5.workspace = true
 wsdist-fixtures.workspace = true
 bitcode.workspace = true
 zstd.workspace = true

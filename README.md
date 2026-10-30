@@ -127,11 +127,60 @@ icons were retained byte-for-byte. Rust does not execute Python catalogs or load
 pickle. Convert any external pickle-only settings to JSON with the original
 application before adopting the native build.
 
-Edit the inert catalogs under `data/`, then select **File > Reload Data**.
-Reload validates all catalogs and the CSV before committing, retains current
-selections by item variant name, reports removed items, and resets session-local
-H2H metadata. Invalid data leaves the previous catalog and selections intact.
-Malformed profile JSON is reported and never silently overwritten.
+Edit gear fragments beneath `data/gear/`, or the fixed catalogs
+`data/enemies.json5`, `data/buffs.json5` and `data/pup-attachments.json5`, then
+select **File > Reload Data**. JSON5 supports comments, unquoted identifier keys
+and trailing commas. Gear discovery recursively loads regular files with the
+exact lowercase `.json5` extension; symlinked files/directories are not followed.
+The old `data/gear.json5` and `.json` catalogs are not loaded as fallbacks.
+Profile settings in `defaults.json` remain strict JSON.
+
+Gear files are organized by weapon skill, armor slot, accessory family and
+named armor set. For example, `data/gear/sets/nyame.json5` contains all five Nyame
+armor pieces and their ranks/paths together; Hattori, Malignance and other named
+sets also have one file per family. File paths are organizational only: moving a
+record between files does not change its slots or saved variant-name reference.
+
+To add gear, append a record to an appropriate file or create a new file such as
+`data/gear/custom/my-gear.json5`:
+
+```json5
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "My Custom Helm",
+      jobs: ["nin"],
+      slots: ["head"],
+      stats: { DEX: 10, Accuracy: 20 },
+    },
+  ],
+}
+```
+
+Every fragment has the same versioned `pieces` array. Each record requires
+`name`, `jobs`, `slots` and `stats`; no ID, symbol registry or separate membership
+list is authored. `name2` defaults to `name`; provide a distinct `name2` for each
+selectable rank/augment variant. `type` and `skill_type` default to `"None"`,
+`dmg` and `delay` to `0`, and `rank`/`wsc` to `null`. Weapons supply their weapon
+metadata explicitly. Existing `name`/`name2` values can affect item-specific
+calculation rules, so preserve them when reorganizing existing gear.
+
+Use multiple physical slot names for shared items, such as
+`slots: ["main", "sub"]` or `["ring1", "ring2"]`. Food uses `slots: ["food"]`;
+`slots: []` deliberately keeps a record out of selectable lists. Selectable
+variant names must be unique across all fragments, as must food base names.
+`custom/` is additive, not an override layer. Prefer lowercase portable paths;
+case-only fragment-path collisions are rejected. Slot/food menus sort by
+variant name independently of file placement; generated numeric IDs are
+catalog-local and are not saved as equipment references.
+
+Reload validates every fragment, the other catalogs and the CSV before
+committing, retains current selections by item variant name, reports removed
+items, and resets session-local H2H metadata. Invalid data identifies its source
+file and leaves the previous catalog, selections and session metadata intact.
+This is an atomic in-memory replacement, not a filesystem snapshot of concurrent
+editor writes. Malformed profile JSON is reported and never silently overwritten.
 
 `WSDIST_DATA_DIR` explicitly overrides the entire resource root. Otherwise the
 executable's directory is authoritative, not the process working directory.
@@ -167,7 +216,7 @@ verifier, real-backend screenshot smoke and extracted-archive proof. Frozen
 legacy, boundary and native case payloads use lossless bitcode with a checksummed
 Zstandard layer, one `.bitcode.zst` file per case. Readable JSON indexes retain
 original capture paths and SHA-256 provenance; runtime XXH3-128 checks cover the
-uncompressed bitcode. Editable catalogs and profiles remain JSON.
+uncompressed bitcode. Editable catalogs use JSON5; profiles remain JSON.
 Fixtures deserialize directly into ordered native `wsdist_fixtures::Value`
 trees; typed inputs borrow those values without a `serde_json::Value` intermediary.
 Shared build-only codec, compression and hash code is optimized without

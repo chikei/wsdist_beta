@@ -1,0 +1,498 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Crit Rate",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Crit Rate (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI DA",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Dual Wield",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Store TP",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Store TP (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Weapon Skill Damage",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Weapon Skill Damage (Magic)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape AGI Weapon Skill Damage (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Crit Rate",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Crit Rate (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX DA",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Dual Wield",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Store TP",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Store TP (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape DEX Weapon Skill Damage (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape INT DA",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape INT Store TP",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape INT Weapon Skill Damage",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR Crit Rate",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR Crit Rate (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR DA",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR Store TP (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR Weapon Skill Damage",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Belenus's Cape",
+      name2: "Belenus's Cape STR Weapon Skill Damage (Ranged)",
+      jobs: [
+        "rng",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+  ],
+}

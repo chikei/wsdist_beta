@@ -1,0 +1,60 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Rao Haidate +1",
+      name2: "Rao Haidate +1 B",
+      jobs: [
+        "nin",
+        "sam",
+      ],
+      slots: [
+        "legs",
+      ],
+      stats: {
+        Evasion: 77,
+        "Magic Evasion": 64,
+        "Magic Defense": 3,
+        STR: 58,
+        DEX: 12,
+        VIT: 15,
+        AGI: 21,
+        INT: 30,
+        MND: 31,
+        CHR: 8,
+        Attack: 63,
+        "Gear Haste": 6,
+        "Store TP": 8,
+      },
+    },
+    {
+      name: "Rao Sune-ate +1",
+      name2: "Rao Sune-ate +1 D",
+      jobs: [
+        "nin",
+        "sam",
+        "mnk",
+      ],
+      slots: [
+        "feet",
+      ],
+      stats: {
+        "Subtle Blow": 8,
+        Evasion: 69,
+        "Magic Evasion": 64,
+        "Magic Defense": 3,
+        STR: 17,
+        DEX: 26,
+        VIT: 12,
+        AGI: 34,
+        INT: 0,
+        MND: 16,
+        CHR: 28,
+        Accuracy: 41,
+        "Crit Rate": 4,
+        "Gear Haste": 4,
+        DA: 4,
+      },
+    },
+  ],
+}
