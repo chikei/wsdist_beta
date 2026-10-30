@@ -5,6 +5,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
+use fontique::{Collection, GenericFamily};
 use serde_json::{Map, Value};
 use slint::{ComponentHandle, SharedString, Timer, TimerMode, VecModel};
 use wsdist_core::buffs::parse_integer_text;
@@ -51,6 +52,7 @@ pub struct DesktopController {
     spare_context: Option<EvaluationContext<RandomSources>>,
     best: Option<Gearset>,
     clipboard: ClipboardOwner,
+    monospace_font_family: Option<SharedString>,
     results: Vec<ResultWindow>,
     charts: Vec<ChartWindow>,
     about: Option<AboutWindow>,
@@ -74,12 +76,18 @@ impl Desktop {
         let models = DesktopModels::new(&ui, &extras, IconProvider::new(&resources.paths));
         models.bind(&window);
         let spare_context = Some(EvaluationContext::new(resources.catalog, RandomSources::from_seed(0)));
+        let monospace_font_family = {
+            // Slint treats font-family as a literal name, not a CSS generic family.
+            let mut fonts = Collection::default();
+            let family = fonts.generic_families(GenericFamily::Monospace).next();
+            family.and_then(|id| fonts.family_name(id).map(SharedString::from))
+        };
         let controller = Rc::new_cyclic(|weak| RefCell::new(DesktopController {
             ui, extras, paths: resources.paths, profiles, last_result: None,
             completed_jobs: 0, cancelled_jobs: 0, last_error: initial_error, status: "Ready — calculations run only when requested.".into(),
             window: window.as_weak(), self_weak: weak.clone(), models,
             worker: WorkerCoordinator::new(), spare_context, best: None, clipboard: ClipboardOwner::new(),
-            results: Vec::new(), charts: Vec::new(), about: None, progress_window: None,
+            monospace_font_family, results: Vec::new(), charts: Vec::new(), about: None, progress_window: None,
             progress_lines: Rc::new(VecModel::default()), chart_buffer: None, pending_dialog: None, closing: false,
         }));
         {
@@ -521,6 +529,7 @@ impl DesktopController {
 
     fn show_report(&mut self, title: &str, text: SharedString) -> AppResult<()> {
         let window = ResultWindow::new()?;
+        if let Some(family) = &self.monospace_font_family { window.set_monospace_font_family(family.clone()); }
         window.set_report_title(title.into());
         window.set_report_text(text);
         hide_on_close(&window);
@@ -533,6 +542,7 @@ impl DesktopController {
         if let Some(old) = self.progress_window.take() { old.hide()?; }
         self.progress_lines = Rc::new(VecModel::default());
         let window = ProgressWindow::new()?;
+        if let Some(family) = &self.monospace_font_family { window.set_monospace_font_family(family.clone()); }
         window.set_lines(self.progress_lines.clone().into());
         hide_on_close(&window);
         window.show()?;

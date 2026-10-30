@@ -6273,6 +6273,7 @@ name = "wsdist-app"
 version = "0.1.0"
 dependencies = [
  "arboard",
+ "fontique",
  "i-slint-backend-testing",
  "image",
  "plotters",

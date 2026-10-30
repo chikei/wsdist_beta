@@ -22,6 +22,7 @@ tempfile = "3"
 mimalloc = { version = "=0.1.48", default-features = false }
 parking_lot = "0.12"
 slint = { version = "=1.16.0", default-features = false, features = ["std", "compat-1-2", "backend-winit", "renderer-software", "accessibility"] }
+fontique = { version = "=0.8.0", default-features = false, features = ["system"] }
 slint-build = "=1.16.0"
 i-slint-backend-testing = "=1.16.0"
 image = { version = "=0.25.10", default-features = false, features = ["png"] }

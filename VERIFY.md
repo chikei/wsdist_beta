@@ -1004,3 +1004,30 @@ both scales, in addition to production launch/render/close:
 `target/visible-scrollbars/verified-100/report.json` and
 `target/visible-scrollbars/verified-150/report.json`. Each report links its
 complete workflow evidence and screenshots. The archive hash above is unchanged.
+
+## Popup monospace family
+
+Focused Linux Winit/software probes passed at 100% and 150% scale. The controller
+resolved the installed generic monospace family to `Noto Sans Mono` and applied
+its concrete family name to result-editor and optimizer-progress text, without
+embedding or bundling a font.
+
+Before the change, six equal-length rows of `i`, `W`, `0`, `1`, `.`, and `M` had
+different trailing-marker positions in the result popup. Afterward, all six
+markers aligned exactly in both result and progress popups at both scales.
+The main-window screenshots were byte-for-byte unchanged at each scale.
+
+The probes used production Quicklook WS and one-iteration seeded Optimize WS
+callbacks. Native selection/Ctrl+A/Ctrl+C copied the complete 16,595-byte Quicklook
+report unchanged; wheel scrolling and 440x300 logical-pixel resizing were
+exercised and inspected. Close result hid only its popup and left the main window
+visible. The disposable probe source was removed after verification. This is
+focused Linux font/rendering proof, not a Windows runtime or full-workflow rerun.
+
+Evidence: `target/popup-font/after-100/report.json`,
+`target/popup-font/after-150/report.json`, and
+`target/popup-font/glyph-metrics.json`, with native screenshots beside each report.
+
+`cargo test --locked --workspace --lib --bins --tests -- --test-threads=1` passed
+all 206 tests. Warnings were limited to unused imports/dead code in core test
+helpers.

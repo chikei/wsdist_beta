@@ -312,6 +312,7 @@ export component MainWindow inherits Window {
 export component ResultWindow inherits Window {
     in property <string> report-title;
     in property <string> report-text;
+    in property <string> monospace-font-family: "monospace";
     callback close-requested();
     title: root.report-title;
     preferred-width: 900px;
@@ -323,7 +324,7 @@ export component ResultWindow inherits Window {
         ScrollableTextEdit {
             text: root.report-text;
             read-only: true;
-            font-family: "monospace";
+            font-family: root.monospace-font-family;
             wrap: word-wrap;
             vertical-stretch: 1;
             accessible-label: "Computation result";
@@ -364,6 +365,7 @@ export component AboutWindow inherits Window {
 
 export component ProgressWindow inherits Window {
     in property <[string]> lines;
+    in property <string> monospace-font-family: "monospace";
     callback close-requested();
     title: "Optimizer progress";
     preferred-width: 900px;
@@ -382,7 +384,7 @@ export component ProgressWindow inherits Window {
                 width: progress-list.visible-width;
                 text: line;
                 wrap: word-wrap;
-                font-family: "monospace";
+                font-family: root.monospace-font-family;
             }
         }
         Button { text: "Close progress"; clicked => { root.close-requested(); } }

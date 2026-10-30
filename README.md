@@ -90,6 +90,8 @@ details remain usable. App-owned scroll views reserve an 18px vertical scrollbar
 lane with a persistent 14px thumb and contrasting track whenever content overflows.
 Drag the thumb, click the track to page, or use the mouse wheel; report text retains
 native selection and copying.
+Report and optimizer-progress text select the system's monospace font family when
+available. Fonts are not bundled, and other interface fonts are unchanged.
 The preferred window size is 760×900; the minimum remains 720×440.
 
 Candidate lists use 20px rows and reserve an extra two-row (40px) height budget
