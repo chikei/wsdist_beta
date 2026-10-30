@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde::Deserialize;
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_core::catalog::Catalog;
 use wsdist_core::model::{Abilities, CalcError, Enemy, EvaluationContext, Job, LegacyF64, Player, RandomSource, RandomStream, Slot, WscContribution};
 use wsdist_core::stats::{Stat, Stats};
@@ -31,25 +31,30 @@ pub struct IndexedCase {
     pub id: String,
     pub operation: String,
     pub path: String,
+    pub content_xxh3_128: String,
 }
 
 #[derive(Deserialize)]
-pub struct FixtureIndex { pub cases: Vec<IndexedCase> }
+pub struct FixtureIndex { pub schema_version: u32, pub cases: Vec<IndexedCase> }
 
 pub fn resource_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("../..") }
 pub fn fixture_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy") }
 
-pub fn document(path: &Path) -> Value {
-    wsdist_fixtures::read_value(path, None).unwrap_or_else(|error| panic!("{error}"))
-}
 
 pub fn index(root: &Path) -> FixtureIndex {
-    serde_json::from_value(document(&root.join("combat.json"))).expect("combat fixture index")
+    let index: FixtureIndex = wsdist_fixtures::read_json(&root.join("combat.json")).expect("combat fixture index");
+    assert_eq!(index.schema_version, 3, "combat fixture storage schema");
+    index
+}
+
+pub fn fixture(root: &Path, entry: &IndexedCase) -> Value {
+    wsdist_fixtures::read_value(&root.join(&entry.path), Some(&entry.content_xxh3_128))
+        .unwrap_or_else(|error| panic!("{error}"))
 }
 
 pub fn number(value: &Value) -> f64 {
     if let Some(number) = value.as_f64() { number }
-    else { serde_json::from_value::<LegacyF64>(value.clone()).expect("captured number").0 }
+    else { wsdist_fixtures::from_value::<LegacyF64>(value).expect("captured number").0 }
 }
 
 pub fn assert_number(label: &str, actual: f64, expected: &Value) {
@@ -93,8 +98,8 @@ pub fn boundary_player(case: &Value, catalog: &Catalog) -> Player {
     player.master_level = captured["master_level"].as_i64().unwrap() as i32;
     player.main_job_level = captured["main_job_level"].as_i64().unwrap() as i32;
     player.sub_job_level = captured["sub_job_level"].as_i64().unwrap() as i32;
-    player.stats = serde_json::from_value::<Stats>(captured["stats"].clone()).unwrap_or_else(|error| panic!("{label}: boundary stats: {error}"));
-    player.abilities = serde_json::from_value::<Abilities>(captured["abilities"].clone()).unwrap_or_else(|error| panic!("{label}: boundary abilities: {error}"));
+    player.stats = wsdist_fixtures::from_value::<Stats>(&captured["stats"]).unwrap_or_else(|error| panic!("{label}: boundary stats: {error}"));
+    player.abilities = wsdist_fixtures::from_value::<Abilities>(&captured["abilities"]).unwrap_or_else(|error| panic!("{label}: boundary abilities: {error}"));
     player.wsc = wsc_contributions(&captured["wsc"]);
     player.wyvern_bonus_attack = captured["wyvern_bonus_attack"].as_bool().unwrap();
     player
@@ -103,7 +108,7 @@ pub fn boundary_player(case: &Value, catalog: &Catalog) -> Player {
 pub fn boundary_enemy(case: &Value) -> Enemy {
     let label = case["id"].as_str().expect("case ID");
     Enemy { name: Arc::from("captured action-boundary enemy"), location: Arc::from("captured"),
-        stats: serde_json::from_value(case["expected"]["value"]["enemy_at_action_boundary"].clone())
+        stats: wsdist_fixtures::from_value(&case["expected"]["value"]["enemy_at_action_boundary"])
             .unwrap_or_else(|error| panic!("{label}: boundary enemy: {error}")) }
 }
 

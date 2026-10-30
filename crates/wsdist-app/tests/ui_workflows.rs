@@ -3,7 +3,7 @@ use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use serde_json::{Value, json};
+use serde_json::json;
 use i_slint_backend_testing::{AccessibleRole, ElementHandle, ElementRoot};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
 use slint::{ComponentHandle, Model};
@@ -14,6 +14,7 @@ use wsdist_app::jobs::WorkResult;
 use wsdist_app::resources::{Resources, AppPaths};
 use wsdist_core::model::Slot;
 use wsdist_core::rng::RandomSources;
+use wsdist_fixtures::Value as FixtureValue;
 
 mod ui_support;
 
@@ -159,13 +160,13 @@ fn finish(desktop: &Desktop, successes: usize) {
         "visible controller error: {:?}", desktop.controller.borrow().last_error);
 }
 
-fn stats(desktop: &Desktop) -> Value {
+fn stats(desktop: &Desktop) -> FixtureValue {
     let rows = [desktop.window.get_stats_base(), desktop.window.get_stats_physical(), desktop.window.get_stats_magical(),
         desktop.window.get_stats_multi(), desktop.window.get_stats_haste(), desktop.window.get_stats_defensive(), desktop.window.get_stats_other()];
-    Value::Object(rows.into_iter().flat_map(|model| model.iter().map(|row| (row.label.to_string(), Value::String(row.value.to_string()))).collect::<Vec<_>>()).collect())
+    FixtureValue::Object(rows.into_iter().flat_map(|model| model.iter().map(|row| (row.label.to_string(), FixtureValue::String(row.value.to_string()))).collect::<Vec<_>>()).collect())
 }
 
-fn ninja_profile_fixture() -> Value {
+fn ninja_profile_fixture() -> FixtureValue {
     let entry = ui_support::case_entries("ui.profile").into_iter()
         .find(|entry| entry["id"] == "ui.profile.10.ninja")
         .expect("Ninja profile fixture must be listed in ui.profile cases");
@@ -264,7 +265,7 @@ fn combo_popup_selection_reaches_controller_and_retains_unlisted_restored_values
     // it. A model reset is not an activation and must not replace that value.
     let restored = "7";
     let mut profile = fixture["input"]["profile_document"].clone();
-    profile["Ninja"]["defaults_aftermath_combobox"] = json!(restored);
+    profile["Ninja"]["defaults_aftermath_combobox"] = FixtureValue::from(restored);
     fs::write(&desktop.controller.borrow().paths.defaults, serde_json::to_vec(&profile).unwrap()).unwrap();
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
     realize(&desktop);
@@ -361,8 +362,9 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
     finish(&desktop, 3);
     assert_eq!(desktop.window.get_damage().as_str(), format!("{} {}", display["damage_label"].as_str().unwrap(), display["damage"].as_str().unwrap()));
     let mut external = fixture["input"]["profile_document"].clone();
-    external["Ninja"]["defaults_tp_entry"] = json!("1777");
-    external["Ninja"]["external_unknown"] = json!({"retained": [1, 2, 3]});
+    external["Ninja"]["defaults_tp_entry"] = FixtureValue::from("1777");
+    external["Ninja"]["external_unknown"] = FixtureValue::Object(
+        [("retained".to_owned(), wsdist_fixtures::to_value([1, 2, 3]).unwrap())].into_iter().collect());
     fs::write(&paths.defaults, serde_json::to_vec(&external).unwrap()).unwrap();
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
     assert_eq!(desktop.controller.borrow().ui.text("defaults_tp_entry"), "1777", "job activation re-reads current JSON rather than a startup cache");
@@ -375,7 +377,7 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
     assert_eq!(desktop.controller.borrow().profiles.as_ref().unwrap().document(), &good_document);
     fs::write(&paths.defaults, serde_json::to_vec(&external).unwrap()).unwrap();
     desktop.window.invoke_action("save-defaults".into());
-    let saved: Value = serde_json::from_slice(&fs::read(&paths.defaults).unwrap()).unwrap();
+    let saved = wsdist_fixtures::read_json_value(&paths.defaults).unwrap();
     assert_eq!(saved["Ninja"]["external_unknown"], external["Ninja"]["external_unknown"]);
     desktop.window.invoke_action("distribution".into());
     desktop.window.window().dispatch_event(slint::platform::WindowEvent::KeyPressed { text: "q".into() });

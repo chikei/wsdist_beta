@@ -3,7 +3,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serde_json::{Map, Value, json};
+use serde_json::{Map, json};
+use wsdist_fixtures::Value;
 use tempfile::TempDir;
 use wsdist_app::exchange::{
     BulkAction, BulkFilters, GearSource, ImportOutcome, InventoryError,
@@ -18,7 +19,7 @@ use wsdist_core::rng::RandomSources;
 mod ui_support;
 use ui_support::{
     assert_checkbox_model, assert_last_player, assert_number, assert_piece_state,
-    assert_radio_model, assert_snapshot, case_entries, catalog, document, fixture,
+    assert_radio_model, assert_snapshot, case_entries, catalog, document_json, fixture,
 };
 
 type StepResult<E = Box<dyn Error>> = Result<(), E>;
@@ -106,7 +107,7 @@ impl NativeDriver {
 
     fn apply(&mut self, step: &Value) -> StepResult {
         match step["action"].as_str().unwrap() {
-            "restore_widget" => self.state.set_raw(step["key"].as_str().unwrap(), &step["value"] )?,
+            "restore_widget" => self.state.set_raw(step["key"].as_str().unwrap(), &serde_json::to_value(&step["value"])?)?,
             "activate" => {
                 let key = step["key"].as_str().unwrap();
                 if key == "defaults_mainjob_combobox" && self.profile_path().is_file() {
@@ -114,7 +115,7 @@ impl NativeDriver {
                     // a raw widget restore or writing a profile file alone.
                     self.profiles = ProfileStore::load(&self.profile_path())?;
                 }
-                self.state.activate(key, &step["value"], Some(&self.profiles))?;
+                self.state.activate(key, &serde_json::to_value(&step["value"])?, Some(&self.profiles))?;
             }
             "check" => {
                 let key = step["key"].as_str().unwrap();
@@ -123,7 +124,7 @@ impl NativeDriver {
                 // Re-activating an already-checked mutually exclusive source
                 // would incorrectly clear another restored checkbox.
                 if self.state.checked(key) != checked {
-                    self.state.activate(key, &step["value"], Some(&self.profiles))?;
+                    self.state.activate(key, &serde_json::Value::Bool(checked), Some(&self.profiles))?;
                 }
             }
             "equipment_callback" => {
@@ -175,11 +176,11 @@ impl NativeDriver {
                 assert_eq!(ProfileStore::load(&path).unwrap().document(), self.profiles.document(), "saved bytes and committed store agree");
             }
             "tp_edit_finished" => {
-                self.state.set_raw("defaults_tp_entry", &step["value"])?;
+                self.state.set_raw("defaults_tp_entry", &serde_json::to_value(&step["value"])?)?;
                 self.state.commit_tp_entry();
             }
             "tp_wheel" => {
-                self.state.set_raw("defaults_tp_entry", &step["value"])?;
+                self.state.set_raw("defaults_tp_entry", &serde_json::to_value(&step["value"])?)?;
                 self.state.wheel_tp(step["delta"].as_i64().unwrap().signum() as i32);
             }
             "optimizer_bulk" => {
@@ -221,13 +222,13 @@ fn require_replacement(expected: &Value, name: &str) {
     assert_eq!(expected["intentional_replacements"][name]["not_a_golden_for_changed_transport"], true, "native transport projection must be explicitly marked by the immutable fixture");
 }
 
-fn native_profile_document(driver: &NativeDriver, fixture: &Value, expected: &Value) -> Map<String, Value> {
+fn native_profile_document(driver: &NativeDriver, fixture: &Value, expected: &Value) -> Value {
     let valid_shape = expected.as_object().is_some_and(|document| document.values().all(Value::is_object));
-    let mut document = if valid_shape { expected.as_object().unwrap().clone() } else {
+    let mut document = if valid_shape { expected.clone() } else {
         require_replacement(&fixture["expected"]["value"], "profile_error_and_unknown_key_handling");
         // Python accepted a list/null into window.states. The native resource
         // boundary rejects that shape and retains the last valid document.
-        fixture["input"]["profile_document"].as_object().unwrap().clone()
+        fixture["input"]["profile_document"].clone()
     };
     if let Some(job) = &driver.saved_job {
         require_replacement(&fixture["expected"]["value"], "profile_error_and_unknown_key_handling");
@@ -236,7 +237,7 @@ fn native_profile_document(driver: &NativeDriver, fixture: &Value, expected: &Va
             let profile = document.get_mut(name).unwrap().as_object_mut().unwrap();
             for spec in INPUT_REGISTRY {
                 if spec.kind == InputKind::Checkbox && let Some(value) = profile.get_mut(spec.key) {
-                    *value = Value::Bool(legacy_checkbox(value));
+                    *value = Value::Bool(legacy_checkbox(&serde_json::to_value(&*value).unwrap()));
                 }
             }
             // The legacy default/current objects alias and lose independent
@@ -255,14 +256,22 @@ fn native_profile_document(driver: &NativeDriver, fixture: &Value, expected: &Va
     document
 }
 
+fn assert_profile_document(actual: &Map<String, serde_json::Value>, expected: &Value, label: &str) {
+    let expected = expected.as_object().unwrap();
+    assert_eq!(actual.len(), expected.len(), "{label}: profile domain");
+    for (name, value) in expected {
+        assert_eq!(actual.get(name).unwrap_or_else(|| panic!("{label}: missing profile {name}")), value, "{label}: profile {name}");
+    }
+}
+
 fn assert_profile_row(driver: &NativeDriver, fixture: &Value, row: &Value, label: &str) {
     if let Some(present) = row.get("profile_file_present") {
         assert_eq!(driver.profile_path().is_file(), present.as_bool().unwrap(), "{label}: profile file presence");
-        assert_eq!(driver.profiles.document(), &native_profile_document(driver, fixture, &row["in_memory_profile_document"]), "{label}: effective profile document");
+        assert_profile_document(driver.profiles.document(), &native_profile_document(driver, fixture, &row["in_memory_profile_document"]), &format!("{label}: effective profile document"));
         if let Some(expected_file) = row.get("profile_file_document") {
-            let actual = document(&driver.profile_path());
+            let actual = document_json(&driver.profile_path());
             let expected_file = if driver.saved_job.is_some() {
-                Value::Object(native_profile_document(driver, fixture, expected_file))
+                native_profile_document(driver, fixture, expected_file)
             } else { expected_file.clone() };
             assert_eq!(actual, expected_file, "{label}: actual persisted document");
         }
@@ -368,7 +377,7 @@ fn drive_fixture(fixture: &Value) {
         }
     }
     assert_snapshot(&driver.state, &expected["final_state"], &format!("{label}.final"));
-    assert_eq!(driver.profiles.document(), &native_profile_document(&driver, fixture, &expected["in_memory_profile_document"]), "{label}: final profile document");
+    assert_profile_document(driver.profiles.document(), &native_profile_document(&driver, fixture, &expected["in_memory_profile_document"]), &format!("{label}: final profile document"));
     if fixture["input"]["relaunch_after_save"].as_bool().unwrap_or(false) {
         let reloaded = ProfileStore::load(&driver.profile_path()).unwrap();
         let relaunched = UiState::new(catalog(), RandomSources::from_seed(11), Some(&reloaded));
@@ -473,7 +482,7 @@ fn tp_user_commit_preserves_unicode_integer_text_and_wheel_normalizes_by_directi
         assert_eq!(state.text("defaults_tp_entry"), text, "raw restore must not normalize before the user commits");
         state.commit_tp_entry();
         assert_eq!(state.text("defaults_tp_entry"), committed, "focus loss for {text:?}");
-        assert_number(state.calculation_inputs(GearSource::Quicklook).unwrap().tp, &json!(effective), "committed effective TP");
+        assert_number(state.calculation_inputs(GearSource::Quicklook).unwrap().tp, &Value::from(effective), "committed effective TP");
     }
     for (text, direction, expected) in [
         ("1000", -1, 1000), ("1000", 1, 1100), ("3000", 1, 3000),
@@ -483,6 +492,6 @@ fn tp_user_commit_preserves_unicode_integer_text_and_wheel_normalizes_by_directi
         state.set_raw("defaults_tp_entry", &json!(text)).unwrap();
         state.wheel_tp(direction);
         assert_eq!(state.text("defaults_tp_entry"), expected.to_string(), "wheel direction {direction} for {text:?}");
-        assert_number(state.calculation_inputs(GearSource::Quicklook).unwrap().tp, &json!(expected), "wheel effective TP");
+        assert_number(state.calculation_inputs(GearSource::Quicklook).unwrap().tp, &Value::from(expected), "wheel effective TP");
     }
 }

@@ -1,7 +1,7 @@
 use std::path::{Path,PathBuf};
 use std::sync::Arc;
 use serde::Deserialize;
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_core::{Catalog,build_player};
 use wsdist_core::actions::{evaluate_action,resolve_spell_name,sample_round,sample_ws};
 use wsdist_core::model::{ActionRequest,Abilities,CalcError,Enemy,EvaluationContext,HitEvent,LegacyF64,Metric,Player,RandomSource,RandomStream,SkillType,Slot,SpellRequest,SpellType,WsRequest,WsType};
@@ -14,14 +14,21 @@ mod player_support;
 pub use player_support::observation;
 
 #[derive(Deserialize)]
-pub struct IndexedCase {pub id:String,pub operation:String,pub path:String}
+pub struct IndexedCase {pub id:String,pub operation:String,pub path:String,pub source_path:String,pub source_sha256:String,pub source_content_xxh3_128:String,pub content_xxh3_128:String}
 #[derive(Deserialize)]
-pub struct FixtureIndex {pub cases:Vec<IndexedCase>}
+pub struct FixtureIndex {pub schema_version:u32,pub cases:Vec<IndexedCase>}
 pub fn resource_root()->PathBuf {Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")}
 pub fn fixture_root()->PathBuf {Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy")}
-pub fn document(path:&Path)->Value {player_support::document(path)}
-pub fn index(root:&Path)->FixtureIndex {serde_json::from_value(document(&root.join("combat.json"))).unwrap()}
-pub fn number(value:&Value)->f64 {serde_json::from_value::<LegacyF64>(value.clone()).expect("captured number").0}
+pub fn index(root:&Path)->FixtureIndex {
+    let index:FixtureIndex=wsdist_fixtures::read_json(&root.join("combat.json")).unwrap();
+    assert_eq!(index.schema_version,3,"combat fixture storage schema");
+    index
+}
+pub fn fixture(root:&Path,entry:&IndexedCase)->Value {
+    wsdist_fixtures::read_value(&root.join(&entry.path),Some(&entry.content_xxh3_128))
+        .unwrap_or_else(|error|panic!("{error}"))
+}
+pub fn number(value:&Value)->f64 {wsdist_fixtures::from_value::<LegacyF64>(value).expect("captured number").0}
 
 #[derive(Default)]
 pub struct ReplayCounts {pub recorded:usize,pub scripted:usize,pub hits:usize,pub uniform_draws:usize,pub legacy_errors:usize,pub last_fields:Option<Value>,pub scripted_trace:Option<Vec<HitEvent>>}
@@ -61,7 +68,7 @@ pub fn build_boundary<R:RandomSource>(case:&Value,ctx:&mut EvaluationContext<R>)
     let boundary=&case["expected"]["value"]["player_at_action_boundary"];
     player_support::assert_metadata(&player,boundary,label);
     player_support::assert_sheet(&player.stats,&player.wsc,player.wyvern_bonus_attack,boundary,label);
-    assert_eq!(serde_json::to_value(&player.abilities).unwrap(),serde_json::to_value(serde_json::from_value::<Abilities>(boundary["abilities"].clone()).unwrap()).unwrap(),"{label}: effective ability state");
+    assert_eq!(wsdist_fixtures::to_value(&player.abilities).unwrap(),wsdist_fixtures::to_value(wsdist_fixtures::from_value::<Abilities>(&boundary["abilities"]).unwrap()).unwrap(),"{label}: effective ability state");
     for slot in Slot::ALL {
         let piece=ctx.catalog.piece(player.gearset[slot.index()]);
         let captured=&boundary["gearset"][slot.name()];
@@ -73,7 +80,7 @@ pub fn build_boundary<R:RandomSource>(case:&Value,ctx:&mut EvaluationContext<R>)
 }
 
 pub fn boundary_enemy(case:&Value)->Enemy {
-    Enemy{name:Arc::from("captured combat enemy"),location:Arc::from("captured"),stats:serde_json::from_value(case["expected"]["value"]["enemy_at_action_boundary"].clone()).unwrap()}
+    Enemy{name:Arc::from("captured combat enemy"),location:Arc::from("captured"),stats:wsdist_fixtures::from_value(&case["expected"]["value"]["enemy_at_action_boundary"]).unwrap()}
 }
 
 fn evaluate<R:RandomSource>(case:&Value,player:&Player,enemy:&Enemy,ctx:&mut EvaluationContext<R>)->Result<Value,CalcError> {
@@ -82,14 +89,14 @@ fn evaluate<R:RandomSource>(case:&Value,player:&Player,enemy:&Enemy,ctx:&mut Eva
         match &action {
             ActionRequest::Round{starting_tp,threshold,..}=>{
                 let result=sample_round(player,enemy,*starting_tp,*threshold,ctx)?;
-                Ok(serde_json::to_value(result).unwrap())
+                Ok(wsdist_fixtures::to_value(result).unwrap())
             }
-            ActionRequest::Ws(request)=>Ok(serde_json::to_value(sample_ws(player,enemy,request,case["input"]["action"]["single"].as_bool().unwrap(),ctx)?).unwrap()),
+            ActionRequest::Ws(request)=>Ok(wsdist_fixtures::to_value(sample_ws(player,enemy,request,case["input"]["action"]["single"].as_bool().unwrap(),ctx)?).unwrap()),
             ActionRequest::Spell(_)=>panic!("source spells have no sampled return"),
         }
     } else {
         let result=evaluate_action(player,enemy,&action,ctx)?;
-        let mut result=serde_json::to_value(result).unwrap();
+        let mut result=wsdist_fixtures::to_value(result).unwrap();
         result["seconds_per_ws"]=result["time_to_ws"].clone();
         Ok(result)
     }
@@ -135,7 +142,7 @@ pub fn replay_case(case:&Value,catalog:&Arc<Catalog>)->ReplayCounts {
     let source=if expected["status"]=="legacy_error" {
         ScriptedTape::new(Vec::new())
     } else {
-        ScriptedTape::from_json_records(&expected["compiled"]["draws"]).expect("captured compiled draws")
+        wsdist_fixtures::from_value::<ScriptedTape>(&expected["compiled"]["draws"]).expect("captured compiled draws")
     };
     let mut ctx=EvaluationContext::new(Arc::clone(catalog),Recorded{inner:source,draws:Vec::new()});
     if expected["status"]=="legacy_error" {
@@ -156,7 +163,7 @@ pub fn replay_case(case:&Value,catalog:&Arc<Catalog>)->ReplayCounts {
     ctx.random.inner.assert_finished().expect("complete recorded draw consumption");
     let mut counts=ReplayCounts{recorded:1,scripted:0,hits:ctx.action_trace.as_ref().unwrap().len(),uniform_draws:ctx.random.draws.len(),legacy_errors:usize::from(last_fields.is_none()),last_fields,scripted_trace:None};
     if let Some(scripted)=expected.get("scripted") {
-        let tape=ScriptedTape::from_json_records(&scripted["tape"]).expect("captured strict tape");
+        let tape=wsdist_fixtures::from_value::<ScriptedTape>(&scripted["tape"]).expect("captured strict tape");
         let mut scripted_ctx=EvaluationContext::new(Arc::clone(catalog),Recorded{inner:tape,draws:Vec::new()});
         scripted_ctx.state=ctx.state.clone();
         scripted_ctx.action_trace=Some(Vec::with_capacity(16));

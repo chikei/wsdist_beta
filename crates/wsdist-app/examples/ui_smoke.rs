@@ -21,6 +21,7 @@ use wsdist_core::buffs::aggregate_buffs;
 use wsdist_core::model::{CalcError, Slot};
 use wsdist_core::rng::RandomSources;
 use wsdist_core::stats::Stats;
+use wsdist_fixtures::Value as FixtureValue;
 
 type Result<T, E = Box<dyn Error>> = std::result::Result<T, E>;
 
@@ -39,8 +40,9 @@ fn main() -> Result<()> {
     let paths = AppPaths::from_parts(Some(sandbox.path().as_os_str()), Path::new("/unused"), Path::new("/"))?;
     copy_resources(&source, &paths)?;
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy");
-    let index = wsdist_fixtures::read_value(&fixtures.join("ui.json"), None)
+    let index = wsdist_fixtures::read_json_value(&fixtures.join("ui.json"))
         .map_err(|error| -> Box<dyn Error> { error })?;
+    if index["schema_version"].as_u64() != Some(3) { return Err("Unsupported UI fixture index schema".into()); }
     let ninja = fixture(&fixtures, &index, "ui.profile.10.ninja")?;
     // The original worktree is untouched, even when the workflow saves/reloads.
     fs::write(&paths.defaults, serde_json::to_vec(&ninja["input"]["profile_document"])?)?;
@@ -66,7 +68,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn fixture(root: &Path, index: &Value, id: &str) -> Result<Value> {
+fn fixture(root: &Path, index: &FixtureValue, id: &str) -> Result<FixtureValue> {
     let entry = index["cases"].as_array().ok_or("Invalid UI index")?.iter()
         .find(|entry| entry["id"] == id).ok_or_else(|| format!("Missing fixture {id}"))?;
     wsdist_fixtures::read_value(&root.join(entry["path"].as_str().ok_or("Fixture path missing")?), Some(entry["content_xxh3_128"].as_str().ok_or("Fixture XXH3-128 content hash missing")?))
@@ -93,7 +95,7 @@ struct MissingIcon {
     bytes: Vec<u8>,
 }
 
-fn remove_requested_icon(resources: &Resources, default: &Value) -> Result<MissingIcon> {
+fn remove_requested_icon(resources: &Resources, default: &FixtureValue) -> Result<MissingIcon> {
     let name = default["expected"]["value"]["initial_state"]["equipped_sets"]["quicklook"]["main"]["piece"]["effective"]["name2"]
         .as_str().ok_or("Default main weapon is missing")?;
     let id = resources.catalog.by_name2(name).ok_or("Default main weapon is absent from the catalog")?;
@@ -262,16 +264,16 @@ fn snapshot_result(desktop: &Desktop, output: &Path, name: &str, screenshots: &m
     snapshot(window, output, name, screenshots)
 }
 
-fn displayed_stats(desktop: &Desktop) -> serde_json::Map<String, Value> {
-    let mut values = serde_json::Map::new();
+fn displayed_stats(desktop: &Desktop) -> wsdist_fixtures::Map {
+    let mut values = wsdist_fixtures::Map::new();
     for model in [desktop.window.get_stats_base(), desktop.window.get_stats_physical(), desktop.window.get_stats_magical(),
         desktop.window.get_stats_multi(), desktop.window.get_stats_haste(), desktop.window.get_stats_defensive(), desktop.window.get_stats_other()] {
-        for row in model.iter() { values.insert(row.label.to_string(), Value::String(row.value.to_string())); }
+        for row in model.iter() { values.insert(row.label.to_string(), FixtureValue::String(row.value.to_string())); }
     }
     values
 }
 
-fn assert_display(desktop: &Desktop, expected: &Value) -> Result<()> {
+fn assert_display(desktop: &Desktop, expected: &FixtureValue) -> Result<()> {
     let damage = format!("{} {}", expected["damage_label"].as_str().ok_or("Damage label absent")?, expected["damage"].as_str().ok_or("Damage value absent")?);
     let tp = format!("{} {}", expected["tp_label"].as_str().ok_or("TP label absent")?, expected["tp"].as_str().ok_or("TP value absent")?);
     if desktop.window.get_damage().as_str() != damage || desktop.window.get_tp_return().as_str() != tp {
@@ -280,7 +282,7 @@ fn assert_display(desktop: &Desktop, expected: &Value) -> Result<()> {
     Ok(())
 }
 
-fn assert_sets(desktop: &Desktop, expected: &Value) -> Result<()> {
+fn assert_sets(desktop: &Desktop, expected: &FixtureValue) -> Result<()> {
     let state = desktop.controller.borrow();
     for source in GearSource::ALL {
         let name = match source { GearSource::Quicklook => "quicklook", GearSource::Tp => "tp", GearSource::Ws => "ws" };
@@ -1341,7 +1343,7 @@ async fn record_stats_geometry(desktop: &Desktop, baseline: &mut HorizontalBasel
     Ok(())
 }
 
-async fn compact_layout(desktop: &Desktop, output: &Path, ninja: &Value, screenshots: &mut Vec<Value>, checks: &mut Vec<Value>) -> Result<()> {
+async fn compact_layout(desktop: &Desktop, output: &Path, ninja: &FixtureValue, screenshots: &mut Vec<Value>, checks: &mut Vec<Value>) -> Result<()> {
     fs::write(&desktop.controller.borrow().paths.defaults, serde_json::to_vec(&ninja["input"]["profile_document"])?)?;
     desktop.window.invoke_text_edited("defaults_mainjob_combobox".into(), "Ninja".into());
     pause(80).await;
@@ -1504,7 +1506,7 @@ async fn resize_geometry(desktop: &Desktop, output: &Path, width: f32, height: f
     Ok(())
 }
 
-fn assert_stats(actual: &Stats, expected: &Value, label: &str) -> Result<()> {
+fn assert_stats(actual: &Stats, expected: &FixtureValue, label: &str) -> Result<()> {
     let expected = expected.as_object().ok_or("Frozen stat sheet is missing")?;
     if actual.len() != expected.len() { return Err(format!("{label}: stat presence differs").into()); }
     for ((stat, actual), (name, expected)) in actual.ordered().zip(expected) {
@@ -1517,7 +1519,7 @@ fn assert_stats(actual: &Stats, expected: &Value, label: &str) -> Result<()> {
     Ok(())
 }
 
-fn apply_buff_step(desktop: &Desktop, step: &Value) -> Result<()> {
+fn apply_buff_step(desktop: &Desktop, step: &FixtureValue) -> Result<()> {
     let key = step["key"].as_str().ok_or("Buff key is missing")?;
     match step["action"].as_str().ok_or("Buff action is missing")? {
         "activate" => desktop.window.invoke_text_edited(key.into(), step["value"].as_str().ok_or("Buff combo value is missing")?.into()),
@@ -1525,7 +1527,7 @@ fn apply_buff_step(desktop: &Desktop, step: &Value) -> Result<()> {
         "restore_widget" => {
             // The oracle's programmatic widget restore does not activate caches.
             let mut controller = desktop.controller.borrow_mut();
-            controller.ui.set_raw(key, &step["value"])?;
+            controller.ui.set_raw(key, &serde_json::to_value(&step["value"])?)?;
             let tp = controller.ui.controls["defaults_tp_entry"].value.clone();
             controller.edit("defaults_tp_entry", tp)?;
         },
@@ -1534,7 +1536,7 @@ fn apply_buff_step(desktop: &Desktop, step: &Value) -> Result<()> {
     Ok(())
 }
 
-async fn buff_workflows(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Value,
+async fn buff_workflows(desktop: &Desktop, output: &Path, fixtures: &Path, index: &FixtureValue,
     screenshots: &mut Vec<Value>, checks: &mut Vec<Value>) -> Result<()> {
     for (id, name) in [
         ("ui.buff.song.00.honor-march", "brd"), ("ui.buff.roll.00.chaos", "cor"),
@@ -2015,7 +2017,7 @@ async fn native_scrollbars(desktop: &Desktop, output: &Path, width: f32, height:
     Ok(())
 }
 
-async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Value, ninja: &Value,
+async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &FixtureValue, ninja: &FixtureValue,
     missing_icon: &MissingIcon) -> Result<()> {
     let mut screenshots = Vec::new();
     let mut checks = Vec::new();
@@ -2067,7 +2069,7 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Val
     for (step, label) in [(1, "Quicklook Gear Stats"), (2, "TP Gear Stats"), (3, "WS Gear Stats")] {
         compute(desktop, label).await?;
         let expected = &frozen["steps"][step]["state"]["displayed_stats"];
-        if Value::Object(displayed_stats(desktop)) != *expected { return Err(format!("Frozen {label} display differs").into()); }
+        if FixtureValue::Object(displayed_stats(desktop)) != *expected { return Err(format!("Frozen {label} display differs").into()); }
         snapshot(&desktop.window, output, &format!("02-stats-source-{step}"), &mut screenshots)?;
         let mut rectangles = Vec::new();
         record_stats_geometry(desktop, &mut stats_baseline, &mut rectangles).await?;
@@ -2189,7 +2191,8 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Val
     if std::sync::Arc::ptr_eq(&old_catalog, &desktop.controller.borrow().ui.engine.catalog) { return Err("Successful reload failed to replace catalog".into()); }
     // Edit one existing item's inert stat record; the actual Stats action must
     // observe the change, then restore the original catalog before simulation.
-    let mut edited: Value = serde_json::from_slice(&original)?;
+    let mut edited: Value = wsdist_fixtures::read_json(&paths.data.join("gear.json"))
+        .map_err(|error| -> Box<dyn Error> { error })?;
     let piece = edited["pieces"].as_array_mut().ok_or("Gear records are missing")?.iter_mut()
         .find(|piece| piece["name2"] == "Heishi Shorinken R15").ok_or("Editable main weapon is missing")?;
     let original_str = piece["stats"]["STR"].as_i64().unwrap_or(0);
@@ -2199,7 +2202,7 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Val
     tab(desktop, 3).await?;
     compute(desktop, "Quicklook Gear Stats").await?;
     let expected_str = frozen["steps"][1]["state"]["displayed_stats"]["STR"].as_str().ok_or("Frozen STR is missing")?.parse::<i64>()? + 10;
-    if displayed_stats(desktop).get("STR") != Some(&json!(expected_str.to_string())) {
+    if displayed_stats(desktop).get("STR") != Some(&FixtureValue::from(expected_str.to_string())) {
         return Err(format!("Edited main-weapon STR did not reach the displayed result {expected_str}").into());
     }
     snapshot(&desktop.window, output, "05-edited-data-stats", &mut screenshots)?;

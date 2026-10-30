@@ -3,7 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 
-use serde_json::{Value, json};
+use serde_json::{Value as JsonValue, json};
+use wsdist_fixtures::{Map, Value, to_value};
 use tempfile::TempDir;
 use wsdist_app::exchange::{
     BulkAction, BulkFilters, GearSource, IconProvider, IconWarning, ImportOutcome,
@@ -42,17 +43,18 @@ fn resource_directory() -> (TempDir, AppPaths) {
     (directory, paths)
 }
 
-fn load_json(path: &Path) -> Value {
-    serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
+fn load_json(path: &Path) -> JsonValue {
+    wsdist_fixtures::read_json(path).unwrap()
 }
 
-fn save_json(path: &Path, value: &Value) {
+fn save_json(path: &Path, value: &JsonValue) {
     fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
 }
 
 fn fixture(id: &str) -> Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy");
-    let index = wsdist_fixtures::read_value(&root.join("ui.json"), None).unwrap();
+    let index = wsdist_fixtures::read_json_value(&root.join("ui.json")).unwrap();
+    assert_eq!(index["schema_version"], 3, "unsupported UI fixture index schema");
     let row = index["cases"].as_array().unwrap().iter()
         .find(|row| row["id"] == id).unwrap();
     let path = root.join(row["path"].as_str().unwrap());
@@ -69,15 +71,15 @@ fn piece(catalog: &Catalog, name: &str) -> GearId {
 }
 
 fn named_pools(catalog: &Catalog, selected: &CandidatePools) -> Value {
-    let mut result = serde_json::Map::new();
+    let mut result = Map::new();
     for &slot in Slot::ALL {
-        result.insert(slot.name().to_owned(), json!(selected[slot.index()].iter()
-            .map(|id| catalog.piece(*id).name2.as_ref()).collect::<Vec<_>>()));
+        result.insert(slot.name().to_owned(), to_value(selected[slot.index()].iter()
+            .map(|id| catalog.piece(*id).name2.as_ref()).collect::<Vec<_>>()).unwrap());
     }
     Value::Object(result)
 }
 
-fn add_piece(document: &mut Value, name: &str, name2: &str, slot: Slot) -> u32 {
+fn add_piece(document: &mut JsonValue, name: &str, name2: &str, slot: Slot) -> u32 {
     let id = document["pieces"].as_array().unwrap().iter()
         .map(|piece| piece["id"].as_u64().unwrap()).max().unwrap() as u32 + 1;
     let mut record = document["pieces"].as_array().unwrap().iter()
@@ -250,8 +252,8 @@ fn frozen_inventory_alias_import_matches_exact_full_model_selection() {
     });
     let selected = select_inventory(&CATALOG, &visible, &BulkFilters::default(), input.as_str().unwrap());
     for &slot in Slot::ALL {
-        assert_eq!(json!(selected[slot.index()].iter()
-            .map(|id| CATALOG.piece(*id).name2.as_ref()).collect::<Vec<_>>()),
+        assert_eq!(to_value(selected[slot.index()].iter()
+            .map(|id| CATALOG.piece(*id).name2.as_ref()).collect::<Vec<_>>()).unwrap(),
             frames[slot.name()]["selected"], "inventory slot {}", slot.name());
     }
 }
@@ -315,8 +317,8 @@ fn cancelled_and_unreadable_imports_retain_hidden_checks_but_completed_empty_imp
     }
 }
 
-fn remove_piece(document: &mut Value, original_id: u32) {
-    let is_removed = |value: &Value| value.as_u64() == Some(u64::from(original_id));
+fn remove_piece(document: &mut JsonValue, original_id: u32) {
+    let is_removed = |value: &JsonValue| value.as_u64() == Some(u64::from(original_id));
     document["pieces"].as_array_mut().unwrap().retain(|piece| !is_removed(&piece["id"]));
     document["symbols"].as_object_mut().unwrap().retain(|_, value| !is_removed(value));
     for slot in document["slots"].as_object_mut().unwrap().values_mut() {

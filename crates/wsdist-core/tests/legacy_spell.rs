@@ -10,7 +10,7 @@ use wsdist_core::model::{CalcError, EvaluationContext, Metric, SpellRequest, Spe
 use wsdist_core::rng::ScriptedTape;
 use wsdist_core::stats::Stat;
 
-use combat_support::{build_boundary, boundary_enemy, document, fixture_root, index, replay_case, resource_root};
+use combat_support::{build_boundary, boundary_enemy, fixture, fixture_root, index, replay_case, resource_root};
 
 #[test]
 fn every_frozen_spell_replays_actual_player_construction_and_recorded_draws() {
@@ -21,7 +21,7 @@ fn every_frozen_spell_replays_actual_player_construction_and_recorded_draws() {
     let mut recorded = 0;
     let mut scripted = 0;
     for entry in fixtures.cases.iter().filter(|entry| entry.operation == "combat.spell") {
-        let case = document(&root.join(&entry.path));
+        let case = fixture(&root, entry);
         let counts = replay_case(&case, &catalog);
         let rejected_build = case["expected"]["value"]["status"] == "legacy_error";
         assert_eq!(counts.recorded, usize::from(!rejected_build), "{}: capture stage coverage", entry.id);
@@ -39,7 +39,7 @@ fn actual_gui_names_keep_the_two_captured_dispatch_mappings() {
     let root = fixture_root();
     let fixtures = index(&root);
     let entry = fixtures.cases.iter().find(|entry| entry.operation == "combat.metadata").expect("reference tables");
-    let case = document(&root.join(&entry.path));
+    let case = fixture(&root, entry);
     let mut seen = BTreeSet::new();
     for row in case["input"]["spell_dispatch"].as_array().expect("source dispatch rows") {
         let name = row["name"].as_str().unwrap();
@@ -57,7 +57,7 @@ fn invalid_resist_rank_is_rejected_before_enspell_delay_access_without_rng_draws
     let root = fixture_root();
     let fixtures = index(&root);
     let entry = fixtures.cases.iter().find(|entry| entry.id.ends_with(".spell.EnSpell.weatherFirestorm_II")).unwrap();
-    let case = document(&root.join(&entry.path));
+    let case = fixture(&root, entry);
     let catalog = Arc::new(Catalog::load(&resource_root()).expect("frozen catalog"));
     let mut ctx = EvaluationContext::new(catalog, ScriptedTape::new(Vec::new()));
     let mut player = build_boundary(&case, &mut ctx).expect("actual player construction");

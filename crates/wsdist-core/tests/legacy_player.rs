@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use wsdist_core::model::{EvaluationContext, Job, Player, build_player, get_skill_accuracy};
 use wsdist_core::Catalog;
+use wsdist_fixtures::Value;
 
 #[path = "legacy_player/support.rs"]
 mod support;
@@ -12,7 +13,8 @@ use support::*;
 #[test]
 fn every_frozen_player_build_preserves_sparse_stages_and_legacy_errors() {
     let fixtures = core_fixtures();
-    let index = document(&fixtures.join("players.json"));
+    let index = document_json(&fixtures.join("players.json"));
+    assert_eq!(index["schema_version"], 3);
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     let immutable_skills: Vec<_> = catalog.pieces().iter().map(|piece| piece.skill_type).collect();
     let mut ctx = EvaluationContext::new(catalog.clone(), RejectRandom);
@@ -74,7 +76,8 @@ fn every_frozen_player_build_preserves_sparse_stages_and_legacy_errors() {
 #[test]
 fn all_frozen_h2h_sequences_preserve_original_piece_identity_and_isolation() {
     let fixtures = core_fixtures();
-    let index = document(&fixtures.join("players.json"));
+    let index = document_json(&fixtures.join("players.json"));
+    assert_eq!(index["schema_version"], 3);
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     let immutable_skills: Vec<_> = catalog.pieces().iter().map(|piece| piece.skill_type).collect();
     let mut count = 0;
@@ -108,7 +111,8 @@ fn all_frozen_h2h_sequences_preserve_original_piece_identity_and_isolation() {
 #[test]
 fn frozen_skill_accuracy_windows_keep_each_integer_stage() {
     let fixtures = core_fixtures();
-    let index = document(&fixtures.join("players.json"));
+    let index = document_json(&fixtures.join("players.json"));
+    assert_eq!(index["schema_version"], 3);
     let entry = index["cases"].as_array().unwrap().iter().find(|entry|
         entry["id"] == "kernel.create_player.get_skill_accuracy.skill_windows").unwrap();
     let case = fixture(&fixtures, entry);
@@ -136,7 +140,8 @@ fn frozen_skill_accuracy_windows_keep_each_integer_stage() {
 #[test]
 fn all_23_profiles_build_their_actual_captured_effective_inputs_without_qt() {
     let fixtures = app_fixtures();
-    let index = document(&fixtures.join("ui.json"));
+    let index = document_json(&fixtures.join("ui.json"));
+    assert_eq!(index["schema_version"], 3);
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     let immutable_skills: Vec<_> = catalog.pieces().iter().map(|piece| piece.skill_type).collect();
     let mut profiles = 0;
@@ -170,13 +175,13 @@ fn h2h_changes_full_value_equality_only_for_the_original_sub_identity() {
         std::fs::copy(resource_root().join(name), temporary.path().join(name)).unwrap();
     }
     let path = temporary.path().join("data/gear.json");
-    let mut gear = document(&path);
+    let mut gear = document_json(&path);
     let empty_id = gear["symbols"]["Empty"].as_u64().unwrap();
     let new_id = gear["pieces"].as_array().unwrap().iter().map(|piece| piece["id"].as_u64().unwrap()).max().unwrap() + 1;
     let mut distinct_empty = gear["pieces"].as_array().unwrap().iter().find(|piece| piece["id"].as_u64().unwrap() == empty_id).unwrap().clone();
-    distinct_empty["id"] = serde_json::json!(new_id);
+    distinct_empty["id"] = Value::from(new_id);
     gear["pieces"].as_array_mut().unwrap().push(distinct_empty);
-    gear["symbols"]["DistinctEmptyIdentity"] = serde_json::json!(new_id);
+    gear["symbols"]["DistinctEmptyIdentity"] = Value::from(new_id);
     std::fs::write(&path, serde_json::to_vec(&gear).unwrap()).unwrap();
     let catalog = Arc::new(Catalog::load(temporary.path()).unwrap());
     let duplicate = catalog.by_symbol("DistinctEmptyIdentity").unwrap();
@@ -184,7 +189,7 @@ fn h2h_changes_full_value_equality_only_for_the_original_sub_identity() {
     let original = catalog.piece(catalog.empty);
     let separate = catalog.piece(duplicate);
     assert!(original.value_equal(separate, &ctx.state));
-    let sequence = document(&core_fixtures().join("players/005942.json"));
+    let sequence = wsdist_fixtures::read_value(&core_fixtures().join("players/005942.bitcode.zst"), None).unwrap();
     let input = parse_input(&sequence["input"]["players"][0], &catalog, &ctx.state, "identity-equality.h2h");
     let mut player = Player::new([catalog.empty; 16]);
     build_player(&input, &mut ctx, &mut player).unwrap();
@@ -200,15 +205,16 @@ fn h2h_changes_full_value_equality_only_for_the_original_sub_identity() {
 #[test]
 fn mythic_aftermath_keeps_integer_float_and_bool_index_semantics_through_json() {
     let fixtures = core_fixtures();
-    let index = document(&fixtures.join("players.json"));
+    let index = document_json(&fixtures.join("players.json"));
+    assert_eq!(index["schema_version"], 3);
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     let entry = |name| index["cases"].as_array().unwrap().iter().find(|entry| entry["id"] == name).unwrap();
     let tier1 = fixture(&fixtures, entry("player.aftermath.main.120.1"));
     let tier3 = fixture(&fixtures, entry("player.aftermath.main.120.3"));
-    let tuple_error = serde_json::json!({
-        "class": "TypeError",
-        "message": "tuple indices must be integers or slices, not float"
-    });
+    let tuple_error = Value::Object([
+        ("class".to_owned(), Value::from("TypeError")),
+        ("message".to_owned(), Value::from("tuple indices must be integers or slices, not float")),
+    ].into_iter().collect());
     let tier1_gear_accuracy = tier1["expected"]["value"]["events"].as_array().unwrap().iter()
         .find(|event| event.get("stage").is_some_and(|stage| stage == "after_gear")).unwrap()["raw"]["stats"]
         .as_array().unwrap().iter().find(|row| row[0] == "Accuracy").unwrap()[1].clone();
@@ -216,11 +222,11 @@ fn mythic_aftermath_keeps_integer_float_and_bool_index_semantics_through_json() 
     ctx.player_stages = Some(Vec::with_capacity(5));
     let mut player = Player::new([catalog.empty; 16]);
     for (label, reference, literal, successful) in [
-        ("integer.1", &tier1, serde_json::json!(1), true),
-        ("float.1", &tier1, serde_json::json!(1.0), false),
-        ("bool.true", &tier1, serde_json::json!(true), true),
+        ("integer.1", &tier1, Value::from(1), true),
+        ("float.1", &tier1, Value::from(1.0), false),
+        ("bool.true", &tier1, Value::from(true), true),
         // AM3 does not index the tuple: the source's equality branch accepts 3.0.
-        ("float.3", &tier3, serde_json::json!(3.0), true),
+        ("float.3", &tier3, Value::from(3.0), true),
     ] {
         let mut record = reference["input"].clone();
         record["abilities"]["Aftermath"] = literal;

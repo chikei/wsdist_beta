@@ -1,1 +1,0 @@
-{"id":"combat.008628.bonus.Redemption_R15.Quietus.main","operation":"combat.weapon_bonus","input":{"main_name2":"Redemption R15","ranged_name2":"Empty","ws_name":"Quietus"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.1}},"stdout":""}

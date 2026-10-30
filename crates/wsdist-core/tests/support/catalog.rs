@@ -2,14 +2,15 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use serde_json::{Value, json};
+use wsdist_fixtures::{Value as FixtureValue, to_value};
 use sha2::{Digest, Sha256};
 use wsdist_core::catalog::{BuffTableKind, BuffValue, ROLL_NUMERALS};
 use wsdist_core::{Catalog, Slot};
 
 use crate::player_support;
 
-fn exact(actual: f64, expected: &Value, path: &str) {
-    crate::kernel_support::assert_value(&json!(actual), expected, true, path);
+fn exact(actual: f64, expected: &FixtureValue, path: &str) {
+    crate::kernel_support::assert_value(&to_value(actual).unwrap(), expected, true, path);
 }
 
 pub fn hash_file(path: &Path) -> String {
@@ -17,21 +18,21 @@ pub fn hash_file(path: &Path) -> String {
     format!("{:x}", Sha256::digest(&bytes))
 }
 
-fn ordered(actual: &Value, expected: &Value, path: &str) {
+fn ordered(actual: &Value, expected: &FixtureValue, path: &str) {
     assert_eq!(actual, expected, "{path}: complete source value");
     match (actual, expected) {
-        (Value::Object(actual), Value::Object(expected)) => {
+        (Value::Object(actual), FixtureValue::Object(expected)) => {
             assert_eq!(actual.keys().collect::<Vec<_>>(), expected.keys().collect::<Vec<_>>(), "{path}: key order");
             for (key, actual) in actual { ordered(actual, &expected[key], &format!("{path}.{key}")); }
         }
-        (Value::Array(actual), Value::Array(expected)) => {
+        (Value::Array(actual), FixtureValue::Array(expected)) => {
             for (index, (actual, expected)) in actual.iter().zip(expected).enumerate() { ordered(actual, expected, &format!("{path}[{index}]")); }
         }
         _ => {}
     }
 }
 
-fn buff(actual: BuffValue, expected: &Value, path: &str) {
+fn buff(actual: BuffValue, expected: &FixtureValue, path: &str) {
     match actual {
         BuffValue::Constant(value) => exact(value, expected, path),
         BuffValue::Scaling(value) => { exact(value.base, &expected["base"], path); exact(value.per_point, &expected["per_point"], path); }
@@ -43,14 +44,14 @@ fn buff(actual: BuffValue, expected: &Value, path: &str) {
     }
 }
 
-pub fn verify(root: &Path, catalog: &Catalog, manifest: &Value) -> Value {
+pub fn verify(root: &Path, catalog: &Catalog, manifest: &FixtureValue) -> Value {
     let mut hashes = serde_json::Map::new();
     for (name, expected) in manifest["catalog_hashes"].as_object().unwrap() {
         let hash = hash_file(&root.join("data").join(name));
         assert_eq!(&hash, expected.as_str().unwrap(), "data/{name}: immutable exported catalog");
         hashes.insert(format!("data/{name}"), json!(hash));
     }
-    let gear = player_support::document(&root.join("data/gear.json"));
+    let gear = player_support::document_json(&root.join("data/gear.json"));
     let pieces = gear["pieces"].as_array().unwrap();
     assert_eq!(pieces.len(), catalog.pieces().len(), "every exported original gear identity");
     for (index, (actual, expected)) in catalog.pieces().iter().zip(pieces).enumerate() {
@@ -77,7 +78,7 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &Value) -> Value {
     assert_eq!(catalog.foods().iter().map(|id| catalog.piece(*id).original_id as u64).collect::<Vec<_>>(),
         gear["foods"].as_array().unwrap().iter().map(|id| id.as_u64().unwrap()).collect::<Vec<_>>(), "food identity/order/repeats");
 
-    let enemies = player_support::document(&root.join("data/enemies.json"));
+    let enemies = player_support::document_json(&root.join("data/enemies.json"));
     let records = enemies["enemies"].as_array().unwrap();
     assert_eq!(catalog.enemies().len(), records.len());
     for (index, (actual, expected)) in catalog.enemies().iter().zip(records).enumerate() {
@@ -89,12 +90,12 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &Value) -> Value {
         for (actual, (name, expected)) in actual.stats.iter().zip(stats) {
             assert_eq!(actual.stat.name(), name);
             exact(actual.value, expected, &format!("catalog.enemies[{index}].{name}"));
-            assert_eq!(&actual.literal, expected.as_number().unwrap());
+            assert_eq!(to_value(&actual.literal).unwrap(), *expected);
         }
     }
-    assert_eq!(json!(catalog.enemy_menu().iter().map(|id| catalog.enemy(*id).name.as_ref()).collect::<Vec<_>>()), manifest["export"]["enemy_menu"], "stable descending level/name menu");
+    assert_eq!(to_value(catalog.enemy_menu().iter().map(|id| catalog.enemy(*id).name.as_ref()).collect::<Vec<_>>()).unwrap(), manifest["export"]["enemy_menu"], "stable descending level/name menu");
 
-    let buffs = player_support::document(&root.join("data/buffs.json"));
+    let buffs = player_support::document_json(&root.join("data/buffs.json"));
     let mut buff_rows = 0;
     for kind in BuffTableKind::ALL {
         let table = catalog.buffs().table(kind);
@@ -103,7 +104,7 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &Value) -> Value {
         for (index, (actual, (name, expected))) in table.entries().iter().zip(expected).enumerate() {
             assert_eq!(actual.name.as_ref(), name);
             assert_eq!(table.index_of(name), Some(index));
-            assert_eq!(actual.level_requirement, expected.get("level requirement").and_then(Value::as_f64));
+            assert_eq!(actual.level_requirement, expected.get("level requirement").and_then(FixtureValue::as_f64));
             assert_eq!(actual.job_requirement.as_ref().map(|jobs| jobs.iter().map(|job| job.name()).collect::<Vec<_>>()),
                 expected.get("job requirement").map(|jobs| jobs.as_array().unwrap().iter().map(|job| job.as_str().unwrap()).collect::<Vec<_>>()));
             let stats = expected.as_object().unwrap().iter().filter(|(name, _)| !matches!(name.as_str(), "level requirement" | "job requirement")).collect::<Vec<_>>();
@@ -122,7 +123,7 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &Value) -> Value {
         assert_eq!(catalog.buffs().table(BuffTableKind::Brd).entries()[actual.song_index].name.as_ref(), name);
         exact(actual.cap, expected, &format!("catalog.song_limits.{name}"));
     }
-    let attachments = player_support::document(&root.join("data/pup-attachments.json"));
+    let attachments = player_support::document_json(&root.join("data/pup-attachments.json"));
     let records = attachments["attachments"].as_array().unwrap();
     assert_eq!(catalog.attachments().len(), records.len());
     for (index, (actual, expected)) in catalog.attachments().iter().zip(records).enumerate() {
@@ -130,13 +131,13 @@ pub fn verify(root: &Path, catalog: &Catalog, manifest: &Value) -> Value {
         ordered(catalog.attachment_by_name(expected["Name"].as_str().unwrap()).unwrap(), expected, &format!("catalog.attachments[{index}].lookup"));
     }
     let frozen_csv = manifest["export"]["csv_rows"].as_array().unwrap();
-    assert_eq!(frozen_csv.first().unwrap(), &json!(["id", "name", "name2"]), "legacy CSV header");
+    assert_eq!(frozen_csv.first().unwrap(), &to_value(["id", "name", "name2"]).unwrap(), "legacy CSV header");
     let csv_rows = &frozen_csv[1..];
     assert_eq!(catalog.aliases().len(), csv_rows.len());
     let mut full = HashMap::new();
     let mut abbreviations = HashMap::new();
     for (index, (actual, expected)) in catalog.aliases().iter().zip(csv_rows).enumerate() {
-        assert_eq!(json!([actual.id.as_ref(), actual.name.as_ref(), actual.name2.as_ref()]), *expected, "catalog.csv[{index}]");
+        assert_eq!(to_value([actual.id.as_ref(), actual.name.as_ref(), actual.name2.as_ref()]).unwrap(), *expected, "catalog.csv[{index}]");
         full.entry(actual.name.to_lowercase()).or_insert(index);
         abbreviations.entry(actual.name2.to_lowercase()).or_insert(index);
     }

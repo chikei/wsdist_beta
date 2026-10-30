@@ -4,7 +4,7 @@ use std::sync::{Arc, LazyLock};
 use std::sync::atomic::AtomicBool;
 
 use serde::Serialize;
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use sha2::{Digest, Sha256};
 use wsdist_core::actions::sample_round;
 use wsdist_core::math::{get_delay_timing, get_dex_crit, get_tp, python_round1};
@@ -18,7 +18,7 @@ use wsdist_core::simulation::{sample_distribution, simulate_dps};
 use wsdist_core::stats::Stat;
 use wsdist_core::weaponskills::resolve_name;
 
-use crate::native_support::{CountingRandom, expect_native, num, random_value};
+use crate::native_support::{CountingRandom, expect_native, num, object, random_value};
 use crate::support::{FrozenCatalog, assert_error, assert_number, enemy, number};
 
 pub fn assert_close(actual: f64, expected: f64, label: &str) {
@@ -145,20 +145,25 @@ fn assert_same_model_state(frozen: &FrozenCatalog, actual: &ModelState, expected
 
 fn error_value(error: &CalcError) -> Value {
     match error {
-        CalcError::Data { path, json_path, message } => json!({
-            "kind": "Data", "path": path, "json_path": json_path, "message": message,
-        }),
-        CalcError::Legacy { operation, field, category, message } => json!({
-            "kind": "Legacy", "operation": operation, "field": field, "category": category, "message": message,
-        }),
-        CalcError::Input { operation, field, message } => json!({
-            "kind": "Input", "operation": operation, "field": field, "message": message,
-        }),
-        CalcError::Interrupted { operation } => json!({"kind": "Interrupted", "operation": operation}),
-        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => json!({
-            "kind": "NonProgress", "operation": operation, "starting_tp": num(*starting_tp),
-            "threshold": num(*threshold), "upper_bound": num(*upper_bound),
-        }),
+        CalcError::Data { path, json_path, message } => object([
+            ("kind", "Data".into()), ("path", to_value(path).unwrap()),
+            ("json_path", json_path.as_str().into()), ("message", message.as_str().into()),
+        ]),
+        CalcError::Legacy { operation, field, category, message } => object([
+            ("kind", "Legacy".into()), ("operation", (*operation).into()), ("field", (*field).into()),
+            ("category", (*category).into()), ("message", message.as_str().into()),
+        ]),
+        CalcError::Input { operation, field, message } => object([
+            ("kind", "Input".into()), ("operation", (*operation).into()),
+            ("field", (*field).into()), ("message", message.as_str().into()),
+        ]),
+        CalcError::Interrupted { operation } => object([
+            ("kind", "Interrupted".into()), ("operation", (*operation).into()),
+        ]),
+        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => object([
+            ("kind", "NonProgress".into()), ("operation", (*operation).into()), ("starting_tp", num(*starting_tp)),
+            ("threshold", num(*threshold)), ("upper_bound", num(*upper_bound)),
+        ]),
     }
 }
 
@@ -166,14 +171,14 @@ fn sampled_projection<T: Serialize>(
     result: &Result<T, CalcError>, context: &EvaluationContext<CountingRandom>,
 ) -> Value {
     let hits = context.action_trace.as_ref().expect("requested simulation hit trace");
-    let mut observation = json!({
-        "hit_count": hits.len(),
-        "hits_sha256": format!("{:x}", Sha256::digest(serde_json::to_vec(hits).unwrap())),
-        "random": random_value(&context.random),
-    });
+    let mut observation = object([
+        ("hit_count", hits.len().into()),
+        ("hits_sha256", format!("{:x}", Sha256::digest(serde_json::to_vec(hits).unwrap())).into()),
+        ("random", random_value(&context.random)),
+    ]);
     let fields = observation.as_object_mut().unwrap();
     match result {
-        Ok(result) => { fields.insert("result".into(), serde_json::to_value(result).unwrap()); }
+        Ok(result) => { fields.insert("result".into(), to_value(result).unwrap()); }
         Err(error) => { fields.insert("error".into(), error_value(error)); }
     }
     observation
@@ -325,11 +330,11 @@ pub fn assert_nonprogress_legacy(case: &Value, run: &NonprogressRun, cat: &Froze
 }
 
 pub fn project_nonprogress(run: &NonprogressRun, _cat: &FrozenCatalog) -> Value {
-    json!({
-        "diagnostic_round": serde_json::to_value(run.diagnostic).unwrap(),
-        "hits": run.diagnostic_context.action_trace.as_ref().expect("diagnostic hit trace"),
-        "random": random_value(&run.diagnostic_context.random),
-    })
+    object([
+        ("diagnostic_round", to_value(&run.diagnostic).unwrap()),
+        ("hits", to_value(run.diagnostic_context.action_trace.as_ref().expect("diagnostic hit trace")).unwrap()),
+        ("random", random_value(&run.diagnostic_context.random)),
+    ])
 }
 
 fn expect_case_native(case: &Value, observation: &Value) {

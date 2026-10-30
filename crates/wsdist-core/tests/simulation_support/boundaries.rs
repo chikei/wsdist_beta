@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::actions::{sample_round, sample_ws};
 use wsdist_core::math::get_tp;
 use wsdist_core::model::{
@@ -12,7 +12,8 @@ use wsdist_core::rng::RandomSources;
 use wsdist_core::simulation::{sample_distribution, simulate_dps};
 use wsdist_core::stats::Stat;
 
-use crate::support::{FrozenCatalog, document, enemy, fixture_root, index};
+use crate::native_support::object;
+use crate::support::{FrozenCatalog, enemy, fixture_root, index};
 use super::{dps_request, ws_request};
 
 #[derive(Clone, Copy)]
@@ -59,7 +60,7 @@ impl RandomSource for CancellingRandom {
 
 fn fixture(suffix: &str) -> Value {
     let entry = index().cases.into_iter().find(|entry| entry.id.ends_with(suffix)).unwrap();
-    document(&fixture_root().join(entry.path))
+    crate::support::fixture(&fixture_root(), &entry)
 }
 
 fn context(frozen: &FrozenCatalog, input: &Value, stop: Arc<AtomicBool>, cancel_at: Option<usize>, policy: HostPolicy) -> EvaluationContext<CancellingRandom> {
@@ -73,7 +74,7 @@ fn assert_interrupted(error: CalcError, operation: &str) {
 
 fn local_piece(mut record: Value, identity: &str, name: &str) -> Value {
     let object = record.as_object_mut().unwrap();
-    object.remove("id");
+    object.shift_remove("id");
     object.insert("local_identity".into(), Value::from(identity));
     object.insert("name".into(), Value::from(name));
     object.insert("name2".into(), Value::from(name));
@@ -130,7 +131,7 @@ pub fn cancellation_after_a_round_never_enters_the_following_ws() {
     assert_interrupted(simulate_dps(&request, &mut ctx, &stop).unwrap_err(), "simulate_dps");
     assert_eq!(ctx.random.draws, first_draws, "shutdown observed before another action");
     assert_eq!(ctx.random.inner, baseline.random.inner, "no WS-only unused draws after round shutdown");
-    assert_eq!(serde_json::to_value(ctx.action_trace).unwrap(), serde_json::to_value(baseline.action_trace).unwrap());
+    assert_eq!(to_value(&ctx.action_trace).unwrap(), to_value(&baseline.action_trace).unwrap());
 }
 
 pub fn cancellation_in_a_ws_returns_no_partial_distribution() {
@@ -150,7 +151,7 @@ pub fn cancellation_in_a_ws_returns_no_partial_distribution() {
     assert_interrupted(sample_distribution(&request, &mut ctx, &stop).unwrap_err(), "sample_distribution");
     assert_eq!(ctx.random.draws, baseline.random.draws, "no second distribution sample after shutdown");
     assert_eq!(ctx.random.inner, baseline.random.inner);
-    assert_eq!(serde_json::to_value(ctx.action_trace).unwrap(), serde_json::to_value(baseline.action_trace).unwrap());
+    assert_eq!(to_value(&ctx.action_trace).unwrap(), to_value(&baseline.action_trace).unwrap());
 }
 
 pub fn unlucky_zero_tp_rounds_continue_until_cancellation() {
@@ -177,7 +178,7 @@ pub fn unlucky_zero_tp_rounds_continue_until_cancellation() {
 pub fn rounded_regain_alone_can_reach_a_ws() {
     let case = fixture("full7200-single-host11-compiled20240101");
     let mut input = case["input"].clone();
-    let piece = armor(&input, "Regain-only TP", json!({"Store TP": -100, "Regain": 90}));
+    let piece = armor(&input, "Regain-only TP", object([("Store TP", (-100).into()), ("Regain", 90.into())]));
     input["tp_player"]["gearset"]["body"] = piece.clone();
     input["ws_player"]["gearset"]["body"] = piece;
     input["request"]["ws_threshold"] = Value::from(1);
@@ -222,7 +223,7 @@ fn assert_special_tp_reachable(mut input: Value, expected_kind: AttackKind, poli
     assert_interrupted(simulate_dps(&request, &mut ctx, &stop).unwrap_err(), "simulate_dps");
     assert_eq!(ctx.random.draws, baseline.random.draws, "guard must admit the reachable special hit without consuming RNG");
     assert_eq!(ctx.random.inner, baseline.random.inner);
-    assert_eq!(serde_json::to_value(ctx.action_trace).unwrap(), serde_json::to_value(baseline.action_trace).unwrap());
+    assert_eq!(to_value(&ctx.action_trace).unwrap(), to_value(&baseline.action_trace).unwrap());
 }
 
 pub fn reachable_daken_prevents_false_nonprogress() {
@@ -232,7 +233,7 @@ pub fn reachable_daken_prevents_false_nonprogress() {
     main["delay"] = Value::from(-165);
     input["tp_player"]["gearset"]["main"] = main;
     input["tp_player"]["gearset"]["sub"] = input["ws_player"]["gearset"]["head"].clone();
-    input["tp_player"]["gearset"]["body"] = armor(&input, "Daken-only eligibility", json!({"Daken": 100}));
+    input["tp_player"]["gearset"]["body"] = armor(&input, "Daken-only eligibility", object([("Daken", 100.into())]));
     assert_special_tp_reachable(input, AttackKind::Daken, HostPolicy::LandAll);
 }
 
@@ -242,11 +243,11 @@ pub fn reachable_sam_zanshin_prevents_false_nonprogress() {
     input["tp_player"]["main_job"] = Value::from("sam");
     let mut main = local_piece(input["tp_player"]["gearset"]["main"].clone(), "Zanshin-only main", "Zanshin-only main");
     main["skill_type"] = Value::from("Great Katana");
-    main["jobs"] = json!(["sam"]);
+    main["jobs"] = Value::Array(vec!["sam".into()]);
     main["delay"] = Value::from(-165);
     input["tp_player"]["gearset"]["main"] = main;
     input["tp_player"]["gearset"]["body"] = armor(&input, "Zanshin-only eligibility",
-        json!({"Zanshin OA2": 100, "DA": -1000, "TA": -1000, "QA": -1000}));
+        object([("Zanshin OA2", 100.into()), ("DA", (-1000).into()), ("TA", (-1000).into()), ("QA", (-1000).into())]));
     assert_special_tp_reachable(input, AttackKind::Zanshin, HostPolicy::MissFirstMain);
 }
 
@@ -256,7 +257,7 @@ pub fn zero_duration_rounds_with_positive_tp_complete_the_horizon() {
     let mut main = local_piece(input["tp_player"]["gearset"]["main"].clone(), "Zero-time TP main", "Zero-time TP main");
     main["delay"] = Value::from(0);
     input["tp_player"]["gearset"]["main"] = main;
-    input["tp_player"]["gearset"]["body"] = armor(&input, "Zero-time fallback delay", json!({"Martial Arts": 480}));
+    input["tp_player"]["gearset"]["body"] = armor(&input, "Zero-time fallback delay", object([("Martial Arts", 480.into())]));
     input["request"]["ws_threshold"] = Value::from(1);
     let frozen = FrozenCatalog::from_input(&input);
     let mut ctx = frozen.context(&input["seeds"]);
@@ -291,11 +292,11 @@ pub fn trace_disabled_keeps_the_same_damage_and_streams_without_events() {
     let untraced = simulate_dps(&request, &mut untraced_ctx, &AtomicBool::new(false)).unwrap();
     assert!(untraced.events.is_empty(), "no unrequested driver traces");
     assert!(untraced_ctx.action_trace.is_none(), "no unrequested per-hit buffer");
-    let mut traced_value = serde_json::to_value(traced).unwrap();
-    let mut untraced_value = serde_json::to_value(untraced).unwrap();
+    let mut traced_value = to_value(traced).unwrap();
+    let mut untraced_value = to_value(untraced).unwrap();
     // DpsResult serializes events; only this intentionally trace-dependent field is excluded.
-    traced_value.as_object_mut().unwrap().remove("events").unwrap();
-    untraced_value.as_object_mut().unwrap().remove("events").unwrap();
+    traced_value.as_object_mut().unwrap().shift_remove("events").unwrap();
+    untraced_value.as_object_mut().unwrap().shift_remove("events").unwrap();
     crate::native_support::assert_json_eq(&traced_value, &untraced_value, "trace-invariant DPS result");
     crate::native_support::assert_json_eq(
         &crate::native_support::random_value(&traced_ctx.random),
@@ -308,11 +309,11 @@ pub fn unreachable_special_hits_do_not_mask_nonprogress() {
     let mut input = case["input"].clone();
     input["tp_player"]["main_job"] = Value::from("sam");
     let mut main = local_piece(input["tp_player"]["gearset"]["main"].clone(), "Unreachable Zanshin main", "Unreachable Zanshin main");
-    main["jobs"] = json!(["sam"]);
+    main["jobs"] = Value::Array(vec!["sam".into()]);
     main["delay"] = Value::from(-165);
     input["tp_player"]["gearset"]["main"] = main;
     input["tp_player"]["gearset"]["body"] = armor(&input, "Unreachable special-hit stats",
-        json!({"Zanshin OA2": 100, "Daken": 100, "DA": -1000, "TA": -1000, "QA": -1000}));
+        object([("Zanshin OA2", 100.into()), ("Daken", 100.into()), ("DA", (-1000).into()), ("TA", (-1000).into()), ("QA", (-1000).into())]));
     input["request"]["ws_threshold"] = Value::from(1);
     let frozen = FrozenCatalog::from_input(&input);
     let mut ctx = frozen.context(&input["seeds"]);

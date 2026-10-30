@@ -7,7 +7,7 @@ mod native_support;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::model::*;
 use wsdist_core::optimizer::{optimize, probe::*};
 
@@ -31,10 +31,10 @@ fn frozen_helper_walk_splitting_normalization_and_full_record_interning() {
         let label = fixture["id"].as_str().unwrap();
         let input = &fixture["input"]; let expected = &fixture["expected"]["value"];
         match input["helper"].as_str().unwrap() {
-            "slot_combos" => assert_eq!(json!(slot_combos(input["slot_count"].as_u64().unwrap() as usize,
-                input["max_swap_slots"].as_u64().unwrap() as usize)), expected["ordered_combos"], "{label}: exact combination walk"),
+            "slot_combos" => assert_eq!(to_value(slot_combos(input["slot_count"].as_u64().unwrap() as usize,
+                input["max_swap_slots"].as_u64().unwrap() as usize)).unwrap(), expected["ordered_combos"], "{label}: exact combination walk"),
             "options" => {
-                let options: Option<OptimizeOptions> = serde_json::from_value(input["options"].clone()).unwrap();
+                let options: Option<OptimizeOptions> = wsdist_fixtures::from_value(&input["options"]).unwrap();
                 let normalized = normalize_options(options.as_ref());
                 adapter::assert_options(&normalized, &expected["normalized"], label);
                 for index in 0..3 { adapter::assert_options(&restart_options(&normalized, index).unwrap(), &expected["restart_options"][index], label); }
@@ -42,15 +42,15 @@ fn frozen_helper_walk_splitting_normalization_and_full_record_interning() {
             "split_groups" => {
                 let groups = adapter::groups(&input["groups"]);
                 let shares = split_groups(&groups, input["total"].as_u64().unwrap() as usize, input["parts"].as_u64().unwrap() as usize);
-                let actual = shares.iter().map(|share| share.iter().map(|group| json!([group.combo, group.candidates])).collect::<Vec<_>>()).collect::<Vec<_>>();
-                assert_eq!(json!(actual), expected["ordered_shares"], "{label}: ordered group/share flattening");
+                let actual = shares.iter().map(|share| share.iter().map(|group| (&group.combo, &group.candidates)).collect::<Vec<_>>()).collect::<Vec<_>>();
+                assert_eq!(to_value(actual).unwrap(), expected["ordered_shares"], "{label}: ordered group/share flattening");
             }
             "intern_pieces" => {
                 let catalog = FrozenCatalog::from_input(input); let engine = catalog.context(&input["seeds"]);
                 let groups = input["groups"].as_array().unwrap().iter().map(|group| group.as_array().unwrap().iter().map(|gear| catalog.gear(gear)).collect::<Vec<_>>()).collect::<Vec<_>>();
                 let interned = intern_pieces(&catalog.catalog, &engine.state, groups.iter().map(Vec::as_slice));
                 let mapping = groups.iter().map(|group| group.iter().map(|&gear| interned.id(gear)).collect::<Vec<_>>()).collect::<Vec<_>>();
-                assert_eq!(json!(mapping), expected["input_to_interned_id"], "{label}: first-value interning/order");
+                assert_eq!(to_value(mapping).unwrap(), expected["input_to_interned_id"], "{label}: first-value interning/order");
                 assert_eq!(interned.pieces.len(), expected["interned_records"].as_array().unwrap().len(), "{label}: distinct full records");
                 for (&gear, record) in interned.pieces.iter().zip(expected["interned_records"].as_array().unwrap()) {
                     let record = Value::Object(Slot::ALL.iter().map(|slot| (slot.name().to_owned(), record.clone())).collect());
@@ -59,8 +59,8 @@ fn frozen_helper_walk_splitting_normalization_and_full_record_interning() {
                 let all = groups.into_iter().flatten().collect::<Vec<_>>();
                 let equal = all.iter().map(|&a| all.iter().map(|&b| catalog.catalog.piece(a).value_equal(catalog.catalog.piece(b), &engine.state)).collect::<Vec<_>>()).collect::<Vec<_>>();
                 let identical = all.iter().map(|&a| all.iter().map(|&b| a == b).collect::<Vec<_>>()).collect::<Vec<_>>();
-                assert_eq!(json!(equal), expected["full_equality"], "{label}: ordered jobs and order-independent numeric stats");
-                assert_eq!(json!(identical), expected["object_identity"], "{label}: original record identity");
+                assert_eq!(to_value(equal).unwrap(), expected["full_equality"], "{label}: ordered jobs and order-independent numeric stats");
+                assert_eq!(to_value(identical).unwrap(), expected["object_identity"], "{label}: original record identity");
             }
             helper => panic!("{label}: unhandled frozen helper {helper}"),
         }
@@ -87,7 +87,7 @@ fn frozen_legality_preserves_name_checks_record_equality_and_literal_ws_restrict
         let rules = adapter::legality(&catalog, input, &engine.state, label);
         let gearset = catalog.gearset(&input["player"]["gearset"]);
         assert_eq!(Some(rules.is_valid(&gearset, &catalog.catalog, &engine.state)), expected["valid"].as_bool(), "{label}: legality result");
-        assert_eq!(json!(jse_ear_names()), expected["jse_ears"], "{label}: literal JSE restrictions");
+        assert_eq!(to_value(jse_ear_names()).unwrap(), expected["jse_ears"], "{label}: literal JSE restrictions");
         catalog.assert_gearset(&gearset, &engine.state, &expected["effective_gearset"], label);
         assert_eq!(engine.random.uniforms() + engine.random.bounded + engine.random.reseeds, 0, "{label}: legality consumes no randomness");
     }
@@ -104,7 +104,7 @@ fn frozen_fast_dt_gate_full_player_verification_type_ii_and_aftermath_scores() {
         let slots = input["score_slots"].as_array().unwrap().iter().map(|slot| Slot::from_name(slot.as_str().unwrap()).unwrap().index()).collect::<Vec<_>>();
         let groups = adapter::product_groups(&slots, &pools);
         let metrics = ScoreScratch::new(&ctx).score(&ctx, &ids, &groups, adapter::thresholds(&input["thresholds"]), &mut engine, &AtomicBool::new(false), &mut trace).unwrap();
-        assert_eq!(json!(groups), expected["result"]["groups"], "{label}: score candidate ordering");
+        assert_eq!(to_value(&groups).unwrap(), expected["result"]["groups"], "{label}: score candidate ordering");
         adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
         assert_eq!(Some(ctx.fast_gate), expected["result"]["fast_gate"].as_bool(), "{label}: aftermath fast-gate eligibility");
         adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
@@ -148,7 +148,7 @@ fn frozen_pool_dispatches_preserve_ordered_shares_and_local_boundaries() {
         let groups = vec![Group { combo: Tuple::new(&[head]), candidates: (0..total).map(|index| Tuple::new(&[available[index % available.len()]])).collect() }];
         let metrics = mapper.score(&ids, &groups, total, adapter::thresholds(&input["thresholds"]), &mut engine,
             &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut trace).unwrap();
-        assert_eq!(json!(groups), expected["result"]["groups"], "{label}: original dispatch payload"); adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
+        assert_eq!(to_value(&groups).unwrap(), expected["result"]["groups"], "{label}: original dispatch payload"); adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
         adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
         adapter::assert_draw_count(&engine.random, &expected["evidence"], label);
     }
@@ -217,14 +217,14 @@ fn raw_helper_unknown_ws_is_a_scoring_error_not_a_fake_id_or_rejected_candidate(
     let ctx = ScoreContext::new(player.clone(), support::enemy(&input["enemy"]), action, rules, pieces, &catalog.catalog, true);
     let groups = [Group { combo: Tuple::new(&[Slot::Head.index()]), candidates: vec![Tuple::new(&[ctx.pieces.id(gear)])] }];
     let error = ScoreScratch::new(&ctx).score(&ctx, &ctx.ids(&player.gearset), &groups, [200.0; 2], &mut engine, &AtomicBool::new(false), &mut None).unwrap_err();
-    support::assert_error(&error, &json!({"class":"KeyError","message":"''"}), "raw empty WS lookup");
+    support::assert_error(&error, &Value::Object([("class".into(), Value::from("KeyError")), ("message".into(), Value::from("''"))].into_iter().collect()), "raw empty WS lookup");
     let ctx = std::sync::Arc::new(ctx);
     let ids = ctx.ids(&player.gearset);
     let groups = [Group { combo: Tuple::new(&[Slot::Head.index()]), candidates: vec![Tuple::new(&[ctx.pieces.id(gear)]); 192] }];
     let mut mapper = Mapper::new(ctx.clone(), ids, MapperConfig::production(2, 20_000), &mut None);
     let error = mapper.score(&ids, &groups, 192, [200.0; 2], &mut engine,
         &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut None).unwrap_err();
-    support::assert_error(&error, &json!({"class":"KeyError","message":"''"}), "pool warmup/scoring lookup error");
+    support::assert_error(&error, &Value::Object([("class".into(), Value::from("KeyError")), ("message".into(), Value::from("''"))].into_iter().collect()), "pool warmup/scoring lookup error");
 }
 
 #[test]
@@ -278,7 +278,7 @@ fn optimizer_cast_dispatch_keeps_divine_and_barrage_legacy_key_errors() {
         request.action.spell_name = name.into();
         request.action.spell_type = SpellType::DivineMagic;
         let error = optimize_raw(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}, &mut None).unwrap_err();
-        support::assert_error(&error, &json!({"class":"KeyError","message":"''"}), name);
+        support::assert_error(&error, &Value::Object([("class".into(), Value::from("KeyError")), ("message".into(), Value::from("''"))].into_iter().collect()), name);
     }
 }
 
@@ -289,7 +289,7 @@ fn raw_build_unknown_action_keeps_its_pre_evaluation_metric_format_error() {
     let mut request = adapter::raw_request(&catalog, input, &engine.state, "unknown build action");
     request.action.action_type = "".into();
     let error = optimize_raw(&request, &mut engine, &AtomicBool::new(false), &mut |_| {}, &mut None).unwrap_err();
-    support::assert_error(&error, &json!({"class":"KeyError","message":"''"}), "unknown build METRIC_FORMAT key");
+    support::assert_error(&error, &Value::Object([("class".into(), Value::from("KeyError")), ("message".into(), Value::from("''"))].into_iter().collect()), "unknown build METRIC_FORMAT key");
 }
 
 #[test]
@@ -297,7 +297,10 @@ fn zero_time_reciprocal_is_a_legacy_error_in_search_and_candidate_scoring() {
     let (_, fixture) = build_fixture("search-simulation/seed11-complete-build-workers1");
     let input = &fixture["input"];
     let catalog = FrozenCatalog::from_input(input);
-    let expected = json!({"class": "ZeroDivisionError", "message": "0.0 cannot be raised to a negative power"});
+    let expected = Value::Object([
+        ("class".into(), Value::from("ZeroDivisionError")),
+        ("message".into(), Value::from("0.0 cannot be raised to a negative power")),
+    ].into_iter().collect());
     let mut engine = catalog.context(&input["seeds"]);
     let mut request = adapter::request(&catalog, input, &engine.state, "zero-time search");
     request.action = ActionRequest::Round { metric: Metric::new("Time to WS"), starting_tp: 0.0, threshold: 0.0 };
@@ -305,9 +308,9 @@ fn zero_time_reciprocal_is_a_legacy_error_in_search_and_candidate_scoring() {
     support::assert_error(&error, &expected, "zero-time search must not accept an infinite winner");
 
     let mut score_input = input.clone();
-    score_input["request"]["action_type"] = json!("attack round");
-    score_input["request"]["input_metric"] = json!("Time to WS");
-    score_input["request"]["min_tp"] = json!(0.0);
+    score_input["request"]["action_type"] = Value::from("attack round");
+    score_input["request"]["input_metric"] = Value::from("Time to WS");
+    score_input["request"]["min_tp"] = Value::from(0.0);
     for mut trace in [None, Some(SearchTrace::default())] {
         let mut engine = catalog.context(&input["seeds"]);
         let (ctx, ids, _) = adapter::score_context(&catalog, &score_input, &engine.state, "zero-time score");

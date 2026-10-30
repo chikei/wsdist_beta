@@ -3,7 +3,7 @@
 ## Commands and native prerequisites
 
 Use the pinned Rust **1.92.0** toolchain, edition-2024 workspace and committed
-`Cargo.lock`. Verification consumes immutable JSON evidence; no Python runtime,
+`Cargo.lock`. Verification consumes immutable fixture evidence; no Python runtime,
 fixture regeneration or golden acceptance is part of a build.
 
 ```sh
@@ -179,33 +179,34 @@ and `target/rng-profile-adoption-20261030/verification.json`.
 
 ### Fixture ingestion and content equality
 
-Active legacy, formula-boundary and native case indexes use schema version **2**
-and `content_xxh3_128`: XXH3-128 over the exact logical JSON bytes, including
-whitespace and the final newline. Digests are the numeric `u128` rendered as
+Active legacy, formula-boundary and native case indexes use schema version **3**
+and `content_xxh3_128`: XXH3-128 over the complete uncompressed bitcode payload,
+not compressed bytes or original JSON. Digests are the numeric `u128` rendered as
 exactly 32 lowercase hexadecimal digits, independent of host endianness.
 This detects accidental content changes; it is not cryptographic authenticity.
-Legacy entries retain their original SHA-256 as `source_sha256` for provenance
-and native-source joins. Source/runtime/catalog, RNG-word, observation-projection
-and delivery SHA-256 contracts are unchanged.
+Entries retain `source_path`, `source_sha256` and `source_content_xxh3_128` for
+the original logical JSON evidence. Native `legacy_path`/`legacy_sha256` joins
+still name that original capture, not the renamed binary storage. Source/runtime/
+catalog, RNG-word, observation-projection and delivery SHA-256 contracts are unchanged.
 
-Before conversion, all **30,585** indexed legacy, boundary and native documents
-were checked against their original SHA-256. No logical case JSON or raw fragment
-bytes changed. The seven original indexes are preserved across the core/app
+During the earlier JSON-ingestion optimization, all **30,585** indexed documents
+were checked against their original SHA-256; JSON and fragment bytes did not
+change at that stage. The seven original indexes are preserved across the core/app
 `tests/fixtures/original-indexes.zip` archives, with member paths relative to that fixtures
 directory. Frozen capture manifests still describe that original evidence;
 archives are not runtime fallback indexes.
 
 `wsdist-fixtures` is a shared dev-dependency, not shipped application code.
-Its non-generic `read_value` keeps concrete JSON decoding inside the optimized
-helper crate rather than monomorphizing it in every unoptimized test target.
-The fixture helper/hash packages and test-profile `serde_json` are optimized,
-alongside the test-only `rand_chacha` override described above. Compiler artifacts
-confirm core/app and parity/test targets remain at optimization level zero.
-Genuine typed reads remain available. Previously
-full-document index readers still validate a complete `Value` before typed
-conversion, including invalid Unicode, UTF-8, overflowing numbers and excessive
-nesting in discarded fields. UI workflows select the Ninja index entry before
-loading its fixture rather than decoding all 23 profiles.
+Its non-generic `read_value` now keeps concrete bitcode/Zstandard decoding inside
+the optimized helper crate and returns the final ordered native fixture value.
+The fixture, codec, compression and hash packages are optimized alongside the
+test-only `rand_chacha` override. Core/app and parity/test code stays at opt-level
+zero. Explicit `read_json_value`/`read_json` readers handle metadata and resources;
+binary payload readers never fall back to JSON or multipart storage.
+Typed conversion borrows native values rather than cloning or materializing
+`serde_json::Value`. Metadata is still fully validated before typed projection,
+including invalid Unicode/UTF-8, overflowing numbers and excessive nesting in
+discarded fields. UI workflows select their index entry before loading a case.
 
 The fixture-ingestion change passed **206 tests**, including all 18 storage
 regressions, in the pinned serial debug workspace. These historical timers
@@ -232,13 +233,13 @@ choice, so the combined speedup is not attributed to XXH3 alone.
 | XXH3-64 | 12.981 s | 0.168 s |
 | CRC32 | 2.121 s | 0.050 s |
 
-Keep one integrity/verification unit per complete case and the existing 16 MiB
-physical parts. Bulk reads/reconstruction across **30,201 files** took 1.05 s,
+Those earlier granularity experiments kept one integrity unit per case and
+16 MiB physical parts. Reads/reconstruction across **30,201 files** took 1.05 s,
 versus 122.62 s for the original owned-JSON decoding. The 29,622 documents no
 larger than 64 KiB accounted for 68.54 s of that decoding; the 13 documents above
 16 MiB accounted for 21.62 s. Reconstructing identical availability bytes from
 1, 8, 120 or 1,905 warm files took approximately 0.269–0.273 s per trial.
-Repartitioning files does not remove the full-document tree allocations.
+Repartitioning did not remove the full-document tree allocations.
 
 MessagePack was tested with optimized concrete slice decoders, complete-input
 checks, and exact recursive equivalence for every source field, map/array order,
@@ -250,10 +251,10 @@ work are excluded from decode times:
 | JSON | 2,682,609,015 | 16.543 s |
 | MessagePack | 1,994,249,028 | 15.952 s |
 
-MessagePack was slightly slower for the large availability and distribution
-captures. Keep inspectable JSON: the observed total decode saving was only
-0.59 s, with essentially unchanged owned-tree destruction cost. No MessagePack
-dependency or second runtime storage format is retained.
+Those earlier measurements retained JSON: MessagePack saved only 0.59 s overall
+and was slightly slower for large availability/distribution captures, with
+essentially unchanged destruction cost. The bitcode/Zstandard cutover below
+supersedes that storage decision; no MessagePack dependency is retained.
 
 The executable release verifier passed **30,184 exercised cases**, one inert
 case and all **18 million statistical samples**. The updated native generator
@@ -270,11 +271,11 @@ Evidence: `target/fixture-ingestion-optimization/`, especially
 
 ### Fixture Value lifecycle
 
-Primary corpus cases are still decoded as complete ordered `serde_json::Value`
-trees, with the same hash, JSON-validation and replay/comparison checks.
-`wsdist_fixtures::drop_value` consumes each case after replay and owned coverage
-extraction, at the original lifetime boundary. Its concrete destructor runs in
-the already optimized fixture crate; panic unwinding retains ordinary ownership.
+Primary corpus cases now decode directly into complete ordered
+`wsdist_fixtures::Value` trees, without an intermediate JSON value or flattened
+token-to-JSON reconstruction. `drop_value` consumes each case after replay and
+owned coverage extraction at the original lifetime boundary. Its concrete native
+destructor runs in the optimized helper crate; panic unwinding retains ownership.
 
 Only `legacy_parity` and `verify_numerics` explicitly select MiMalloc as their
 Rust global allocator. This applies to all Rust allocations in those two
@@ -297,11 +298,11 @@ Intrinsic test timers, excluding compilation, measured:
 | Unchanged system-allocator baseline | 39.44 s |
 | Optimized fixture drop and scoped MiMalloc | 32.47 s |
 
-The selected configuration saves 17.7% of this test's runtime. A capacity-hint
-prepass/custom JSON visitor matched every source value, key/array order, scalar
-kind and float bit across all 30,185 cases, but its modest decode saving did not
-justify retaining a second decoder. No parser, wire-format or fixture changes
-are part of this optimization.
+That lifecycle-only change saved 17.7% of the test's runtime. A capacity-hint
+JSON visitor matched every source value, key/array order, scalar kind and float bit
+across all 30,185 cases, but its modest decode saving did not justify a second
+JSON decoder. No parser, wire-format or fixture changes were part of that earlier
+optimization; the current binary format is a separate cutover.
 
 The persisted configuration passed all **206 workspace tests** in 151.06 s
 warm wall time, with 148.21 s summed test execution. The actual numerical
@@ -321,41 +322,112 @@ Evidence: `target/corpus-value-optimization-20261030/`, especially
 `selected-build-summary.json`, `selected-graph-proof.json`,
 `numerical-invariance.json`, `native-version-runs.json` and `selected-self.txt`.
 
-### Multipart fixture storage
+### Compressed bitcode fixture storage
 
-Every stored fixture file must be smaller than **50,000,000 bytes**. Three
-captures use `byte-parts-v2` storage instead of a single oversized JSON file.
-Paths below are relative to each crate's `tests/fixtures/legacy/` directory.
+All **30,585 indexed payloads** use one `.bitcode.zst` file per case: 30,185
+canonical legacy/UI cases, 263 formula-boundary documents and 137 native goldens.
+The seven active indexes remain readable JSON with schema version **3**.
+Frozen manifests, original-index archives and unindexed capture/export evidence
+remain unchanged. Original JSON case files, three multipart descriptors and all
+sixteen raw parts have been removed; there is no old-format runtime fallback.
 
-| Crate / fixture | Original JSON bytes | Parts |
-| --- | ---: | ---: |
-| core / `search_simulation/000424.json` | 59,282,632 | 4 |
-| core / `search_simulation/000425.json` | 59,312,719 | 4 |
-| app / `ui/000024.json` | 124,796,776 | 8 |
+The file is one standard Zstandard level-3 frame with a declared content size and
+content checksum. Its decompressed contents are:
 
-Each original `.json` path now contains a small descriptor whose first top-level
-literal key **must** be `"fixture_format"`, with value `"byte-parts-v2"`.
-Its `content_xxh3_128` and `byte_length` describe the complete original JSON byte stream.
-The ordered `parts` list supplies descriptor-relative `path` and exact
-`byte_length` for each raw fragment under the adjacent `.parts/` directory.
-Fragments are at most **16 MiB** each and are not standalone JSON documents.
-Keep the descriptor and all its fragments together, including isolated fixture
-mounts used by native/archive proof drivers.
+- Eight-byte magic/version `WSFIX\0\x01\0`.
+- Little-endian `u64` bitcode payload length.
+- Little-endian `u128` XXH3-128 of that payload.
+- Exactly one bitcode payload, with no trailing data.
 
-`crates/wsdist-fixtures/src/lib.rs` is shared build-only support for core/app
-tests, numerical verification and native UI smoke. It reconstructs the original
-bytes, checks all lengths and one whole-document XXH3-128 digest, and compares
-that digest independently with descriptor and index expectations. Ordinary JSON
-deserializes directly through the same reader. There is no old-format or SHA
-fallback. Capture manifests, numerical values and original SHA provenance are
-unchanged; active index metadata is versioned separately as described above.
-`.gitattributes` marks `*.part` and original-index `*.zip` archives as `-text`.
+The decoder checks the frame size, version, declared length, compression checksum
+and header hash, then independently checks the canonical index hash when supplied.
+Trailing compressed bytes, concatenated frames and trailing bitcode are rejected.
+Uncompressed bitcode is capped at **512 MiB**, container nesting at **128**,
+and every stored repository fixture remains below **50,000,000 bytes**.
+The largest current compressed case is **5,412,524 bytes**, so multipart storage
+is no longer necessary. `.gitattributes` marks `*.bitcode.zst` and `*.zip` as `-text`.
 
-`cargo test --locked -p wsdist-core --test fixture_storage` checks reconstruction
-across token/UTF-8 boundaries, value/order preservation, corruption and length
-failures, independent index hashes and the repository fixture-size ceiling.
-The original splitting conversion reassembled all 16 on-disk fragments and
-matched the three original SHA-256 byte-stream hashes before replacing the files.
+The stable tagged native `Value`/`Number` schema uses `bitcode 0.6.9`'s serde
+integration; direct `serde_json::Value` deserialization and recursive native
+`Encode`/`Decode` derivation are not supported by that codec. Object insertion
+order, array order, integer/float distinctions and binary64 bits are preserved.
+`zstd 0.14.3` uses the bundled native library without optional dictionary/legacy
+features. Codec upgrades that change the wire schema require a versioned migration.
+
+`read_value`/`decode_value` return the final native tree. `read`/`from_value`
+deserialize typed inputs by borrowing it; `to_value` constructs native observation
+trees directly. Neither path creates a JSON value tree or a JSON byte roundtrip.
+Abilities and recorded RNG tapes use typed streaming deserializers rather than
+hidden JSON intermediaries. Genuine application profile/control/resource APIs
+and produced reports remain JSON at their actual boundaries.
+
+Before replacement, every original logical JSON stream passed both its active
+XXH3 and immutable original-index SHA-256 checks. Every staged compressed case
+was read back and compared across **240,318,605 nodes**, including every key
+sequence, array position, number kind and float bit, with no mismatches.
+
+| Payload representation, all indexed cases | Bytes |
+| --- | ---: |
+| Original logical JSON | 2,733,075,633 |
+| Uncompressed bitcode | 1,976,026,924 |
+| Stored Zstandard files | 190,523,466 |
+
+`cargo test --locked -p wsdist-core --test fixture_storage` covers native and typed
+roundtrips, ordering/numeric boundaries, corrupt/truncated data, version/length/
+limit failures, independent hashes, complete compressed/bitcode input, discarded
+metadata validation and the repository size ceiling.
+Conversion evidence: `target/bitcode-zstd-cutover-20261030/{conversion-report.json,conversion-audit.jsonl,apply-report.json}`.
+
+#### Cutover verification and measured loading
+
+The final Linux workspace run passed **215 tests** across all targets:
+
+```sh
+env -u SLINT_SCALE_FACTOR SLINT_EMIT_DEBUG_INFO=1 \
+  cargo test --locked --offline --workspace --all-targets -- --test-threads=1
+```
+
+The real release numerical verifier passed all **30,184 exercised cases**, with
+one inert case, plus **18 scenarios / 18,000,000 statistical samples**. Its complete
+report matched the previous verified report across **1,099,454 nodes** after
+normalizing only timings, renamed storage paths and the independently checked
+Cargo.lock fingerprint. Numeric values, binary64 bits and object/array order were
+unchanged.
+
+The real native generator reproduced all **137 compressed payloads**, their
+original-source provenance and the complete index byte-for-byte. The real native
+Linux UI smoke passed its **36 top-level checks** and produced **165 screenshots**;
+the rendered equipped-results surface was inspected. Windows was not exercised.
+The GUI's normal dependency graph still excludes the fixture helper, bitcode,
+zstd and the test allocator.
+
+The loading comparison covers the **30,185 canonical cases**. Each loading result
+is the median of five complete warm-cache passes after a full warmup, pinned to
+CPU 2 with the same allocator and workspace-matched dependency profiles. Loading
+includes file reads, integrity checks and decoding; the final path also includes
+bounded Zstandard decompression.
+
+| Canonical corpus measurement | Previous JSON | Previous bitcode prototype | Native bitcode + Zstandard |
+| --- | ---: | ---: | ---: |
+| Load/check/decode | 14.454 s | 10.242 s | 11.868 s |
+| Destroy decoded trees | 3.192 s | 2.399 s | 2.394 s |
+| Load + destruction, median per-pass total | 17.644 s | 12.664 s | 14.254 s |
+| Full-corpus parity test, intrinsic timer | 33.91 s | Not measured | 28.06 s |
+
+The JSON/prototype columns come from the preceding same-host experiment, not a
+new three-way paired run. The prototype reconstructed `serde_json::Value` from
+flat tokens; the final implementation uses a different recursive native schema.
+The final path is slower than that uncompressed prototype, so these measurements
+do not isolate compression overhead. Full-test times are single warm runs,
+exclude compilation and are not extrapolated from the loading measurements.
+
+Evidence: `target/bitcode-zstd-cutover-20261030/{performance-comparison.json,native-loading.json,selected-corpus.stdout,final-workspace-tests-summary.json,numerical-invariance.json,native-byte-diff-summary.json,ui-smoke-100/report.json}`.
+
+#### Historical multipart evidence
+
+The preceding JSON-only storage split three large captures into sixteen parts.
+Its historical verification below describes that superseded format, not a
+supported reader path in the current code.
 
 The original splitting run of `cargo test --locked --workspace --all-targets -- --test-threads=1`
 passed **192 tests**, including the storage regression suite.
@@ -457,7 +529,7 @@ Each uniform consumes one `u64`, takes its upper 53 bits, and scales by
 draw. Bounded integers use masked rejection on Primary; a singleton returns
 zero without consuming, and a zero bound panics. `rng_protocol` pins these
 invariants, full-width tape reseeds, and seed-0 output bits for both streams.
-Legacy tape JSON keeps its `NumpyHost`/`NumbaPython` labels, decoded only as
+Captured tape records keep their original `NumpyHost`/`NumbaPython` labels, decoded only as
 `Primary`/`Pdif`; native fixtures contain no tape records.
 
 `tests/fixtures/boundaries/` records 89 accepted Python threshold groups
@@ -479,22 +551,21 @@ results, draw-call counts and four-uniform continuations per stream; simulation
 hit buffers retain their length and serialized SHA-256. No model-state address
 or worker scheduling identity is projected.
 
-To regenerate deliberately after reviewing a generator/projection change,
-remove the native fixture directory first; the tool refuses an existing output
-directory. Normal builds and tests never regenerate evidence.
+To regenerate deliberately after reviewing a generator/projection change, use a
+fresh output directory first; the tool refuses an existing directory. Review and
+compare the result before replacing accepted evidence. Normal builds and tests
+never regenerate fixtures. The writer emits the same compressed format, bitcode
+hashes and original JSON source identity/provenance as the checked-in corpus.
 
 ```sh
-cargo run --locked --release -p wsdist-core --example regenerate_native_goldens -- \
-  --legacy crates/wsdist-core/tests/fixtures/legacy \
-  --out crates/wsdist-core/tests/fixtures/native
 cargo run --locked --release -p wsdist-core --example regenerate_native_goldens -- \
   --legacy crates/wsdist-core/tests/fixtures/legacy --out target/native-regen-check
 diff -r crates/wsdist-core/tests/fixtures/native target/native-regen-check
 ```
 
-The two generation runs were byte-identical. The largest native case is
-1,283,069 bytes, below the 50,000,000-byte repository fixture limit. Usage,
-missing-input I/O and existing-output refusal paths each exited 2.
+The two earlier JSON generation runs were byte-identical; their largest native
+JSON case was 1,283,069 bytes. Usage, missing-input I/O and existing-output refusal
+paths each exited 2 in that verification.
 
 ### Ordered optimizer and full simulations
 

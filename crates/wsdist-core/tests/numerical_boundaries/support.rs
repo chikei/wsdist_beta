@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::{Arc, LazyLock};
 
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use sha2::{Digest, Sha256};
 use wsdist_core::math::*;
 use wsdist_core::model::{CalcError, Job, LegacyF64, RandomSource, RandomStream};
@@ -12,7 +12,8 @@ pub mod observation;
 pub fn fixtures() -> &'static [Value] {
     static FIXTURES: LazyLock<Vec<Value>> = LazyLock::new(|| {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy");
-        let index = wsdist_fixtures::read_value(&root.join("players.json"), None).unwrap();
+        let index = wsdist_fixtures::read_json_value(&root.join("players.json")).unwrap();
+        assert_eq!(index["schema_version"], 3, "player fixture storage schema");
         index["cases"].as_array().unwrap().iter().filter(|entry| {
             matches!(entry["operation"].as_str().unwrap(), "kernel_group" | "kernel_tapes" | "kernel_tables" | "rounding")
                 && !entry["id"].as_str().unwrap().starts_with("kernel.create_player.")
@@ -28,11 +29,11 @@ pub fn fixtures() -> &'static [Value] {
 }
 
 pub fn numeric(value: &Value) -> f64 {
-    serde_json::from_value::<LegacyF64>(value.clone()).unwrap().0
+    wsdist_fixtures::from_value::<LegacyF64>(value).unwrap().0
 }
 
 fn number(value: f64) -> Value {
-    serde_json::to_value(LegacyF64(value)).unwrap()
+    wsdist_fixtures::to_value(LegacyF64(value)).unwrap()
 }
 
 fn numbers(values: &[f64]) -> Value {
@@ -258,7 +259,11 @@ pub fn replay_row(fixture: &Value, row: &Value) -> Value {
                     assert_eq!(field, expected_field, "{path}: error field");
                     assert_eq!(category, row["exception"]["class"].as_str().unwrap(), "{path}: error class");
                     assert_eq!(message, row["exception"]["message"].as_str().unwrap(), "{path}: error message");
-                    serde_json::json!({"error": category, "field": field, "message": message})
+                    Value::Object([
+                        ("error".to_owned(), Value::from(category)),
+                        ("field".to_owned(), Value::from(field)),
+                        ("message".to_owned(), Value::from(message)),
+                    ].into_iter().collect())
                 }
                 other => panic!("{path}: wrong error kind {other:?}"),
             }

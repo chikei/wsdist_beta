@@ -8,12 +8,12 @@ use wsdist_core::actions::{SPELL_REGISTRY, evaluate_spell, gui_spell_type, resol
 use wsdist_core::model::{ActionResult, CalculationStep, Enemy, EvaluationContext, Metric, Player, SpellRequest, SpellType};
 use wsdist_core::rng::ScriptedTape;
 
-use combat_support::{boundary_enemy, build_boundary, document, fixture_root, index, resource_root};
+use combat_support::{boundary_enemy, build_boundary, fixture_root, index, resource_root};
 
 fn fixture(suffix: &str) -> (EvaluationContext<ScriptedTape>, Player, Enemy) {
     let root = fixture_root();
     let entry = index(&root).cases.into_iter().find(|entry| entry.id.ends_with(suffix)).unwrap();
-    let case = document(&root.join(entry.path));
+    let case = combat_support::fixture(&root, &entry);
     let catalog = Arc::new(Catalog::load(&resource_root()).expect("frozen catalog"));
     let mut ctx = EvaluationContext::new(catalog, ScriptedTape::new(Vec::new()));
     let player = build_boundary(&case, &mut ctx).expect("actual player construction");

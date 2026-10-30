@@ -120,7 +120,7 @@ fn mean_discrete(distribution: &[f64]) -> f64 {
 }
 
 fn base_boundary(root: &Path, path: &str, catalog: &Arc<Catalog>) -> (Player, Enemy) {
-    let case = crate::player_support::document(&root.join(path));
+    let case = wsdist_fixtures::read_value(&root.join(path), None).unwrap();
     let mut context = EvaluationContext::new(Arc::clone(catalog), RandomSources::from_seed(0));
     let player = crate::combat_support::build_boundary(&case, &mut context).unwrap();
     let enemy = crate::combat_support::boundary_enemy(&case);
@@ -139,7 +139,7 @@ fn isolate(player: &mut Player) {
 }
 
 fn assert_close(actual: f64, expected: f64, path: &str) {
-    crate::player_support::assert_number(actual, &json!(expected), path);
+    crate::player_support::assert_number(actual, &wsdist_fixtures::Value::from(expected), path);
 }
 
 pub fn diagnostics(root: &Path) -> Vec<Value> {
@@ -158,7 +158,7 @@ pub fn diagnostics(root: &Path) -> Vec<Value> {
     let conserve: f64 = (10..200).map(f64::from).sum::<f64>() / 190.0;
     assert_eq!(conserve, 104.5);
 
-    let (mut retention_player, retention_enemy) = base_boundary(root, "combat/000001.json", &catalog);
+    let (mut retention_player, retention_enemy) = base_boundary(root, "combat/000001.bitcode.zst", &catalog);
     isolate(&mut retention_player);
     let retention_request = ActionRequest::Ws(WsRequest { skill: resolve_name("Fast Blade").unwrap(),
         ws_type: WsType::Melee, tp: 1000.0, metric: Metric::new("TP return") });
@@ -202,7 +202,7 @@ pub fn diagnostics(root: &Path) -> Vec<Value> {
     // Execute a real analytical Ninjutsu branch with an independently staged
     // calculation. The four discrete resist states are staged separately for
     // the sampler expectation; legacy analytical staging is not equated to it.
-    let (mut player, mut enemy) = base_boundary(root, "combat/018467.json", &catalog);
+    let (mut player, mut enemy) = base_boundary(root, "combat/018467.bitcode.zst", &catalog);
     isolate(&mut player);
     for (stat, value) in [(Stat::Int, 124.0), (Stat::NinjutsuSkill, 152.0), (Stat::MagicDamage, 3.7),
         (Stat::NinjutsuMagicDamage, 0.0), (Stat::MagicAttack, 19.0), (Stat::NinjutsuMagicAttack, 0.0),
@@ -347,7 +347,7 @@ pub fn statistics(root: &Path) -> Vec<Value> {
         ("proc.dual_priority_mixture", true, 0.17, 0.31, 0.43, false),
         ("proc.oa_eight_attempt_cap", true, 0.0, 0.0, 0.0, true),
     ] {
-        let (mut player, mut enemy) = base_boundary(root, if dual { "combat/018467.json" } else { "combat/018452.json" }, &catalog);
+        let (mut player, mut enemy) = base_boundary(root, if dual { "combat/018467.bitcode.zst" } else { "combat/018452.bitcode.zst" }, &catalog);
         isolate(&mut player);
         player.stats.set(Stat::Qa, qa * 100.0); player.stats.set(Stat::Ta, ta * 100.0); player.stats.set(Stat::Da, da * 100.0);
         player.stats.set(Stat::Accuracy1, 950.0); player.stats.set(Stat::Accuracy2, 950.0); enemy.stats.set(Stat::Evasion, 1000.0);
@@ -373,7 +373,7 @@ pub fn statistics(root: &Path) -> Vec<Value> {
             }));
     }
     for (id, fotia, conserve) in [("retention.conserve", 0, 0.37), ("retention.fotia_one", 1, 0.0), ("retention.fotia_two", 2, 0.0)] {
-        let (mut player, enemy) = base_boundary(root, "combat/000001.json", &catalog);
+        let (mut player, enemy) = base_boundary(root, "combat/000001.bitcode.zst", &catalog);
         isolate(&mut player); player.stats.set(Stat::ConserveTp, conserve * 100.0);
         if fotia > 0 { player.gearset[Slot::Neck.index()] = catalog.by_name2("Fotia Gorget").unwrap(); }
         if fotia > 1 { player.gearset[Slot::Waist.index()] = catalog.by_name2("Fotia Belt").unwrap(); }

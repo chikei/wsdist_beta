@@ -5,7 +5,7 @@ use std::sync::{Arc, LazyLock};
 
 use parking_lot::Mutex;
 use serde::Deserialize;
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_core::model::{Abilities, CalcError, Enemy, EvaluationContext, GearId, Gearset, ModelState, Player, PlayerInput, Slot};
 use wsdist_core::rng::RandomSources;
 use wsdist_core::Catalog;
@@ -13,17 +13,21 @@ use wsdist_core::Catalog;
 #[path = "../legacy_player/support.rs"]
 #[allow(dead_code)]
 mod player_support;
-pub use player_support::{assert_number, document, number};
+pub use player_support::{assert_number, document_json, number};
 pub use player_support::observation;
 
 #[derive(Deserialize)]
-pub struct IndexedCase { pub id: String, pub operation: String, pub path: String, pub source_sha256: String, pub content_xxh3_128: String }
+pub struct IndexedCase { pub id: String, pub operation: String, pub path: String, pub source_path: String, pub source_sha256: String, pub content_xxh3_128: String }
 #[derive(Deserialize)]
-pub struct FixtureIndex { pub cases: Vec<IndexedCase> }
+pub struct FixtureIndex { pub schema_version: u32, pub cases: Vec<IndexedCase> }
 
 pub fn resource_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("../..") }
 pub fn fixture_root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy") }
-pub fn index() -> FixtureIndex { serde_json::from_value(document(&fixture_root().join("search_simulation.json"))).unwrap() }
+pub fn index() -> FixtureIndex {
+    let index: FixtureIndex = wsdist_fixtures::read_json(&fixture_root().join("search_simulation.json")).unwrap();
+    assert_eq!(index.schema_version, 3, "search fixture storage schema");
+    index
+}
 pub fn fixture(root: &Path, entry: &IndexedCase) -> Value {
     wsdist_fixtures::read_value(&root.join(&entry.path), Some(&entry.content_xxh3_128))
         .unwrap_or_else(|error| panic!("{error}"))
@@ -68,12 +72,12 @@ impl FrozenCatalog {
                 fs::copy(resource_root().join("data").join(name), root.path().join("data").join(name)).unwrap();
             }
             fs::copy(resource_root().join("item_list.csv"), root.path().join("item_list.csv")).unwrap();
-            let mut gear = document(&resource_root().join("data/gear.json"));
+            let mut gear = document_json(&resource_root().join("data/gear.json"));
             let pieces = gear["pieces"].as_array_mut().unwrap();
             for (index, record) in records.values().enumerate() {
                 let mut record = record.clone();
                 let object = record.as_object_mut().unwrap();
-                object.remove("local_identity");
+                object.shift_remove("local_identity");
                 object.insert("id".to_owned(), Value::from(8_000_000_u32 + index as u32));
                 pieces.push(record);
             }
@@ -115,7 +119,7 @@ impl FrozenCatalog {
         } else if let Some(identity) = value.get("local_identity").and_then(Value::as_str) {
             let id = self.locals[identity];
             let object = value.as_object_mut().unwrap();
-            object.remove("local_identity");
+            object.shift_remove("local_identity");
             object.insert("id".to_owned(), Value::from(self.catalog.piece(id).original_id));
         }
     }
@@ -130,7 +134,7 @@ impl FrozenCatalog {
             // Choice records and unpickled workers lose source identity. The
             // actual input/job already selected the piece; compare every field.
             let mut normalized = source.clone();
-            normalized.as_object_mut().unwrap().remove("local_identity");
+            normalized.as_object_mut().unwrap().shift_remove("local_identity");
             normalized["id"] = Value::from(piece.original_id);
             player_support::assert_piece(piece, state, &normalized, label);
         } else {
@@ -151,8 +155,8 @@ impl FrozenCatalog {
         player_support::assert_metadata(actual, expected, label);
         player_support::assert_sheet(&actual.stats, &actual.wsc, actual.wyvern_bonus_attack, expected, label);
         if let Some(abilities) = expected.get("abilities") {
-            let expected: Abilities = serde_json::from_value(abilities.clone()).unwrap();
-            assert_eq!(serde_json::to_value(&actual.abilities).unwrap(), serde_json::to_value(expected).unwrap(), "{label}: effective abilities");
+            let expected: Abilities = wsdist_fixtures::from_value(abilities).unwrap();
+            assert_eq!(wsdist_fixtures::to_value(&actual.abilities).unwrap(), wsdist_fixtures::to_value(expected).unwrap(), "{label}: effective abilities");
         }
         self.assert_gearset(&actual.gearset, state, &expected["gearset"], label);
     }
@@ -162,7 +166,7 @@ pub fn enemy(value: &Value) -> Enemy {
     Enemy {
         name: Arc::from(value.get("name").and_then(Value::as_str).unwrap_or("captured enemy")),
         location: Arc::from(value.get("location").and_then(Value::as_str).unwrap_or("captured")),
-        stats: serde_json::from_value(value["normalized_stats"].clone()).unwrap(),
+        stats: wsdist_fixtures::from_value(&value["normalized_stats"]).unwrap(),
     }
 }
 

@@ -1,1832 +1,2354 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "cases": [
     {
       "id": "boundary.round.enspell_main_crit.below",
       "operation": "combat.round",
-      "path": "combat/000000.json",
+      "path": "combat/000000.bitcode.zst",
       "source_sha256": "8c4e2964b4b5482ef5b5d9b7315ba8eaf6957dc241abf4dcd3c65d31a93b338d",
-      "content_xxh3_128": "0b86553c38ccd4642c1d054b74d51005"
+      "content_xxh3_128": "58e53aeac64a7eee4efd00f794460718",
+      "source_path": "combat/000000.json",
+      "source_content_xxh3_128": "0b86553c38ccd4642c1d054b74d51005"
     },
     {
       "id": "boundary.round.enspell_main_crit.equal",
       "operation": "combat.round",
-      "path": "combat/000001.json",
+      "path": "combat/000001.bitcode.zst",
       "source_sha256": "08a564589d432a6db7dcc90c432f2e7b1602ab08d333fedb70db35e695b692c3",
-      "content_xxh3_128": "ac561686a4e8ec53e89517695ee58e18"
+      "content_xxh3_128": "0bb9bf1b23236badd737e574c6127183",
+      "source_path": "combat/000001.json",
+      "source_content_xxh3_128": "ac561686a4e8ec53e89517695ee58e18"
     },
     {
       "id": "boundary.round.enspell_main_crit.above",
       "operation": "combat.round",
-      "path": "combat/000002.json",
+      "path": "combat/000002.bitcode.zst",
       "source_sha256": "dd1e5809d0456a8029943b24630f507f7cf53b6242ff3bbe2849786e732b92c1",
-      "content_xxh3_128": "f677d27fc1441d8c100869e37b11b3e2"
+      "content_xxh3_128": "da2f1ed1699bfcb647a80cf5cf9701b1",
+      "source_path": "combat/000002.json",
+      "source_content_xxh3_128": "f677d27fc1441d8c100869e37b11b3e2"
     },
     {
       "id": "boundary.round.enspell_sub_crit.below",
       "operation": "combat.round",
-      "path": "combat/000003.json",
+      "path": "combat/000003.bitcode.zst",
       "source_sha256": "bd7582ed3a5ee4dce37e93cfed0d8d4c3c79bd0c4bebce2b95e6673a6225f29c",
-      "content_xxh3_128": "b877f299bbb879fc61fad568fc382607"
+      "content_xxh3_128": "f6194f1adaa07b591edb8bdf2a6776d2",
+      "source_path": "combat/000003.json",
+      "source_content_xxh3_128": "b877f299bbb879fc61fad568fc382607"
     },
     {
       "id": "boundary.round.enspell_sub_crit.equal",
       "operation": "combat.round",
-      "path": "combat/000004.json",
+      "path": "combat/000004.bitcode.zst",
       "source_sha256": "a80ed824d089868ca09ff64c77dfaf0a434ebbed09f5fb9dcef350e238f7088b",
-      "content_xxh3_128": "2c1c260be39750d4e4407ae60993de0a"
+      "content_xxh3_128": "fc3c68bd802dda7f258ae995ed4a2b1e",
+      "source_path": "combat/000004.json",
+      "source_content_xxh3_128": "2c1c260be39750d4e4407ae60993de0a"
     },
     {
       "id": "boundary.round.enspell_sub_crit.above",
       "operation": "combat.round",
-      "path": "combat/000005.json",
+      "path": "combat/000005.bitcode.zst",
       "source_sha256": "e2afa3b1ab11e2e7271b5bb14af773518c3589f92cc4304ec5e0f35109f7c3b7",
-      "content_xxh3_128": "70bd3158bd22fd83070f1a8468933889"
+      "content_xxh3_128": "82860e9cc584d3f65f481efddd0da7f9",
+      "source_path": "combat/000005.json",
+      "source_content_xxh3_128": "70bd3158bd22fd83070f1a8468933889"
     },
     {
       "id": "boundary.round.qa_main.below",
       "operation": "combat.round",
-      "path": "combat/000006.json",
+      "path": "combat/000006.bitcode.zst",
       "source_sha256": "438ea85e301cbd6de098af9008b2626dd7bb01853e19386d485bf5865ca51472",
-      "content_xxh3_128": "ec5a3450ad2ff08e87fcaaef401f3c54"
+      "content_xxh3_128": "e575d3b3d5cd58162d45d5b422ad71ad",
+      "source_path": "combat/000006.json",
+      "source_content_xxh3_128": "ec5a3450ad2ff08e87fcaaef401f3c54"
     },
     {
       "id": "boundary.round.qa_main.equal",
       "operation": "combat.round",
-      "path": "combat/000007.json",
+      "path": "combat/000007.bitcode.zst",
       "source_sha256": "82f263f97b69dbfbce6c6f04fd2c2467f65d7a61f81b6c0042ef204d23b1e717",
-      "content_xxh3_128": "743fe0f91735c571a9f815c92735f291"
+      "content_xxh3_128": "fa07fbb1b0fb5c2a8ea17fb5ecea1ffb",
+      "source_path": "combat/000007.json",
+      "source_content_xxh3_128": "743fe0f91735c571a9f815c92735f291"
     },
     {
       "id": "boundary.round.qa_main.above",
       "operation": "combat.round",
-      "path": "combat/000008.json",
+      "path": "combat/000008.bitcode.zst",
       "source_sha256": "152282cc9758b5d74783ef647aeb8ce4af244c0650f6ba4c9b1d970ca8b9483d",
-      "content_xxh3_128": "3ea43af86b29fa062e52f5d78e0a65ba"
+      "content_xxh3_128": "d8ed730de5a4515508eff7d8541261d5",
+      "source_path": "combat/000008.json",
+      "source_content_xxh3_128": "3ea43af86b29fa062e52f5d78e0a65ba"
     },
     {
       "id": "boundary.round.qa_sub.below",
       "operation": "combat.round",
-      "path": "combat/000009.json",
+      "path": "combat/000009.bitcode.zst",
       "source_sha256": "0b6ba6c246f87d2327f3380bc4ac24ed502db51de589bb097b1fdfcc723e2f8b",
-      "content_xxh3_128": "4d1f7def0f9c0338ca0fc4412b301516"
+      "content_xxh3_128": "72a409b906a6941e8613c8c49b922142",
+      "source_path": "combat/000009.json",
+      "source_content_xxh3_128": "4d1f7def0f9c0338ca0fc4412b301516"
     },
     {
       "id": "boundary.round.qa_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000010.json",
+      "path": "combat/000010.bitcode.zst",
       "source_sha256": "23d8cb28a1d7ae62977e8719bf1ab1a133ee90e10710c700a562744473f09eb9",
-      "content_xxh3_128": "580a06847f4d2264e497029a7a66dc78"
+      "content_xxh3_128": "098b37959d707a9493b076cba0a7707b",
+      "source_path": "combat/000010.json",
+      "source_content_xxh3_128": "580a06847f4d2264e497029a7a66dc78"
     },
     {
       "id": "boundary.round.qa_sub.above",
       "operation": "combat.round",
-      "path": "combat/000011.json",
+      "path": "combat/000011.bitcode.zst",
       "source_sha256": "0ee535c640d1228099dd6685d3637e347c1bd17c1fe716628aebc58cb823b2cc",
-      "content_xxh3_128": "5a49638a79e78a99cafe238ce944485c"
+      "content_xxh3_128": "6b80a7544f0577f5948b4c77aae8e258",
+      "source_path": "combat/000011.json",
+      "source_content_xxh3_128": "5a49638a79e78a99cafe238ce944485c"
     },
     {
       "id": "boundary.round.ta_main.below",
       "operation": "combat.round",
-      "path": "combat/000012.json",
+      "path": "combat/000012.bitcode.zst",
       "source_sha256": "aaca7e861e53329fdb045913da543c2814d9322976adc48b19768419607ff3d4",
-      "content_xxh3_128": "df9a744f5136a6869ba3f4a013a46f33"
+      "content_xxh3_128": "af131be9c6036e88f32ea2e1de4270ce",
+      "source_path": "combat/000012.json",
+      "source_content_xxh3_128": "df9a744f5136a6869ba3f4a013a46f33"
     },
     {
       "id": "boundary.round.ta_main.equal",
       "operation": "combat.round",
-      "path": "combat/000013.json",
+      "path": "combat/000013.bitcode.zst",
       "source_sha256": "fde3a5cec0ab28b11bf03eca8ef7d116b116457fed61660b4a5f890358d3f074",
-      "content_xxh3_128": "edf077949cb23b94e808b94f24691063"
+      "content_xxh3_128": "b7c5f9e146a540def8237aa6c85e68eb",
+      "source_path": "combat/000013.json",
+      "source_content_xxh3_128": "edf077949cb23b94e808b94f24691063"
     },
     {
       "id": "boundary.round.ta_main.above",
       "operation": "combat.round",
-      "path": "combat/000014.json",
+      "path": "combat/000014.bitcode.zst",
       "source_sha256": "cd26aaaee8c08b9a4666ce8fc5217cfa586a5c82b1b30051b50e0f4e10ed3470",
-      "content_xxh3_128": "e9c85c2717414b5eabf58b5eba201098"
+      "content_xxh3_128": "0b11ae8ab0e36b584c29acd543348bda",
+      "source_path": "combat/000014.json",
+      "source_content_xxh3_128": "e9c85c2717414b5eabf58b5eba201098"
     },
     {
       "id": "boundary.round.ta_sub.below",
       "operation": "combat.round",
-      "path": "combat/000015.json",
+      "path": "combat/000015.bitcode.zst",
       "source_sha256": "0e2d8b31fb4321f2e14da0ad9056d96076b95b68cd1f3a7316de95e607e4a176",
-      "content_xxh3_128": "3ccec66170ed53fbcbfd15c95a8cdc70"
+      "content_xxh3_128": "d41235eaff72e9a0e704b90c107e74d7",
+      "source_path": "combat/000015.json",
+      "source_content_xxh3_128": "3ccec66170ed53fbcbfd15c95a8cdc70"
     },
     {
       "id": "boundary.round.ta_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000016.json",
+      "path": "combat/000016.bitcode.zst",
       "source_sha256": "c45852cc7ee748c7c25c72b6e590389c8eb47edef52deb6f0f8401d0389b4233",
-      "content_xxh3_128": "061c25cbc4a2abb60e04b4e14320b7d1"
+      "content_xxh3_128": "b60ddb07f9e6e77f042277ce5b93ec26",
+      "source_path": "combat/000016.json",
+      "source_content_xxh3_128": "061c25cbc4a2abb60e04b4e14320b7d1"
     },
     {
       "id": "boundary.round.ta_sub.above",
       "operation": "combat.round",
-      "path": "combat/000017.json",
+      "path": "combat/000017.bitcode.zst",
       "source_sha256": "ae02e0ee0f7aa200dce5a4cb7aa709702b73e1b17c82b15fa9050eb8e3cd9202",
-      "content_xxh3_128": "cb6130d3e3cd21141df02630fce87116"
+      "content_xxh3_128": "ba35bf90e3c998c9bfa158b1701568c8",
+      "source_path": "combat/000017.json",
+      "source_content_xxh3_128": "cb6130d3e3cd21141df02630fce87116"
     },
     {
       "id": "boundary.round.da_main.below",
       "operation": "combat.round",
-      "path": "combat/000018.json",
+      "path": "combat/000018.bitcode.zst",
       "source_sha256": "a7458334102c0b0d39350ede079c8e1850fcfcb9d30c7cb266678ddd2db6f0ae",
-      "content_xxh3_128": "fd4fe9ae9bcc2d25c32b42af463e2ac8"
+      "content_xxh3_128": "424c7a256aa298927f75994fea801858",
+      "source_path": "combat/000018.json",
+      "source_content_xxh3_128": "fd4fe9ae9bcc2d25c32b42af463e2ac8"
     },
     {
       "id": "boundary.round.da_main.equal",
       "operation": "combat.round",
-      "path": "combat/000019.json",
+      "path": "combat/000019.bitcode.zst",
       "source_sha256": "08610bb2a0407953340c3cd94f0ea91f6be4ee2c6bfe2208ca9b9dae96f45c7a",
-      "content_xxh3_128": "61a950c826d6663944e02d47f9f6b596"
+      "content_xxh3_128": "4672623ec922fce5245fb1f4f9fd65f3",
+      "source_path": "combat/000019.json",
+      "source_content_xxh3_128": "61a950c826d6663944e02d47f9f6b596"
     },
     {
       "id": "boundary.round.da_main.above",
       "operation": "combat.round",
-      "path": "combat/000020.json",
+      "path": "combat/000020.bitcode.zst",
       "source_sha256": "4f56d51b2ac96ec80d3f0cf1772afd73cacb54fd9cade318b13783a597959c5a",
-      "content_xxh3_128": "c7c6e7ca04807132d0076df04e69d6ab"
+      "content_xxh3_128": "ee38be843aa79685b039cac00ccff07d",
+      "source_path": "combat/000020.json",
+      "source_content_xxh3_128": "c7c6e7ca04807132d0076df04e69d6ab"
     },
     {
       "id": "boundary.round.da_sub.below",
       "operation": "combat.round",
-      "path": "combat/000021.json",
+      "path": "combat/000021.bitcode.zst",
       "source_sha256": "f1a6e8a5169bcb70ce27708b4fe2347b2194b3c94acb89228bc6707168ff985a",
-      "content_xxh3_128": "5d146bfcdd83d3c14e90ebd02a6ebe29"
+      "content_xxh3_128": "76521dac5d0ab60f82483bf232d3b96a",
+      "source_path": "combat/000021.json",
+      "source_content_xxh3_128": "5d146bfcdd83d3c14e90ebd02a6ebe29"
     },
     {
       "id": "boundary.round.da_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000022.json",
+      "path": "combat/000022.bitcode.zst",
       "source_sha256": "0f20ee0639d28806aa1cf20f0adea157464c5abed737c7b8bfdc5de0d33e8337",
-      "content_xxh3_128": "7b8cec4241dfe7ada4833cc33f4714e9"
+      "content_xxh3_128": "a999241300079d8f49f14bc4ff944d9f",
+      "source_path": "combat/000022.json",
+      "source_content_xxh3_128": "7b8cec4241dfe7ada4833cc33f4714e9"
     },
     {
       "id": "boundary.round.da_sub.above",
       "operation": "combat.round",
-      "path": "combat/000023.json",
+      "path": "combat/000023.bitcode.zst",
       "source_sha256": "23361920dc265bd5bb53f6f1fcf64a704b12e89aa11470617931dcc9eaeb8325",
-      "content_xxh3_128": "8e3d73a7cc98db0fb179dd3510f44828"
+      "content_xxh3_128": "50fd2dd9db3cfaa17d1680f55f3b4c43",
+      "source_path": "combat/000023.json",
+      "source_content_xxh3_128": "8e3d73a7cc98db0fb179dd3510f44828"
     },
     {
       "id": "boundary.round.oa8_main.below",
       "operation": "combat.round",
-      "path": "combat/000024.json",
+      "path": "combat/000024.bitcode.zst",
       "source_sha256": "f4ee9be2d2c36121e05409cd5247361aec9290f854eb3cc77153d05bd92969b8",
-      "content_xxh3_128": "518e960dd15aa4117db50540352a5307"
+      "content_xxh3_128": "6c3ab92caf6603b089f85e3719ed1dd8",
+      "source_path": "combat/000024.json",
+      "source_content_xxh3_128": "518e960dd15aa4117db50540352a5307"
     },
     {
       "id": "boundary.round.oa8_main.equal",
       "operation": "combat.round",
-      "path": "combat/000025.json",
+      "path": "combat/000025.bitcode.zst",
       "source_sha256": "3ecb6be01a57ce021f5805d86bf7f5d61471731a78d742118813bea986ca05ca",
-      "content_xxh3_128": "04d83a3e86d1e4b5936fd5a64af44ef2"
+      "content_xxh3_128": "95227be7e6fb584660009133e36d0cec",
+      "source_path": "combat/000025.json",
+      "source_content_xxh3_128": "04d83a3e86d1e4b5936fd5a64af44ef2"
     },
     {
       "id": "boundary.round.oa8_main.above",
       "operation": "combat.round",
-      "path": "combat/000026.json",
+      "path": "combat/000026.bitcode.zst",
       "source_sha256": "2816a060d7f4a922f51722144aa96576600ac32a249532ad838b107c08084d31",
-      "content_xxh3_128": "59a77b70e26fcee068a9dfe5f90d2470"
+      "content_xxh3_128": "fa2c2c2d5be5e63749e800459de2a731",
+      "source_path": "combat/000026.json",
+      "source_content_xxh3_128": "59a77b70e26fcee068a9dfe5f90d2470"
     },
     {
       "id": "boundary.round.oa7_main.below",
       "operation": "combat.round",
-      "path": "combat/000027.json",
+      "path": "combat/000027.bitcode.zst",
       "source_sha256": "f04a35fb6009e63a7f2a5b91276a97e1c7f659562c7098bd4166c4587b4c6942",
-      "content_xxh3_128": "8f616e673273195f7b218a232a686422"
+      "content_xxh3_128": "d8c3fe309588c23b0f40dfa73d348eff",
+      "source_path": "combat/000027.json",
+      "source_content_xxh3_128": "8f616e673273195f7b218a232a686422"
     },
     {
       "id": "boundary.round.oa7_main.equal",
       "operation": "combat.round",
-      "path": "combat/000028.json",
+      "path": "combat/000028.bitcode.zst",
       "source_sha256": "3940c66c1729d3d67db0b58d38adf9a26e1c19c85df842b76883e5fb4abcf809",
-      "content_xxh3_128": "6efb4b3f53adfe6f5025345741146480"
+      "content_xxh3_128": "54cfbcc3edb4338cf0ee5e86b73f3a92",
+      "source_path": "combat/000028.json",
+      "source_content_xxh3_128": "6efb4b3f53adfe6f5025345741146480"
     },
     {
       "id": "boundary.round.oa7_main.above",
       "operation": "combat.round",
-      "path": "combat/000029.json",
+      "path": "combat/000029.bitcode.zst",
       "source_sha256": "7ba04b693c67132285867ef1f9db7af9d637aa0d042f01ce0498bb750d3fff5d",
-      "content_xxh3_128": "d9319a2680e7320a30e8180b24fc4e37"
+      "content_xxh3_128": "0c0451ce8904ae234181969149f390a5",
+      "source_path": "combat/000029.json",
+      "source_content_xxh3_128": "d9319a2680e7320a30e8180b24fc4e37"
     },
     {
       "id": "boundary.round.oa6_main.below",
       "operation": "combat.round",
-      "path": "combat/000030.json",
+      "path": "combat/000030.bitcode.zst",
       "source_sha256": "73f7a56bdf3fb7d8a942607ace17863a24cb2b4b11de41cd71dd51eabc99143f",
-      "content_xxh3_128": "f3d294ee923c61c677815b02da272d68"
+      "content_xxh3_128": "09e62efcd554c78ae412efd4e314cb32",
+      "source_path": "combat/000030.json",
+      "source_content_xxh3_128": "f3d294ee923c61c677815b02da272d68"
     },
     {
       "id": "boundary.round.oa6_main.equal",
       "operation": "combat.round",
-      "path": "combat/000031.json",
+      "path": "combat/000031.bitcode.zst",
       "source_sha256": "259261755bc27eb9e38b47b21193636d111fca17fed5f6635395de166ef73d7c",
-      "content_xxh3_128": "f11851ee22f9167e556a5810b24a0a77"
+      "content_xxh3_128": "36d92cb43a6446c888d27bccc71d1691",
+      "source_path": "combat/000031.json",
+      "source_content_xxh3_128": "f11851ee22f9167e556a5810b24a0a77"
     },
     {
       "id": "boundary.round.oa6_main.above",
       "operation": "combat.round",
-      "path": "combat/000032.json",
+      "path": "combat/000032.bitcode.zst",
       "source_sha256": "c4d066654ed26d2df1aed4944713a9482847f13a74131fc2b585aed5cc4c89b0",
-      "content_xxh3_128": "9b337f2ac72ffe527ee23ae548e1aa93"
+      "content_xxh3_128": "18fbf859c1b254be62958e2039102a42",
+      "source_path": "combat/000032.json",
+      "source_content_xxh3_128": "9b337f2ac72ffe527ee23ae548e1aa93"
     },
     {
       "id": "boundary.round.oa5_main.below",
       "operation": "combat.round",
-      "path": "combat/000033.json",
+      "path": "combat/000033.bitcode.zst",
       "source_sha256": "c956fcab77cba30bccb0f312e9850c854cc763833d5ac2de79f98544c92d4b27",
-      "content_xxh3_128": "6941eb033824aecc999d19cdef40bbd4"
+      "content_xxh3_128": "654b45aff289419148a34a736a785665",
+      "source_path": "combat/000033.json",
+      "source_content_xxh3_128": "6941eb033824aecc999d19cdef40bbd4"
     },
     {
       "id": "boundary.round.oa5_main.equal",
       "operation": "combat.round",
-      "path": "combat/000034.json",
+      "path": "combat/000034.bitcode.zst",
       "source_sha256": "2038ed4da4d15c5f74f8a66fe165abb5f340fcfe418b67df82ed07270a3b294c",
-      "content_xxh3_128": "85894f69f10459de37429930fc55ad82"
+      "content_xxh3_128": "b127a89679fb157cb876d45e52971e15",
+      "source_path": "combat/000034.json",
+      "source_content_xxh3_128": "85894f69f10459de37429930fc55ad82"
     },
     {
       "id": "boundary.round.oa5_main.above",
       "operation": "combat.round",
-      "path": "combat/000035.json",
+      "path": "combat/000035.bitcode.zst",
       "source_sha256": "717345ef73b44f4a5b406779dfcc4b99441efd328b6bad81c03dffb21d415044",
-      "content_xxh3_128": "c6fe3e1146972b8c08732a166776a47e"
+      "content_xxh3_128": "1ca10d639a1ce41178bf34a24e5ce635",
+      "source_path": "combat/000035.json",
+      "source_content_xxh3_128": "c6fe3e1146972b8c08732a166776a47e"
     },
     {
       "id": "boundary.round.oa4_main.below",
       "operation": "combat.round",
-      "path": "combat/000036.json",
+      "path": "combat/000036.bitcode.zst",
       "source_sha256": "82e8c6d73f8f6a31f09b9750d127107a24eadc2268f4bbb8108fd9bae22b724b",
-      "content_xxh3_128": "7afe583c24eeb5b6b83d4bc008cb0959"
+      "content_xxh3_128": "629ddef42c06bfa1c662a14cc313e73d",
+      "source_path": "combat/000036.json",
+      "source_content_xxh3_128": "7afe583c24eeb5b6b83d4bc008cb0959"
     },
     {
       "id": "boundary.round.oa4_main.equal",
       "operation": "combat.round",
-      "path": "combat/000037.json",
+      "path": "combat/000037.bitcode.zst",
       "source_sha256": "c5c26996fef8a81590fcf34e18ce566f2c1177b0cea876c1041ee1c0010be943",
-      "content_xxh3_128": "4c8a50f050471c0a91e9fe8ea4c6deeb"
+      "content_xxh3_128": "cf262e3308ea6e8f478f0678f06b57ba",
+      "source_path": "combat/000037.json",
+      "source_content_xxh3_128": "4c8a50f050471c0a91e9fe8ea4c6deeb"
     },
     {
       "id": "boundary.round.oa4_main.above",
       "operation": "combat.round",
-      "path": "combat/000038.json",
+      "path": "combat/000038.bitcode.zst",
       "source_sha256": "0f7f6b9655689f43f64830d7e2b21ca4682372b34f09b153e236c3b8f7cb6d53",
-      "content_xxh3_128": "e4e2bcb340c7f1544e9c685121be448b"
+      "content_xxh3_128": "2e8fa2f86e2bcebf909dc2be6454db30",
+      "source_path": "combat/000038.json",
+      "source_content_xxh3_128": "e4e2bcb340c7f1544e9c685121be448b"
     },
     {
       "id": "boundary.round.oa3_main.below",
       "operation": "combat.round",
-      "path": "combat/000039.json",
+      "path": "combat/000039.bitcode.zst",
       "source_sha256": "cd4dc918af2b8b81a2e796c90d9352a73a6598004ace89607080593bf9fcdb58",
-      "content_xxh3_128": "ce809d7c615a700f8a0cc4428b2825c4"
+      "content_xxh3_128": "b09755ae2ef406caf2a730700733a7bb",
+      "source_path": "combat/000039.json",
+      "source_content_xxh3_128": "ce809d7c615a700f8a0cc4428b2825c4"
     },
     {
       "id": "boundary.round.oa3_main.equal",
       "operation": "combat.round",
-      "path": "combat/000040.json",
+      "path": "combat/000040.bitcode.zst",
       "source_sha256": "505f1359cbbe6a693958a67313cbe30426256ff70ba0b58b1e4f13e946ea08cb",
-      "content_xxh3_128": "d8148a5923e33c55207af8ec2dfff285"
+      "content_xxh3_128": "b8a5a5a6d3a8d05e33e4b5af89317abd",
+      "source_path": "combat/000040.json",
+      "source_content_xxh3_128": "d8148a5923e33c55207af8ec2dfff285"
     },
     {
       "id": "boundary.round.oa3_main.above",
       "operation": "combat.round",
-      "path": "combat/000041.json",
+      "path": "combat/000041.bitcode.zst",
       "source_sha256": "f9cbfe3cab2851440e5c9c1d53fdb8535799a68419b9d6aa367c32f8293be574",
-      "content_xxh3_128": "0e0eb32d4565dd8f2ac1217d964f11d5"
+      "content_xxh3_128": "99f3c3e36406cae34fa5ff4d09ecc013",
+      "source_path": "combat/000041.json",
+      "source_content_xxh3_128": "0e0eb32d4565dd8f2ac1217d964f11d5"
     },
     {
       "id": "boundary.round.oa2_main.below",
       "operation": "combat.round",
-      "path": "combat/000042.json",
+      "path": "combat/000042.bitcode.zst",
       "source_sha256": "882207ac775d43135fa11ef672fd088ff04ad1687c4efab06bac1548c873f2e0",
-      "content_xxh3_128": "d247c470b7fb910a248b4cee9e3974c2"
+      "content_xxh3_128": "2f797f3cc8154c923a38475378398437",
+      "source_path": "combat/000042.json",
+      "source_content_xxh3_128": "d247c470b7fb910a248b4cee9e3974c2"
     },
     {
       "id": "boundary.round.oa2_main.equal",
       "operation": "combat.round",
-      "path": "combat/000043.json",
+      "path": "combat/000043.bitcode.zst",
       "source_sha256": "98ddfaeefdc44596c650fa55c9c1c8161ab824ddbc20183be07b8eb62d94469e",
-      "content_xxh3_128": "86362ce4ab356b8a942a55acc07cde40"
+      "content_xxh3_128": "8b163f324e2b1a54279f3bed5d528e16",
+      "source_path": "combat/000043.json",
+      "source_content_xxh3_128": "86362ce4ab356b8a942a55acc07cde40"
     },
     {
       "id": "boundary.round.oa2_main.above",
       "operation": "combat.round",
-      "path": "combat/000044.json",
+      "path": "combat/000044.bitcode.zst",
       "source_sha256": "6465aa137db4b2703a7d6e3c82c27adbb7a85b937c5ee953dd42717af224fee0",
-      "content_xxh3_128": "dab1cadd760c4c8fcf2dd38e01b20959"
+      "content_xxh3_128": "16e45e379a824f0744e9d9e7462071bc",
+      "source_path": "combat/000044.json",
+      "source_content_xxh3_128": "dab1cadd760c4c8fcf2dd38e01b20959"
     },
     {
       "id": "boundary.round.oa8_sub.below",
       "operation": "combat.round",
-      "path": "combat/000045.json",
+      "path": "combat/000045.bitcode.zst",
       "source_sha256": "38a97a19296085e1c8c95411f7c86250a1d3ee02c37577fd8b39203f604b8e55",
-      "content_xxh3_128": "b8132a9634721d2e52f8b9a0a503463a"
+      "content_xxh3_128": "680115ad177257be412d3273c212e747",
+      "source_path": "combat/000045.json",
+      "source_content_xxh3_128": "b8132a9634721d2e52f8b9a0a503463a"
     },
     {
       "id": "boundary.round.oa8_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000046.json",
+      "path": "combat/000046.bitcode.zst",
       "source_sha256": "5dfba73d0effe87d3c6b756771925a02c50b9fb923e2c4b5b19690e2467085f9",
-      "content_xxh3_128": "d22287f804f634c92bf20a0b285fd9e3"
+      "content_xxh3_128": "146711eab10a17fef735f0eb70bd875f",
+      "source_path": "combat/000046.json",
+      "source_content_xxh3_128": "d22287f804f634c92bf20a0b285fd9e3"
     },
     {
       "id": "boundary.round.oa8_sub.above",
       "operation": "combat.round",
-      "path": "combat/000047.json",
+      "path": "combat/000047.bitcode.zst",
       "source_sha256": "b9c25f50cac0cbfdef7a7b2b91dce3dacfcdac9ef9304de820eb157f0f7d3108",
-      "content_xxh3_128": "5bd2daa35e491ad912ea767a7c9b9292"
+      "content_xxh3_128": "c82ba1d35493494fb433c75fe86cb82b",
+      "source_path": "combat/000047.json",
+      "source_content_xxh3_128": "5bd2daa35e491ad912ea767a7c9b9292"
     },
     {
       "id": "boundary.round.oa7_sub.below",
       "operation": "combat.round",
-      "path": "combat/000048.json",
+      "path": "combat/000048.bitcode.zst",
       "source_sha256": "7f3c054fdcbcab58c570f19f89907882769d331c52ef6defe410d16588dbe0d1",
-      "content_xxh3_128": "900ad23591ca7f4497688761e2a5cd1d"
+      "content_xxh3_128": "1daacb278fa4f51a7aba03086bcc62d9",
+      "source_path": "combat/000048.json",
+      "source_content_xxh3_128": "900ad23591ca7f4497688761e2a5cd1d"
     },
     {
       "id": "boundary.round.oa7_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000049.json",
+      "path": "combat/000049.bitcode.zst",
       "source_sha256": "13f93c67939310e3716ae061c690cf3a29af63f4d0a54cc71059b307c48aa4bd",
-      "content_xxh3_128": "8e1ef16220fca2d9b42c67eb794afb27"
+      "content_xxh3_128": "b36bb67629a4c4fd538f932e2bcf6719",
+      "source_path": "combat/000049.json",
+      "source_content_xxh3_128": "8e1ef16220fca2d9b42c67eb794afb27"
     },
     {
       "id": "boundary.round.oa7_sub.above",
       "operation": "combat.round",
-      "path": "combat/000050.json",
+      "path": "combat/000050.bitcode.zst",
       "source_sha256": "1f1d4541f29fbb36df3a62dba59f6bd2bca6ea944fb00c0428089748dc9656b5",
-      "content_xxh3_128": "2cdfd610451f07010757b67d7ab21606"
+      "content_xxh3_128": "7cc1db581f603903a3916054e5616dbb",
+      "source_path": "combat/000050.json",
+      "source_content_xxh3_128": "2cdfd610451f07010757b67d7ab21606"
     },
     {
       "id": "boundary.round.oa6_sub.below",
       "operation": "combat.round",
-      "path": "combat/000051.json",
+      "path": "combat/000051.bitcode.zst",
       "source_sha256": "30cab3185157103993db424d7818eb641814547d13b04d6448d9e28b62c2d79a",
-      "content_xxh3_128": "ce4a1ef72d3c1efd6868118c9e0e7277"
+      "content_xxh3_128": "22a977cc206f410f95d55a74ca8b3ff7",
+      "source_path": "combat/000051.json",
+      "source_content_xxh3_128": "ce4a1ef72d3c1efd6868118c9e0e7277"
     },
     {
       "id": "boundary.round.oa6_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000052.json",
+      "path": "combat/000052.bitcode.zst",
       "source_sha256": "57fcf5614f64c6ff61bf8a4a480eb8c24cc4dd3e720715c9f0fb76e7f489f382",
-      "content_xxh3_128": "e919744e27b37bab6f6bd322924461fb"
+      "content_xxh3_128": "bc4432036542d7800bde782ee9f1e224",
+      "source_path": "combat/000052.json",
+      "source_content_xxh3_128": "e919744e27b37bab6f6bd322924461fb"
     },
     {
       "id": "boundary.round.oa6_sub.above",
       "operation": "combat.round",
-      "path": "combat/000053.json",
+      "path": "combat/000053.bitcode.zst",
       "source_sha256": "5808a8df279d7666bb0a61e4c8794c00c3242e4b41c6a6982a659fc9c65a2197",
-      "content_xxh3_128": "0e710d8303a9516b4dbf95114f0200b2"
+      "content_xxh3_128": "fc55e78420bddf19ded5a7c87f05a413",
+      "source_path": "combat/000053.json",
+      "source_content_xxh3_128": "0e710d8303a9516b4dbf95114f0200b2"
     },
     {
       "id": "boundary.round.oa5_sub.below",
       "operation": "combat.round",
-      "path": "combat/000054.json",
+      "path": "combat/000054.bitcode.zst",
       "source_sha256": "0a62110eb07c2b8163fc7fd11ea9abe802a27fb46a94990ee1ec288ea903722b",
-      "content_xxh3_128": "2326504f3c15c71be9d98299ee9a1af3"
+      "content_xxh3_128": "7f1bac7afa7bfb15bba34bfc9d2ccfe8",
+      "source_path": "combat/000054.json",
+      "source_content_xxh3_128": "2326504f3c15c71be9d98299ee9a1af3"
     },
     {
       "id": "boundary.round.oa5_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000055.json",
+      "path": "combat/000055.bitcode.zst",
       "source_sha256": "e013eeb33580639509948281446700ad00afff92a625ee3fa93ed0405c88c5d4",
-      "content_xxh3_128": "08eb243131fe4fb7e873cd124b286be9"
+      "content_xxh3_128": "d1120ad7c48d0847bc5956fe75b520cb",
+      "source_path": "combat/000055.json",
+      "source_content_xxh3_128": "08eb243131fe4fb7e873cd124b286be9"
     },
     {
       "id": "boundary.round.oa5_sub.above",
       "operation": "combat.round",
-      "path": "combat/000056.json",
+      "path": "combat/000056.bitcode.zst",
       "source_sha256": "d0e7ccf35e2ca1ed46bd3609f3e934da7a8954b2c78aae26a5d48e219b08f8b8",
-      "content_xxh3_128": "3fe98fca23b3512bd120d592de511d53"
+      "content_xxh3_128": "f3c6cd41b9231e59573b24e8215836c3",
+      "source_path": "combat/000056.json",
+      "source_content_xxh3_128": "3fe98fca23b3512bd120d592de511d53"
     },
     {
       "id": "boundary.round.oa4_sub.below",
       "operation": "combat.round",
-      "path": "combat/000057.json",
+      "path": "combat/000057.bitcode.zst",
       "source_sha256": "bd7d5bd6cee22e980e78ea77d7f7c5536d4dfc491a2b35cd28e27578043a2717",
-      "content_xxh3_128": "01dafaa220de62beede89e7bf8c2249c"
+      "content_xxh3_128": "3666cd17376d735347e4f103521a487b",
+      "source_path": "combat/000057.json",
+      "source_content_xxh3_128": "01dafaa220de62beede89e7bf8c2249c"
     },
     {
       "id": "boundary.round.oa4_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000058.json",
+      "path": "combat/000058.bitcode.zst",
       "source_sha256": "ab62570f327099019635469c1bc72cc544474a67918f19615b47dbf250ab162b",
-      "content_xxh3_128": "56afbfcda08ae6341267a90ea3c037a7"
+      "content_xxh3_128": "7d99f12bf5b9d330142d66aa27e51dc0",
+      "source_path": "combat/000058.json",
+      "source_content_xxh3_128": "56afbfcda08ae6341267a90ea3c037a7"
     },
     {
       "id": "boundary.round.oa4_sub.above",
       "operation": "combat.round",
-      "path": "combat/000059.json",
+      "path": "combat/000059.bitcode.zst",
       "source_sha256": "b54746d6bd81e5f0c07c68eb48d44df1a897fe1ae936597a2c732116ec55e6a1",
-      "content_xxh3_128": "73685ba8eb573efe25b36470f085b389"
+      "content_xxh3_128": "c06d58a026401a06def0706d08cfe087",
+      "source_path": "combat/000059.json",
+      "source_content_xxh3_128": "73685ba8eb573efe25b36470f085b389"
     },
     {
       "id": "boundary.round.oa3_sub.below",
       "operation": "combat.round",
-      "path": "combat/000060.json",
+      "path": "combat/000060.bitcode.zst",
       "source_sha256": "9098da72e952a4a0f68e1d7b1aedcac050683241aab5c307ffd1ffe85f042783",
-      "content_xxh3_128": "f8077e1c4a2da1633b46ece73255925a"
+      "content_xxh3_128": "06952865f4980990947803c2c95e4e92",
+      "source_path": "combat/000060.json",
+      "source_content_xxh3_128": "f8077e1c4a2da1633b46ece73255925a"
     },
     {
       "id": "boundary.round.oa3_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000061.json",
+      "path": "combat/000061.bitcode.zst",
       "source_sha256": "1fa888d6a6dcc75c7451da0509364c45b3a6ae9e54cbe1a5cf454669696f4896",
-      "content_xxh3_128": "b76e08d17665ab37df08521df8adcee8"
+      "content_xxh3_128": "e406b517bc058423f81e6ecff1918019",
+      "source_path": "combat/000061.json",
+      "source_content_xxh3_128": "b76e08d17665ab37df08521df8adcee8"
     },
     {
       "id": "boundary.round.oa3_sub.above",
       "operation": "combat.round",
-      "path": "combat/000062.json",
+      "path": "combat/000062.bitcode.zst",
       "source_sha256": "3658d2f3ea9735f27080b48d52ff82f783b282449be51735305e252bbc214092",
-      "content_xxh3_128": "e66282a954a89eda926abe9501a3b931"
+      "content_xxh3_128": "81b674725be83f8028423f046bc64af4",
+      "source_path": "combat/000062.json",
+      "source_content_xxh3_128": "e66282a954a89eda926abe9501a3b931"
     },
     {
       "id": "boundary.round.oa2_sub.below",
       "operation": "combat.round",
-      "path": "combat/000063.json",
+      "path": "combat/000063.bitcode.zst",
       "source_sha256": "de108e412fbfb5d310c49726c778431f7d2f6856f20df1fad9c14608d05dc744",
-      "content_xxh3_128": "cb2d077ade4890707aedbe5ad25cd715"
+      "content_xxh3_128": "40de6493929528f055da4af02582d54e",
+      "source_path": "combat/000063.json",
+      "source_content_xxh3_128": "cb2d077ade4890707aedbe5ad25cd715"
     },
     {
       "id": "boundary.round.oa2_sub.equal",
       "operation": "combat.round",
-      "path": "combat/000064.json",
+      "path": "combat/000064.bitcode.zst",
       "source_sha256": "17dfb4451050b999fb1be8ff6bad51683d84a7613a974c8b619d3f7773099fce",
-      "content_xxh3_128": "9cde6d71bb3aa770ad78451f1f782f35"
+      "content_xxh3_128": "650c9a9f3e7c21212a6e345311d55f8a",
+      "source_path": "combat/000064.json",
+      "source_content_xxh3_128": "9cde6d71bb3aa770ad78451f1f782f35"
     },
     {
       "id": "boundary.round.oa2_sub.above",
       "operation": "combat.round",
-      "path": "combat/000065.json",
+      "path": "combat/000065.bitcode.zst",
       "source_sha256": "8e8c3724c259b1bc833d369b1b956ce51bb25f395db52f1c60715fd13ebf2099",
-      "content_xxh3_128": "4da06f312af5c938311640bd1a532cfa"
+      "content_xxh3_128": "706040d28469046ec4bb4dc5d26f0590",
+      "source_path": "combat/000065.json",
+      "source_content_xxh3_128": "4da06f312af5c938311640bd1a532cfa"
     },
     {
       "id": "boundary.round.hit_first_main_cap.below",
       "operation": "combat.round",
-      "path": "combat/000066.json",
+      "path": "combat/000066.bitcode.zst",
       "source_sha256": "ef333c7c68c1836a1e9d0ea14a387cfad167add4aee0a4f741382f6b4f9dd09b",
-      "content_xxh3_128": "907d09a0022fe11272f3e9d43b771144"
+      "content_xxh3_128": "9d2141462e3dd816c1760c5a01d25937",
+      "source_path": "combat/000066.json",
+      "source_content_xxh3_128": "907d09a0022fe11272f3e9d43b771144"
     },
     {
       "id": "boundary.round.hit_first_main_cap.equal",
       "operation": "combat.round",
-      "path": "combat/000067.json",
+      "path": "combat/000067.bitcode.zst",
       "source_sha256": "188a4edc738436de61b32d0e1dfab1edee509bcd730d7a49c450a0fa54fc54e4",
-      "content_xxh3_128": "6e344811d417718a5b6a4101675aa601"
+      "content_xxh3_128": "09b41786da9659d672c3c1026e63d6ed",
+      "source_path": "combat/000067.json",
+      "source_content_xxh3_128": "6e344811d417718a5b6a4101675aa601"
     },
     {
       "id": "boundary.round.hit_first_main_cap.above",
       "operation": "combat.round",
-      "path": "combat/000068.json",
+      "path": "combat/000068.bitcode.zst",
       "source_sha256": "8667f3d19951b5858fc85e8b5552d7aec74b37b873e23257b0ad8969324a30d4",
-      "content_xxh3_128": "7c736808c8217546192b49cc5862c103"
+      "content_xxh3_128": "f9d63f685ba394de8fd3f2cdcc1e8fd8",
+      "source_path": "combat/000068.json",
+      "source_content_xxh3_128": "7c736808c8217546192b49cc5862c103"
     },
     {
       "id": "boundary.round.hit_first_main_floor.below",
       "operation": "combat.round",
-      "path": "combat/000069.json",
+      "path": "combat/000069.bitcode.zst",
       "source_sha256": "2530cb3ddeb2dd765ca7f7f1270c34480f892bc12c17c2245e55429ef16ba964",
-      "content_xxh3_128": "91841097052365b1f051be48f7b6da12"
+      "content_xxh3_128": "8c617bf1b52c43dcf4a48e64d1112c44",
+      "source_path": "combat/000069.json",
+      "source_content_xxh3_128": "91841097052365b1f051be48f7b6da12"
     },
     {
       "id": "boundary.round.hit_first_main_floor.equal",
       "operation": "combat.round",
-      "path": "combat/000070.json",
+      "path": "combat/000070.bitcode.zst",
       "source_sha256": "f741b395362d80059d837d3f86c23220cd62fc7b2b739dc75e204639a5273948",
-      "content_xxh3_128": "15b60bb4784c155d3bcc00fad16377f2"
+      "content_xxh3_128": "d3c2fa885eeb54bdb5af64313064af74",
+      "source_path": "combat/000070.json",
+      "source_content_xxh3_128": "15b60bb4784c155d3bcc00fad16377f2"
     },
     {
       "id": "boundary.round.hit_first_main_floor.above",
       "operation": "combat.round",
-      "path": "combat/000071.json",
+      "path": "combat/000071.bitcode.zst",
       "source_sha256": "7fe49f13537d7acc264e769225564b327042c88d6e3500b49a599be85dd4153d",
-      "content_xxh3_128": "1bcd98b4c737d40e9718b38a8cd28b76"
+      "content_xxh3_128": "05e36f07fe3424e3ca4542fc8dc894a0",
+      "source_path": "combat/000071.json",
+      "source_content_xxh3_128": "1bcd98b4c737d40e9718b38a8cd28b76"
     },
     {
       "id": "boundary.round.hit_first_offhand_cap.below",
       "operation": "combat.round",
-      "path": "combat/000072.json",
+      "path": "combat/000072.bitcode.zst",
       "source_sha256": "4c5499f8090b41e9b75ef49079bf91130285f5c95671dedca4e60901c38a3fe4",
-      "content_xxh3_128": "e428ce9e9c9f0f3e129a1a68c284c4b7"
+      "content_xxh3_128": "97a8be4bd28f1715a7f302f066ec0a0a",
+      "source_path": "combat/000072.json",
+      "source_content_xxh3_128": "e428ce9e9c9f0f3e129a1a68c284c4b7"
     },
     {
       "id": "boundary.round.hit_first_offhand_cap.equal",
       "operation": "combat.round",
-      "path": "combat/000073.json",
+      "path": "combat/000073.bitcode.zst",
       "source_sha256": "ebda1709f2aa52012c215706e3e0add0a9fec14b4d446f29da74cb222da9ad92",
-      "content_xxh3_128": "9307f0f45e54ff4e476afb857474d00a"
+      "content_xxh3_128": "2bdb344027a420ee5c4478bc73eada7d",
+      "source_path": "combat/000073.json",
+      "source_content_xxh3_128": "9307f0f45e54ff4e476afb857474d00a"
     },
     {
       "id": "boundary.round.hit_first_offhand_cap.above",
       "operation": "combat.round",
-      "path": "combat/000074.json",
+      "path": "combat/000074.bitcode.zst",
       "source_sha256": "45bcda4c091e4a97b196ed8b633eaf546e281b9bac6d02421811f853b79f5872",
-      "content_xxh3_128": "46c4b3b84ada5ae1310b40f109bed2c5"
+      "content_xxh3_128": "58f2e34635fe65b4d78afdcd5c16b9c4",
+      "source_path": "combat/000074.json",
+      "source_content_xxh3_128": "46c4b3b84ada5ae1310b40f109bed2c5"
     },
     {
       "id": "boundary.round.hit_first_offhand_floor.below",
       "operation": "combat.round",
-      "path": "combat/000075.json",
+      "path": "combat/000075.bitcode.zst",
       "source_sha256": "89437cff00c1ba0ee735621f805e248b4c8b229b481c66953a193d1165a31ac4",
-      "content_xxh3_128": "882a34e7f536bca37113c4f1683a57b2"
+      "content_xxh3_128": "bfcd341aee9c485609180aad25e8831e",
+      "source_path": "combat/000075.json",
+      "source_content_xxh3_128": "882a34e7f536bca37113c4f1683a57b2"
     },
     {
       "id": "boundary.round.hit_first_offhand_floor.equal",
       "operation": "combat.round",
-      "path": "combat/000076.json",
+      "path": "combat/000076.bitcode.zst",
       "source_sha256": "5aa380fe6ec1c6a399c8e7ca86d099fd00398910d26f413c462ae21a424f6e19",
-      "content_xxh3_128": "0e4fae04be9981b05ef425acd0cede79"
+      "content_xxh3_128": "06761d936276363ca8e78a46f0b0a1be",
+      "source_path": "combat/000076.json",
+      "source_content_xxh3_128": "0e4fae04be9981b05ef425acd0cede79"
     },
     {
       "id": "boundary.round.hit_first_offhand_floor.above",
       "operation": "combat.round",
-      "path": "combat/000077.json",
+      "path": "combat/000077.bitcode.zst",
       "source_sha256": "3ead5178d1c6498b1220bbf26422cc232667488e5bf4a78ecab76a4ff2124282",
-      "content_xxh3_128": "3a5dfe2b8d490ed85656eb559ed68cec"
+      "content_xxh3_128": "e5441864e2183c06a8eb024a7c41fd57",
+      "source_path": "combat/000077.json",
+      "source_content_xxh3_128": "3a5dfe2b8d490ed85656eb559ed68cec"
     },
     {
       "id": "boundary.round.hit_bonus_main_cap.below",
       "operation": "combat.round",
-      "path": "combat/000078.json",
+      "path": "combat/000078.bitcode.zst",
       "source_sha256": "89d512a0101b155c991641a2035e153eb3c521eb445f4851220adc0b5cc14fa4",
-      "content_xxh3_128": "0100b586bb36ee189553c647ea20edc4"
+      "content_xxh3_128": "0c8027bd1bd6f32a4dca6047c6c9fb8e",
+      "source_path": "combat/000078.json",
+      "source_content_xxh3_128": "0100b586bb36ee189553c647ea20edc4"
     },
     {
       "id": "boundary.round.hit_bonus_main_cap.equal",
       "operation": "combat.round",
-      "path": "combat/000079.json",
+      "path": "combat/000079.bitcode.zst",
       "source_sha256": "d0ef85f8a28b0eade48b057926b3fabf5a62de12792ef9d138d46e5dcc0a7809",
-      "content_xxh3_128": "f040cf13036df6aa736efdc06226518e"
+      "content_xxh3_128": "8dce0ef8dc0ab907ddfac0edbc8d00a6",
+      "source_path": "combat/000079.json",
+      "source_content_xxh3_128": "f040cf13036df6aa736efdc06226518e"
     },
     {
       "id": "boundary.round.hit_bonus_main_cap.above",
       "operation": "combat.round",
-      "path": "combat/000080.json",
+      "path": "combat/000080.bitcode.zst",
       "source_sha256": "a528a5ac54ecd01fb054299f7f57687638e3867e5ce58aade3728ee0f5ef4bcf",
-      "content_xxh3_128": "7f90215f727b479d85bd78a99be007e6"
+      "content_xxh3_128": "52c57d27470ea5ca257e3a572cbd7f81",
+      "source_path": "combat/000080.json",
+      "source_content_xxh3_128": "7f90215f727b479d85bd78a99be007e6"
     },
     {
       "id": "boundary.round.hit_bonus_main_floor.below",
       "operation": "combat.round",
-      "path": "combat/000081.json",
+      "path": "combat/000081.bitcode.zst",
       "source_sha256": "ec80a13d599ec3a5329c8f6cad86b603a5ae1afa2778f7de3e4de7cfff9c4ce1",
-      "content_xxh3_128": "d743ba7f002508cddcb8f2f2b4a087b7"
+      "content_xxh3_128": "9c9b930e9a36237a26367d36f898d0ac",
+      "source_path": "combat/000081.json",
+      "source_content_xxh3_128": "d743ba7f002508cddcb8f2f2b4a087b7"
     },
     {
       "id": "boundary.round.hit_bonus_main_floor.equal",
       "operation": "combat.round",
-      "path": "combat/000082.json",
+      "path": "combat/000082.bitcode.zst",
       "source_sha256": "64e59b5bd0933ea13351418704746c9d7a5b7515053b81eb311f6de478ebfab1",
-      "content_xxh3_128": "e1a4cee4105e10aaf215a5f72475a972"
+      "content_xxh3_128": "a2e1b511a10ac23ac5e2d3ed3644c8d4",
+      "source_path": "combat/000082.json",
+      "source_content_xxh3_128": "e1a4cee4105e10aaf215a5f72475a972"
     },
     {
       "id": "boundary.round.hit_bonus_main_floor.above",
       "operation": "combat.round",
-      "path": "combat/000083.json",
+      "path": "combat/000083.bitcode.zst",
       "source_sha256": "ba956513a4f1e975632a66ac077e1c5069981e7a2b0ea2ce25be38e92572a75f",
-      "content_xxh3_128": "f37e9450c44ea818ab5e3deca31997e3"
+      "content_xxh3_128": "0e45dfa4d5005fcb2be8bed1e076c190",
+      "source_path": "combat/000083.json",
+      "source_content_xxh3_128": "f37e9450c44ea818ab5e3deca31997e3"
     },
     {
       "id": "boundary.round.hit_kick_cap.below",
       "operation": "combat.round",
-      "path": "combat/000084.json",
+      "path": "combat/000084.bitcode.zst",
       "source_sha256": "2675b49eb83400a09ebcf5f39b4b9216d247ae788a479f872ca571bb631f61d5",
-      "content_xxh3_128": "bea3c8107800ee2ef6eeba801e5f78d7"
+      "content_xxh3_128": "9027d9250a30a13013f69c44f0393c8c",
+      "source_path": "combat/000084.json",
+      "source_content_xxh3_128": "bea3c8107800ee2ef6eeba801e5f78d7"
     },
     {
       "id": "boundary.round.hit_kick_cap.equal",
       "operation": "combat.round",
-      "path": "combat/000085.json",
+      "path": "combat/000085.bitcode.zst",
       "source_sha256": "2c797971817c497378d0ba2732cfc652473d58fe114d57b71cf01e50a57540c7",
-      "content_xxh3_128": "f5b20934df47d10a78a6fdf0c0539473"
+      "content_xxh3_128": "842bd457222b9ee4ab08413ba2b0c449",
+      "source_path": "combat/000085.json",
+      "source_content_xxh3_128": "f5b20934df47d10a78a6fdf0c0539473"
     },
     {
       "id": "boundary.round.hit_kick_cap.above",
       "operation": "combat.round",
-      "path": "combat/000086.json",
+      "path": "combat/000086.bitcode.zst",
       "source_sha256": "5e24dddf4d0218888b88d2511d4d0935c57e6f9a7632fd048cf6f1615954b90b",
-      "content_xxh3_128": "01e1388090dceeaddfc95d13c44275fe"
+      "content_xxh3_128": "38f8344311517d178303e41012c0991d",
+      "source_path": "combat/000086.json",
+      "source_content_xxh3_128": "01e1388090dceeaddfc95d13c44275fe"
     },
     {
       "id": "boundary.round.hit_kick_floor.below",
       "operation": "combat.round",
-      "path": "combat/000087.json",
+      "path": "combat/000087.bitcode.zst",
       "source_sha256": "514a3538af8c0e4ebded0136d4394aa07bf17b834c37303d5de8c58df58489b1",
-      "content_xxh3_128": "2287d34a9774ff1a1e1add806ababea2"
+      "content_xxh3_128": "74d75472e053473e2a9d687bc91bf498",
+      "source_path": "combat/000087.json",
+      "source_content_xxh3_128": "2287d34a9774ff1a1e1add806ababea2"
     },
     {
       "id": "boundary.round.hit_kick_floor.equal",
       "operation": "combat.round",
-      "path": "combat/000088.json",
+      "path": "combat/000088.bitcode.zst",
       "source_sha256": "381e43105ca8995a199dc311eb2f50195e6c716a6bd315a643dc2f5e9bee86ea",
-      "content_xxh3_128": "c9a291cbb96c2b92ede35523d7aba5dc"
+      "content_xxh3_128": "3310969666ec1adf13bd7a042896ee85",
+      "source_path": "combat/000088.json",
+      "source_content_xxh3_128": "c9a291cbb96c2b92ede35523d7aba5dc"
     },
     {
       "id": "boundary.round.hit_kick_floor.above",
       "operation": "combat.round",
-      "path": "combat/000089.json",
+      "path": "combat/000089.bitcode.zst",
       "source_sha256": "991f17610d937bacf7780ae68f9142260d41d07ec6b71573e14d79ed27ff59d0",
-      "content_xxh3_128": "1ca0b2d415678133a345e6f02d5cec46"
+      "content_xxh3_128": "4a46191d69a7d8d39ac48b6bb962b002",
+      "source_path": "combat/000089.json",
+      "source_content_xxh3_128": "1ca0b2d415678133a345e6f02d5cec46"
     },
     {
       "id": "boundary.round.hit_daken_cap.below",
       "operation": "combat.round",
-      "path": "combat/000090.json",
+      "path": "combat/000090.bitcode.zst",
       "source_sha256": "816925560e69c15026a6874fdbea19e3b9b5f948cf8817c7440d6eeb787d7261",
-      "content_xxh3_128": "e572ba6576258eb316ace64c7f0b1499"
+      "content_xxh3_128": "c606821ac37e1cf3c2e82b24aa18f783",
+      "source_path": "combat/000090.json",
+      "source_content_xxh3_128": "e572ba6576258eb316ace64c7f0b1499"
     },
     {
       "id": "boundary.round.hit_daken_cap.equal",
       "operation": "combat.round",
-      "path": "combat/000091.json",
+      "path": "combat/000091.bitcode.zst",
       "source_sha256": "a011fd0702046e1ec70e12c5635eb697affb5b7770d28803deff51f9c748fe9f",
-      "content_xxh3_128": "9eb0c5d6ae103330a0b7130c19466383"
+      "content_xxh3_128": "4009ba1fe71180bdd113446c9163e698",
+      "source_path": "combat/000091.json",
+      "source_content_xxh3_128": "9eb0c5d6ae103330a0b7130c19466383"
     },
     {
       "id": "boundary.round.hit_daken_cap.above",
       "operation": "combat.round",
-      "path": "combat/000092.json",
+      "path": "combat/000092.bitcode.zst",
       "source_sha256": "e16e82be23cd55ccf9b20f078ac5f329d86e06d5b5099eb7474ff70cc9aa775a",
-      "content_xxh3_128": "9cb77629e2420cbe309ab507dede286a"
+      "content_xxh3_128": "46a0a6028c69c164895fd60af5ea37f4",
+      "source_path": "combat/000092.json",
+      "source_content_xxh3_128": "9cb77629e2420cbe309ab507dede286a"
     },
     {
       "id": "boundary.round.hit_daken_floor.below",
       "operation": "combat.round",
-      "path": "combat/000093.json",
+      "path": "combat/000093.bitcode.zst",
       "source_sha256": "1cdc4b108bfce7b93155ae2ff5f9807f5e598da162c215e13455cf630ae21363",
-      "content_xxh3_128": "e88f1276606c9d306a6821ae740b6440"
+      "content_xxh3_128": "65652d23a13ccccc2cc051b3c22b9d3c",
+      "source_path": "combat/000093.json",
+      "source_content_xxh3_128": "e88f1276606c9d306a6821ae740b6440"
     },
     {
       "id": "boundary.round.hit_daken_floor.equal",
       "operation": "combat.round",
-      "path": "combat/000094.json",
+      "path": "combat/000094.bitcode.zst",
       "source_sha256": "1c5a3daa0394e7ae48c7b78148e276547c8a8b5722dc119555b7f7392615d019",
-      "content_xxh3_128": "cc4f885d4cb9e2fc4321468e6fb6a7fe"
+      "content_xxh3_128": "bb11f89f609ac544dd7c19e687c97701",
+      "source_path": "combat/000094.json",
+      "source_content_xxh3_128": "cc4f885d4cb9e2fc4321468e6fb6a7fe"
     },
     {
       "id": "boundary.round.hit_daken_floor.above",
       "operation": "combat.round",
-      "path": "combat/000095.json",
+      "path": "combat/000095.bitcode.zst",
       "source_sha256": "3f78765c798857f6e83f1298004ca59024bd4f2003cef5ffbb3f9fc1c7258dd7",
-      "content_xxh3_128": "64e76aa18c10a2d809abd33d3ef53823"
+      "content_xxh3_128": "b9cfafb6eafce8b74e2718babf669a70",
+      "source_path": "combat/000095.json",
+      "source_content_xxh3_128": "64e76aa18c10a2d809abd33d3ef53823"
     },
     {
       "id": "boundary.round.relic30_kikoku.below",
       "operation": "combat.round",
-      "path": "combat/000096.json",
+      "path": "combat/000096.bitcode.zst",
       "source_sha256": "50357324519f98e80ae24947285b00aca9a12c5432a20c422f1fec885b12c7fa",
-      "content_xxh3_128": "1123164b9be2d62e0ff260c7dda6c38f"
+      "content_xxh3_128": "5824b8df6d6d31a0d9a362886ff1e598",
+      "source_path": "combat/000096.json",
+      "source_content_xxh3_128": "1123164b9be2d62e0ff260c7dda6c38f"
     },
     {
       "id": "boundary.round.relic30_kikoku.equal",
       "operation": "combat.round",
-      "path": "combat/000097.json",
+      "path": "combat/000097.bitcode.zst",
       "source_sha256": "dcd248a0f80dd83350bad2bb8859480c129f03daad4e89c94f3f1ba3db95f535",
-      "content_xxh3_128": "e36700b5750123064b9ff6ce34469aa3"
+      "content_xxh3_128": "9be272c7cf6afecfdc76ddd3b06d422a",
+      "source_path": "combat/000097.json",
+      "source_content_xxh3_128": "e36700b5750123064b9ff6ce34469aa3"
     },
     {
       "id": "boundary.round.relic30_kikoku.above",
       "operation": "combat.round",
-      "path": "combat/000098.json",
+      "path": "combat/000098.bitcode.zst",
       "source_sha256": "40895898739578d8a36265286ae2b14767adc2cdbd124152c11fcdd7ec303874",
-      "content_xxh3_128": "840e07113291fc9bb71731e0a08d3767"
+      "content_xxh3_128": "3a64ca8040ac50c15bf12e54292d3419",
+      "source_path": "combat/000098.json",
+      "source_content_xxh3_128": "840e07113291fc9bb71731e0a08d3767"
     },
     {
       "id": "boundary.round.relic25_ragnarok.below",
       "operation": "combat.round",
-      "path": "combat/000099.json",
+      "path": "combat/000099.bitcode.zst",
       "source_sha256": "941d660f6734623b519745fb2482a14d42c4b7e580a8df03e2356ef7dacf95c6",
-      "content_xxh3_128": "1a6354af65ab677f174adfa2104f4ac2"
+      "content_xxh3_128": "d1a6e8748fe6a698568a762022fc716f",
+      "source_path": "combat/000099.json",
+      "source_content_xxh3_128": "1a6354af65ab677f174adfa2104f4ac2"
     },
     {
       "id": "boundary.round.relic25_ragnarok.equal",
       "operation": "combat.round",
-      "path": "combat/000100.json",
+      "path": "combat/000100.bitcode.zst",
       "source_sha256": "dc53fa141f0cc2a6466e5e8cd44ff24f204d840ea09d507e345de68e29b51fb8",
-      "content_xxh3_128": "aae3bb8161205f08b43f38cd6d224851"
+      "content_xxh3_128": "53fe48b348e19015af8267a0461ae22b",
+      "source_path": "combat/000100.json",
+      "source_content_xxh3_128": "aae3bb8161205f08b43f38cd6d224851"
     },
     {
       "id": "boundary.round.relic25_ragnarok.above",
       "operation": "combat.round",
-      "path": "combat/000101.json",
+      "path": "combat/000101.bitcode.zst",
       "source_sha256": "e20b651d72caed3deab08e33a813b12ca45a2c1bb4413ebb94794b47af1eb9ac",
-      "content_xxh3_128": "af9ba0377a14df0bf33646df4d68855a"
+      "content_xxh3_128": "ff26035fe7d40fd2d8a79f325134cada",
+      "source_path": "combat/000101.json",
+      "source_content_xxh3_128": "af9ba0377a14df0bf33646df4d68855a"
     },
     {
       "id": "boundary.round.relic20_bravura.below",
       "operation": "combat.round",
-      "path": "combat/000102.json",
+      "path": "combat/000102.bitcode.zst",
       "source_sha256": "f8236377ec0005c13f00b626795e9ddd1d6428322d0ca5b17d946b244590feef",
-      "content_xxh3_128": "484ae652d4cb1c3dcf52184d64521268"
+      "content_xxh3_128": "b434d511585d60fe6a359ab4fab0cb94",
+      "source_path": "combat/000102.json",
+      "source_content_xxh3_128": "484ae652d4cb1c3dcf52184d64521268"
     },
     {
       "id": "boundary.round.relic20_bravura.equal",
       "operation": "combat.round",
-      "path": "combat/000103.json",
+      "path": "combat/000103.bitcode.zst",
       "source_sha256": "45804ee038fa169fdff4658426ed975329c346834934181c2b621dec10425781",
-      "content_xxh3_128": "cfe5ab173c2a79f672ca5c8bdf7a72a5"
+      "content_xxh3_128": "02f4bf28aceb9cb81e95b5351a70cc06",
+      "source_path": "combat/000103.json",
+      "source_content_xxh3_128": "cfe5ab173c2a79f672ca5c8bdf7a72a5"
     },
     {
       "id": "boundary.round.relic20_bravura.above",
       "operation": "combat.round",
-      "path": "combat/000104.json",
+      "path": "combat/000104.bitcode.zst",
       "source_sha256": "e2bfa0f891b3c994b09c91176e6be1f36f64a19cb8677ffe81a5311492c32018",
-      "content_xxh3_128": "f8fd509cf08ea6d0d2a13ba50b124c01"
+      "content_xxh3_128": "c8a88475ab6a4b8331d820b60bc9ee72",
+      "source_path": "combat/000104.json",
+      "source_content_xxh3_128": "f8fd509cf08ea6d0d2a13ba50b124c01"
     },
     {
       "id": "boundary.round.prime3_laphria_v.below",
       "operation": "combat.round",
-      "path": "combat/000105.json",
+      "path": "combat/000105.bitcode.zst",
       "source_sha256": "17f54714d678fa32d0293c1cad9b94b43b05669b24ca3d6a61123299568c550f",
-      "content_xxh3_128": "690aabc06b9c9d78d6d9d75b231dbf41"
+      "content_xxh3_128": "74867d7b9046932bf7cf4dc479a6e634",
+      "source_path": "combat/000105.json",
+      "source_content_xxh3_128": "690aabc06b9c9d78d6d9d75b231dbf41"
     },
     {
       "id": "boundary.round.prime3_laphria_v.equal",
       "operation": "combat.round",
-      "path": "combat/000106.json",
+      "path": "combat/000106.bitcode.zst",
       "source_sha256": "c3f59d29e47021ad9a3e748d7329f37a7901cbf693a0e80a0d33d0908fa4d46d",
-      "content_xxh3_128": "8672822bc625b92554c1aa71dbe5d409"
+      "content_xxh3_128": "0cca4e70d12fb230ed561a974cf962cd",
+      "source_path": "combat/000106.json",
+      "source_content_xxh3_128": "8672822bc625b92554c1aa71dbe5d409"
     },
     {
       "id": "boundary.round.prime3_laphria_v.above",
       "operation": "combat.round",
-      "path": "combat/000107.json",
+      "path": "combat/000107.bitcode.zst",
       "source_sha256": "183b00487337371070925867c6621ef8777e884602e4665018be5876d83d1f14",
-      "content_xxh3_128": "17cc6c3ba084a8903a8bcc5332a76b25"
+      "content_xxh3_128": "ae97df0c701bc24b7a4a1a6772ded51d",
+      "source_path": "combat/000107.json",
+      "source_content_xxh3_128": "17cc6c3ba084a8903a8bcc5332a76b25"
     },
     {
       "id": "boundary.round.prime2_laphria_iv.below",
       "operation": "combat.round",
-      "path": "combat/000108.json",
+      "path": "combat/000108.bitcode.zst",
       "source_sha256": "e33b65a329e03126595c0a584c25c2113aff1a0b59eb90c50a10d1150d7a890e",
-      "content_xxh3_128": "f9695ac5ccd335a8075cf97928ac2553"
+      "content_xxh3_128": "0fa8a43b5bfdaf1215f0ffb071961e97",
+      "source_path": "combat/000108.json",
+      "source_content_xxh3_128": "f9695ac5ccd335a8075cf97928ac2553"
     },
     {
       "id": "boundary.round.prime2_laphria_iv.equal",
       "operation": "combat.round",
-      "path": "combat/000109.json",
+      "path": "combat/000109.bitcode.zst",
       "source_sha256": "7e74bc603a48dfb5a9cc0de400e879c370636a9fab98bb232647e4f60bc087d1",
-      "content_xxh3_128": "9eeeed726ed6d3cc7704f7054f8d1888"
+      "content_xxh3_128": "0c3348e09278e3ae94419543455c8639",
+      "source_path": "combat/000109.json",
+      "source_content_xxh3_128": "9eeeed726ed6d3cc7704f7054f8d1888"
     },
     {
       "id": "boundary.round.prime2_laphria_iv.above",
       "operation": "combat.round",
-      "path": "combat/000110.json",
+      "path": "combat/000110.bitcode.zst",
       "source_sha256": "2466f73e4f950ff69fc65cdf932babae268c998677b24dbf0fe0e49699a44993",
-      "content_xxh3_128": "9cf98926362e69c8a461320c7c6f3296"
+      "content_xxh3_128": "dffa16d1a71d595ac1849048c8c06800",
+      "source_path": "combat/000110.json",
+      "source_content_xxh3_128": "9cf98926362e69c8a461320c7c6f3296"
     },
     {
       "id": "boundary.round.empyrean_first_am1.below",
       "operation": "combat.round",
-      "path": "combat/000111.json",
+      "path": "combat/000111.bitcode.zst",
       "source_sha256": "22ca2cccdf11a353e636046957862603bf7876ac07012688cf5a00913cd49f7f",
-      "content_xxh3_128": "fbcf96fd1aa9339aeb9d494523a9d4cc"
+      "content_xxh3_128": "20f02bb36d0bf847087c9737222c3b4d",
+      "source_path": "combat/000111.json",
+      "source_content_xxh3_128": "fbcf96fd1aa9339aeb9d494523a9d4cc"
     },
     {
       "id": "boundary.round.empyrean_first_am1.equal",
       "operation": "combat.round",
-      "path": "combat/000112.json",
+      "path": "combat/000112.bitcode.zst",
       "source_sha256": "f3f090c1c2d5099c25fef322b56902c77f59078872e781f5135006f33dfaf2aa",
-      "content_xxh3_128": "b999fef9a52241a0c3ecf0408cf26a8d"
+      "content_xxh3_128": "344d17287c2e8a8fc43a7ac42039b882",
+      "source_path": "combat/000112.json",
+      "source_content_xxh3_128": "b999fef9a52241a0c3ecf0408cf26a8d"
     },
     {
       "id": "boundary.round.empyrean_first_am1.above",
       "operation": "combat.round",
-      "path": "combat/000113.json",
+      "path": "combat/000113.bitcode.zst",
       "source_sha256": "37d205b8368a961827eade48a7a978ee735c6ce79026956842158bc2c61b894f",
-      "content_xxh3_128": "8a39b7bc09b1d4a72163fc3484f4cfd3"
+      "content_xxh3_128": "af8abcf04251875a156f5100698fa1b9",
+      "source_path": "combat/000113.json",
+      "source_content_xxh3_128": "8a39b7bc09b1d4a72163fc3484f4cfd3"
     },
     {
       "id": "boundary.round.empyrean_first_am2.below",
       "operation": "combat.round",
-      "path": "combat/000114.json",
+      "path": "combat/000114.bitcode.zst",
       "source_sha256": "fb8e1ed5d29335022fea756ca3e22ca775445ef7bf42fa5360c311c3fff627ce",
-      "content_xxh3_128": "a3c722fe45644f8fb75eea3561eb3ce6"
+      "content_xxh3_128": "e3288379e79be748e9790e75e4fa53e7",
+      "source_path": "combat/000114.json",
+      "source_content_xxh3_128": "a3c722fe45644f8fb75eea3561eb3ce6"
     },
     {
       "id": "boundary.round.empyrean_first_am2.equal",
       "operation": "combat.round",
-      "path": "combat/000115.json",
+      "path": "combat/000115.bitcode.zst",
       "source_sha256": "00c8121d51b942dc65975c7955a4aad6ef95c593a2c338409f907861c571b599",
-      "content_xxh3_128": "89b2f89f23977a0ab254d482031a93aa"
+      "content_xxh3_128": "052ae0fbf79fa2b399510acc2d210be0",
+      "source_path": "combat/000115.json",
+      "source_content_xxh3_128": "89b2f89f23977a0ab254d482031a93aa"
     },
     {
       "id": "boundary.round.empyrean_first_am2.above",
       "operation": "combat.round",
-      "path": "combat/000116.json",
+      "path": "combat/000116.bitcode.zst",
       "source_sha256": "dff096e98c880527e2da4d6e8db80e766fa892a57e6b01282ff657ce299705e6",
-      "content_xxh3_128": "082032bd3c7fceca99b7c20487260846"
+      "content_xxh3_128": "81d13bcc70e5fd92aad502fa2c9c438b",
+      "source_path": "combat/000116.json",
+      "source_content_xxh3_128": "082032bd3c7fceca99b7c20487260846"
     },
     {
       "id": "boundary.round.empyrean_first_am3.below",
       "operation": "combat.round",
-      "path": "combat/000117.json",
+      "path": "combat/000117.bitcode.zst",
       "source_sha256": "a4a7504dd5939c86eaff1d2c78386aacb93328e5fb9d8246b829e9c79bfecf3f",
-      "content_xxh3_128": "3d0e930ba652acb9583c6dd136e15858"
+      "content_xxh3_128": "b6dfea4490d632307e94fd082a7a63bd",
+      "source_path": "combat/000117.json",
+      "source_content_xxh3_128": "3d0e930ba652acb9583c6dd136e15858"
     },
     {
       "id": "boundary.round.empyrean_first_am3.equal",
       "operation": "combat.round",
-      "path": "combat/000118.json",
+      "path": "combat/000118.bitcode.zst",
       "source_sha256": "c1e24213d20e5c7116e225dd43d25c562fdf370b1825700da8384f5c351def5d",
-      "content_xxh3_128": "b295850d0adbdfdda6f7a15dfd02f16a"
+      "content_xxh3_128": "5aa47a4ff5685ae9b81fad50ef957e3f",
+      "source_path": "combat/000118.json",
+      "source_content_xxh3_128": "b295850d0adbdfdda6f7a15dfd02f16a"
     },
     {
       "id": "boundary.round.empyrean_first_am3.above",
       "operation": "combat.round",
-      "path": "combat/000119.json",
+      "path": "combat/000119.bitcode.zst",
       "source_sha256": "04295f069e6f30f1be05182da3de1e766eeafe091779fb81e56911c14c258378",
-      "content_xxh3_128": "62d8eea561025b31306dab3094afe255"
+      "content_xxh3_128": "4096083dc1645b85a21c8ed08db91d6e",
+      "source_path": "combat/000119.json",
+      "source_content_xxh3_128": "62d8eea561025b31306dab3094afe255"
     },
     {
       "id": "boundary.round.empyrean_bonus_am3.below",
       "operation": "combat.round",
-      "path": "combat/000120.json",
+      "path": "combat/000120.bitcode.zst",
       "source_sha256": "a5293b07f0625ede4f4e65247fd21e9d7fdf9bd2b3d32deb131dd63832f56b66",
-      "content_xxh3_128": "798bc76aca50de36acb1e41b95d5d171"
+      "content_xxh3_128": "8f2b6176e93258503953c33cec6ebaaa",
+      "source_path": "combat/000120.json",
+      "source_content_xxh3_128": "798bc76aca50de36acb1e41b95d5d171"
     },
     {
       "id": "boundary.round.empyrean_bonus_am3.equal",
       "operation": "combat.round",
-      "path": "combat/000121.json",
+      "path": "combat/000121.bitcode.zst",
       "source_sha256": "fe31f6ffcc2d9ab5fc8df897e9b12422758dd512c617101b0f3b2ce40eb7c968",
-      "content_xxh3_128": "3df64ebc5e13ac963a2fa11e0a8f5ba8"
+      "content_xxh3_128": "33e886836e6fedf169044f62352237e1",
+      "source_path": "combat/000121.json",
+      "source_content_xxh3_128": "3df64ebc5e13ac963a2fa11e0a8f5ba8"
     },
     {
       "id": "boundary.round.empyrean_bonus_am3.above",
       "operation": "combat.round",
-      "path": "combat/000122.json",
+      "path": "combat/000122.bitcode.zst",
       "source_sha256": "fa93bdfdc876f9b7ec3c54267c81047677a9cc5af22d099118270cd847982f41",
-      "content_xxh3_128": "755929fc2093e8595350d84a289031ba"
+      "content_xxh3_128": "427b471dc2bdfd54efe38fd0abb0cacb",
+      "source_path": "combat/000122.json",
+      "source_content_xxh3_128": "755929fc2093e8595350d84a289031ba"
     },
     {
       "id": "boundary.round.zanhasso.below",
       "operation": "combat.round",
-      "path": "combat/000123.json",
+      "path": "combat/000123.bitcode.zst",
       "source_sha256": "0fad05894ba05153e8c5ba5d5bb5ed95b7b319bc9ef479a0db1b4937934f812f",
-      "content_xxh3_128": "a5106b7454b8ea1163bd7c16847cab81"
+      "content_xxh3_128": "4fc8156d6e2e367749d5aef914c0169f",
+      "source_path": "combat/000123.json",
+      "source_content_xxh3_128": "a5106b7454b8ea1163bd7c16847cab81"
     },
     {
       "id": "boundary.round.zanhasso.equal",
       "operation": "combat.round",
-      "path": "combat/000124.json",
+      "path": "combat/000124.bitcode.zst",
       "source_sha256": "01e44a71aedae5622ff1c8f30421dee0d3904c9197f06d2cca511eeedac3d26b",
-      "content_xxh3_128": "e2d7dea0e21be6acd4d930d9362c0ab3"
+      "content_xxh3_128": "efe2443f2f6f4cd01c3e908339209d9e",
+      "source_path": "combat/000124.json",
+      "source_content_xxh3_128": "e2d7dea0e21be6acd4d930d9362c0ab3"
     },
     {
       "id": "boundary.round.zanhasso.above",
       "operation": "combat.round",
-      "path": "combat/000125.json",
+      "path": "combat/000125.bitcode.zst",
       "source_sha256": "1d3b47cd1e56c0d1ac81c5ba3e8d2c4bd68aafff3dcd9bdd52f64fb8e898f24b",
-      "content_xxh3_128": "2964763d35f4413eaa2be50d957246cc"
+      "content_xxh3_128": "9336ffb101f91f77f9203b32f1c5e272",
+      "source_path": "combat/000125.json",
+      "source_content_xxh3_128": "2964763d35f4413eaa2be50d957246cc"
     },
     {
       "id": "boundary.round.zanshin_oa2.below",
       "operation": "combat.round",
-      "path": "combat/000126.json",
+      "path": "combat/000126.bitcode.zst",
       "source_sha256": "9c70b5173cc492159ee755acc697adc58d382eac0b725f0e5ea1d894a1da3367",
-      "content_xxh3_128": "1c3299a4739282979d3d888f8c79fcae"
+      "content_xxh3_128": "ba2ed3f56475dda7cbb8aeacdf9552d4",
+      "source_path": "combat/000126.json",
+      "source_content_xxh3_128": "1c3299a4739282979d3d888f8c79fcae"
     },
     {
       "id": "boundary.round.zanshin_oa2.equal",
       "operation": "combat.round",
-      "path": "combat/000127.json",
+      "path": "combat/000127.bitcode.zst",
       "source_sha256": "5cdc522954aa48cd284ccb3e435d8f1409632a02ac6c5e579d4ed0ed6133ca90",
-      "content_xxh3_128": "b214870f3fdaca70aa7ac76022338195"
+      "content_xxh3_128": "bbdfafab17cc0ab1f3089c5559520490",
+      "source_path": "combat/000127.json",
+      "source_content_xxh3_128": "b214870f3fdaca70aa7ac76022338195"
     },
     {
       "id": "boundary.round.zanshin_oa2.above",
       "operation": "combat.round",
-      "path": "combat/000128.json",
+      "path": "combat/000128.bitcode.zst",
       "source_sha256": "6c7eef9ed0688841e470575b2e3276c06ff90d97ed0db01a976c224f1ea302e9",
-      "content_xxh3_128": "fc85d676fbc179d1fbaf96378adf5ade"
+      "content_xxh3_128": "6dbb96204ec5db17ea58ee76bdbb5d09",
+      "source_path": "combat/000128.json",
+      "source_content_xxh3_128": "fc85d676fbc179d1fbaf96378adf5ade"
     },
     {
       "id": "boundary.round.zanshin.below",
       "operation": "combat.round",
-      "path": "combat/000129.json",
+      "path": "combat/000129.bitcode.zst",
       "source_sha256": "92fd0274fcf3fc08577613630e03b6ab6fda28b1360000f7ebf274101a0ed2ed",
-      "content_xxh3_128": "15783c445dc11862ef67a984ea964acd"
+      "content_xxh3_128": "de92ad6793e6f30504759cf946e9bf16",
+      "source_path": "combat/000129.json",
+      "source_content_xxh3_128": "15783c445dc11862ef67a984ea964acd"
     },
     {
       "id": "boundary.round.zanshin.equal",
       "operation": "combat.round",
-      "path": "combat/000130.json",
+      "path": "combat/000130.bitcode.zst",
       "source_sha256": "f98696eda921f38156643bab8c0bae4c82dde8f6839a393fb6bd656ebad22818",
-      "content_xxh3_128": "963bc83761023fac274be8efceb3ae0c"
+      "content_xxh3_128": "842a7e531a3235835aba3cb767c84faf",
+      "source_path": "combat/000130.json",
+      "source_content_xxh3_128": "963bc83761023fac274be8efceb3ae0c"
     },
     {
       "id": "boundary.round.zanshin.above",
       "operation": "combat.round",
-      "path": "combat/000131.json",
+      "path": "combat/000131.bitcode.zst",
       "source_sha256": "09989e55d7bb3b4c679586c4a32cce3e20dfc26ba7d7380289b4a424a93afc85",
-      "content_xxh3_128": "57f25ede4a16bab7b7ef0260370d6019"
+      "content_xxh3_128": "80c925ea89f46bf4a93cd7f23378aee0",
+      "source_path": "combat/000131.json",
+      "source_content_xxh3_128": "57f25ede4a16bab7b7ef0260370d6019"
     },
     {
       "id": "boundary.round.hit_zanshin_cap.below",
       "operation": "combat.round",
-      "path": "combat/000132.json",
+      "path": "combat/000132.bitcode.zst",
       "source_sha256": "00f869f55621ac2cf7559be6af991ff153dff833e3c94120ebd82c0a2cbbb8d3",
-      "content_xxh3_128": "3d63981b5368c88ce8341d31032964bc"
+      "content_xxh3_128": "ff2ea6381abeb17d678e15317d2e11d3",
+      "source_path": "combat/000132.json",
+      "source_content_xxh3_128": "3d63981b5368c88ce8341d31032964bc"
     },
     {
       "id": "boundary.round.hit_zanshin_cap.equal",
       "operation": "combat.round",
-      "path": "combat/000133.json",
+      "path": "combat/000133.bitcode.zst",
       "source_sha256": "306254e0360ea3a9f8ef5d2ac1616043778e19fd02af61403230f4e26af8c2a6",
-      "content_xxh3_128": "088922b4461a8dafe2aa9cec48dc8003"
+      "content_xxh3_128": "5376ca9947d7c99584bbd18fff67607f",
+      "source_path": "combat/000133.json",
+      "source_content_xxh3_128": "088922b4461a8dafe2aa9cec48dc8003"
     },
     {
       "id": "boundary.round.hit_zanshin_cap.above",
       "operation": "combat.round",
-      "path": "combat/000134.json",
+      "path": "combat/000134.bitcode.zst",
       "source_sha256": "0eb0ed9d37c9f80bba1f73c544935d54856810319576bb654e74ea3050eabf50",
-      "content_xxh3_128": "ef1ceec0821b2fcecf14fd154e7f9af7"
+      "content_xxh3_128": "e9f96d7f0bfd6bc0b1e96978795ac078",
+      "source_path": "combat/000134.json",
+      "source_content_xxh3_128": "ef1ceec0821b2fcecf14fd154e7f9af7"
     },
     {
       "id": "boundary.round.hit_zanshin_floor.below",
       "operation": "combat.round",
-      "path": "combat/000135.json",
+      "path": "combat/000135.bitcode.zst",
       "source_sha256": "5bd34c888349f9bf32da39222a6c9a06fbd16d4ac486109a8c309093ecf468a3",
-      "content_xxh3_128": "9a112d17aa18c7b8b4a77142bbd9517d"
+      "content_xxh3_128": "a39e3ed19f2aa86d7bc79ede492f9671",
+      "source_path": "combat/000135.json",
+      "source_content_xxh3_128": "9a112d17aa18c7b8b4a77142bbd9517d"
     },
     {
       "id": "boundary.round.hit_zanshin_floor.equal",
       "operation": "combat.round",
-      "path": "combat/000136.json",
+      "path": "combat/000136.bitcode.zst",
       "source_sha256": "69c98655bdcb4d2b5b6a26d628e87941b44d5f35af8118ee527c04f8d8a22c0f",
-      "content_xxh3_128": "427ed2a90915e990973c6eb8df8b9f43"
+      "content_xxh3_128": "28c3f0911407fdb8244c095ffad609dd",
+      "source_path": "combat/000136.json",
+      "source_content_xxh3_128": "427ed2a90915e990973c6eb8df8b9f43"
     },
     {
       "id": "boundary.round.hit_zanshin_floor.above",
       "operation": "combat.round",
-      "path": "combat/000137.json",
+      "path": "combat/000137.bitcode.zst",
       "source_sha256": "94e6e854948fa85b6443237943d43dbb8f30054668aa9d581f40830db94a8b68",
-      "content_xxh3_128": "888d492587a12473ea1b220548cd18fe"
+      "content_xxh3_128": "01309ea3d4bf2c64a7c77547acea8bc8",
+      "source_path": "combat/000137.json",
+      "source_content_xxh3_128": "888d492587a12473ea1b220548cd18fe"
     },
     {
       "id": "boundary.round.kick_proc.below",
       "operation": "combat.round",
-      "path": "combat/000138.json",
+      "path": "combat/000138.bitcode.zst",
       "source_sha256": "f7ffef758e9767126d930e93b87a92effd8dca3fe2920c10a8bafc9b6ba0d8e5",
-      "content_xxh3_128": "930c9e315c782d88ee392b2c623a8fcc"
+      "content_xxh3_128": "6075bdcfd731bcfbb8c69cdc930fea7d",
+      "source_path": "combat/000138.json",
+      "source_content_xxh3_128": "930c9e315c782d88ee392b2c623a8fcc"
     },
     {
       "id": "boundary.round.kick_proc.equal",
       "operation": "combat.round",
-      "path": "combat/000139.json",
+      "path": "combat/000139.bitcode.zst",
       "source_sha256": "e76175a24001b6ee191b306f57c4365bf5748217493a43a09476e74ae6f9b3dd",
-      "content_xxh3_128": "e75eb68151c76de560744eb7247212d3"
+      "content_xxh3_128": "b5f4666ef07553e2483425e1b41dea0e",
+      "source_path": "combat/000139.json",
+      "source_content_xxh3_128": "e75eb68151c76de560744eb7247212d3"
     },
     {
       "id": "boundary.round.kick_proc.above",
       "operation": "combat.round",
-      "path": "combat/000140.json",
+      "path": "combat/000140.bitcode.zst",
       "source_sha256": "d3ca57b0db304e36f261dbca09c453bb7f2d529599e5575bafe428d723cbe158",
-      "content_xxh3_128": "71fe4757e6ca1bd49fe9e901335107dc"
+      "content_xxh3_128": "b77f18d611e753505d7c1371af472ceb",
+      "source_path": "combat/000140.json",
+      "source_content_xxh3_128": "71fe4757e6ca1bd49fe9e901335107dc"
     },
     {
       "id": "boundary.round.kick_double_damage.below",
       "operation": "combat.round",
-      "path": "combat/000141.json",
+      "path": "combat/000141.bitcode.zst",
       "source_sha256": "165650ac74db33f670974ce7f61b9e954d1005fe0064b1ef8460438a83b4c03f",
-      "content_xxh3_128": "0cdb98aadc0c8363a4319854cab9814c"
+      "content_xxh3_128": "ac8b26d12eea10e88aa4622abc2a6091",
+      "source_path": "combat/000141.json",
+      "source_content_xxh3_128": "0cdb98aadc0c8363a4319854cab9814c"
     },
     {
       "id": "boundary.round.kick_double_damage.equal",
       "operation": "combat.round",
-      "path": "combat/000142.json",
+      "path": "combat/000142.bitcode.zst",
       "source_sha256": "1583b1291293addbe5880530f16a1a459ca251e5df4e7c751e221428b6823447",
-      "content_xxh3_128": "b1cccb04f7e0c00577b10f9ea56e665e"
+      "content_xxh3_128": "1e5437362a394467640cf88e0c53df99",
+      "source_path": "combat/000142.json",
+      "source_content_xxh3_128": "b1cccb04f7e0c00577b10f9ea56e665e"
     },
     {
       "id": "boundary.round.kick_double_damage.above",
       "operation": "combat.round",
-      "path": "combat/000143.json",
+      "path": "combat/000143.bitcode.zst",
       "source_sha256": "fc838f74f7531bb51cad7a4f12ca2587fdeab6d8059477bc3b9a4e89360f998c",
-      "content_xxh3_128": "96a7876d35daee65b9eca637f4a224a9"
+      "content_xxh3_128": "2a79b553be3d16481a3b4d3cb0f94918",
+      "source_path": "combat/000143.json",
+      "source_content_xxh3_128": "96a7876d35daee65b9eca637f4a224a9"
     },
     {
       "id": "boundary.round.daken_proc.below",
       "operation": "combat.round",
-      "path": "combat/000144.json",
+      "path": "combat/000144.bitcode.zst",
       "source_sha256": "ad65518c41c4e91b065121db88ff0495098bd77a4bb1274a9dcd5a01b3fec780",
-      "content_xxh3_128": "c1071040bb1a05665b425e103b8051ff"
+      "content_xxh3_128": "2352717456d9f33745069a45df280be3",
+      "source_path": "combat/000144.json",
+      "source_content_xxh3_128": "c1071040bb1a05665b425e103b8051ff"
     },
     {
       "id": "boundary.round.daken_proc.equal",
       "operation": "combat.round",
-      "path": "combat/000145.json",
+      "path": "combat/000145.bitcode.zst",
       "source_sha256": "cd5181c92ce3409e4f0238c2ab554e6480b9735f037dfcf1e28c52b62d7882cb",
-      "content_xxh3_128": "c6f54589949db4b07d0f176093ceaf36"
+      "content_xxh3_128": "cab70044c1d267682074163dd1198578",
+      "source_path": "combat/000145.json",
+      "source_content_xxh3_128": "c6f54589949db4b07d0f176093ceaf36"
     },
     {
       "id": "boundary.round.daken_proc.above",
       "operation": "combat.round",
-      "path": "combat/000146.json",
+      "path": "combat/000146.bitcode.zst",
       "source_sha256": "977a377439b631721e288162fd1912517cb06b808b874137cae4971bb5901fec",
-      "content_xxh3_128": "fe76e8ad3b5ac39b595956f1dd1308cd"
+      "content_xxh3_128": "8c3ebfb6db86c6de78d4fb4bde874bcd",
+      "source_path": "combat/000146.json",
+      "source_content_xxh3_128": "fe76e8ad3b5ac39b595956f1dd1308cd"
     },
     {
       "id": "boundary.ws.hit_first_main_cap.below",
       "operation": "combat.ws",
-      "path": "combat/000147.json",
+      "path": "combat/000147.bitcode.zst",
       "source_sha256": "574f96198467dab7f30ca56c9f5456f27770fd8edeef26eb03fd60171ee0ab31",
-      "content_xxh3_128": "a5394f7c54e7241c0963fa5ad73299a7"
+      "content_xxh3_128": "1697e0c49fd1302fd32143e17a26361e",
+      "source_path": "combat/000147.json",
+      "source_content_xxh3_128": "a5394f7c54e7241c0963fa5ad73299a7"
     },
     {
       "id": "boundary.ws.hit_first_main_cap.equal",
       "operation": "combat.ws",
-      "path": "combat/000148.json",
+      "path": "combat/000148.bitcode.zst",
       "source_sha256": "0432cde57ceedb2905c9d03001efbbadf5caaa4ec2f7b025eca40094d1477c3a",
-      "content_xxh3_128": "d328b077a4b3d843f2f4ffa38be5edd7"
+      "content_xxh3_128": "83c70f6aab246547b8de2eed719c4e9a",
+      "source_path": "combat/000148.json",
+      "source_content_xxh3_128": "d328b077a4b3d843f2f4ffa38be5edd7"
     },
     {
       "id": "boundary.ws.hit_first_main_cap.above",
       "operation": "combat.ws",
-      "path": "combat/000149.json",
+      "path": "combat/000149.bitcode.zst",
       "source_sha256": "c981551632f2f6e5e66b1786024643b62a035ce539d7f4b843bd26bad93bcb87",
-      "content_xxh3_128": "7d55267e7f77aa54f4a11f7ba8e5ffce"
+      "content_xxh3_128": "c84a8443c9d2da77d28c05d22d8d07c8",
+      "source_path": "combat/000149.json",
+      "source_content_xxh3_128": "7d55267e7f77aa54f4a11f7ba8e5ffce"
     },
     {
       "id": "boundary.ws.hit_first_main_floor.below",
       "operation": "combat.ws",
-      "path": "combat/000150.json",
+      "path": "combat/000150.bitcode.zst",
       "source_sha256": "939c5e9a7c20b8bfae6ebe1fe89414064acbb8f78dc21a24bee2b71065f3fc12",
-      "content_xxh3_128": "059b432d621f1bab9f01b1e458e6b566"
+      "content_xxh3_128": "1d611261f9678cd23996c132c7c77967",
+      "source_path": "combat/000150.json",
+      "source_content_xxh3_128": "059b432d621f1bab9f01b1e458e6b566"
     },
     {
       "id": "boundary.ws.hit_first_main_floor.equal",
       "operation": "combat.ws",
-      "path": "combat/000151.json",
+      "path": "combat/000151.bitcode.zst",
       "source_sha256": "56c482f99784e7804c60dd1f8dab7683f00e335de8c0bc941cb92d437b47e96b",
-      "content_xxh3_128": "76036856351203e50c2de56990897fdf"
+      "content_xxh3_128": "2344533987038549bb2258364313db73",
+      "source_path": "combat/000151.json",
+      "source_content_xxh3_128": "76036856351203e50c2de56990897fdf"
     },
     {
       "id": "boundary.ws.hit_first_main_floor.above",
       "operation": "combat.ws",
-      "path": "combat/000152.json",
+      "path": "combat/000152.bitcode.zst",
       "source_sha256": "3369e311a4fe7928d556aaed0d8580d5aed47476f088d8ce790a9bc68ebf936c",
-      "content_xxh3_128": "7bb9fc02b10fc73e3006246efc9c8843"
+      "content_xxh3_128": "88954435e1d300bde0a8ac8beba5fef0",
+      "source_path": "combat/000152.json",
+      "source_content_xxh3_128": "7bb9fc02b10fc73e3006246efc9c8843"
     },
     {
       "id": "boundary.ws.hit_first_offhand_cap.below",
       "operation": "combat.ws",
-      "path": "combat/000153.json",
+      "path": "combat/000153.bitcode.zst",
       "source_sha256": "1af7e240023b5b69133ae3872b0799f1a976a07520c218fef72005fa4fcf992f",
-      "content_xxh3_128": "d07527b6d1b801e7895c7a36351d90a9"
+      "content_xxh3_128": "e161be2c5c7410fdac9b146b1c05fa85",
+      "source_path": "combat/000153.json",
+      "source_content_xxh3_128": "d07527b6d1b801e7895c7a36351d90a9"
     },
     {
       "id": "boundary.ws.hit_first_offhand_cap.equal",
       "operation": "combat.ws",
-      "path": "combat/000154.json",
+      "path": "combat/000154.bitcode.zst",
       "source_sha256": "5b887e8e79a73d9e3aef0f83c072cd4f7143ecd8bb723f1c386bc6e2dbacda21",
-      "content_xxh3_128": "924c381d8abddcd8b9ffc31a2f338be8"
+      "content_xxh3_128": "0dc7f102ac27fdd4e7be0008c2d80a11",
+      "source_path": "combat/000154.json",
+      "source_content_xxh3_128": "924c381d8abddcd8b9ffc31a2f338be8"
     },
     {
       "id": "boundary.ws.hit_first_offhand_cap.above",
       "operation": "combat.ws",
-      "path": "combat/000155.json",
+      "path": "combat/000155.bitcode.zst",
       "source_sha256": "20cfcf5d96dee3599c9f262dba7c79f66a814eb8affab93f7066028c8d5f2d44",
-      "content_xxh3_128": "77a92362ee0477c6b1251839b0d4fb04"
+      "content_xxh3_128": "6f5bf1449bb90a182b64fd537d0ec3ec",
+      "source_path": "combat/000155.json",
+      "source_content_xxh3_128": "77a92362ee0477c6b1251839b0d4fb04"
     },
     {
       "id": "boundary.ws.hit_first_offhand_floor.below",
       "operation": "combat.ws",
-      "path": "combat/000156.json",
+      "path": "combat/000156.bitcode.zst",
       "source_sha256": "91206a2232d9872d961157cbfeb3b15c62120b8ade8660788acae3497aced2cf",
-      "content_xxh3_128": "df447b1d3c124075ea75d4e841e8d3d8"
+      "content_xxh3_128": "5611014e7fa14a0c14f19e2164da8919",
+      "source_path": "combat/000156.json",
+      "source_content_xxh3_128": "df447b1d3c124075ea75d4e841e8d3d8"
     },
     {
       "id": "boundary.ws.hit_first_offhand_floor.equal",
       "operation": "combat.ws",
-      "path": "combat/000157.json",
+      "path": "combat/000157.bitcode.zst",
       "source_sha256": "53a6c8632d4ff5db4104c493ddff5208f4a7b3875efd79f75466d598e7ed2f6d",
-      "content_xxh3_128": "991c77d4d3fd17e93a166951c159c6c1"
+      "content_xxh3_128": "fdea0d7b3223d7218ffa86b276de9c9d",
+      "source_path": "combat/000157.json",
+      "source_content_xxh3_128": "991c77d4d3fd17e93a166951c159c6c1"
     },
     {
       "id": "boundary.ws.hit_first_offhand_floor.above",
       "operation": "combat.ws",
-      "path": "combat/000158.json",
+      "path": "combat/000158.bitcode.zst",
       "source_sha256": "99a1da520273aa5ac482f44c36f4d91b1c5002f7858e4cbc25ed60be88a3a553",
-      "content_xxh3_128": "7fc6953ca97d4ecebc13983fd76360de"
+      "content_xxh3_128": "ce7a5bf7aecb9bbbdfe9bfcd903c13a3",
+      "source_path": "combat/000158.json",
+      "source_content_xxh3_128": "7fc6953ca97d4ecebc13983fd76360de"
     },
     {
       "id": "boundary.ws.hit_extra_main_cap.below",
       "operation": "combat.ws",
-      "path": "combat/000159.json",
+      "path": "combat/000159.bitcode.zst",
       "source_sha256": "cc1fc19d038010111f843e5b9d751ee8f680f2adaab05f7b9ea05ecbec33f12e",
-      "content_xxh3_128": "58aeb115b8792ca37d20f37f7043621d"
+      "content_xxh3_128": "5b23c71d57258d1d109e9761c5a2c021",
+      "source_path": "combat/000159.json",
+      "source_content_xxh3_128": "58aeb115b8792ca37d20f37f7043621d"
     },
     {
       "id": "boundary.ws.hit_extra_main_cap.equal",
       "operation": "combat.ws",
-      "path": "combat/000160.json",
+      "path": "combat/000160.bitcode.zst",
       "source_sha256": "2b07ee1b40ffac4bff5c18f2115db360901e87220d3c9ee2d46d4c7d07cc3c74",
-      "content_xxh3_128": "c696e7f50cbf3df46c2c5b0d20b34fe9"
+      "content_xxh3_128": "c9d48c9760e698665f59efcdff463126",
+      "source_path": "combat/000160.json",
+      "source_content_xxh3_128": "c696e7f50cbf3df46c2c5b0d20b34fe9"
     },
     {
       "id": "boundary.ws.hit_extra_main_cap.above",
       "operation": "combat.ws",
-      "path": "combat/000161.json",
+      "path": "combat/000161.bitcode.zst",
       "source_sha256": "09dda9212eea32aed8cdb5fa28728b67b93ad0b610b219548dd1b90f1ba1ddfc",
-      "content_xxh3_128": "e57fc96fc497bf2c68aa1c392d7edf99"
+      "content_xxh3_128": "ecf78e469a059c6b4b53e7ff79b77be9",
+      "source_path": "combat/000161.json",
+      "source_content_xxh3_128": "e57fc96fc497bf2c68aa1c392d7edf99"
     },
     {
       "id": "boundary.ws.hit_extra_main_floor.below",
       "operation": "combat.ws",
-      "path": "combat/000162.json",
+      "path": "combat/000162.bitcode.zst",
       "source_sha256": "9bae5e660265d470f00caaaa2ab88f7a9bad005511502fa19c78201df8ee0ebe",
-      "content_xxh3_128": "1570b485e394fc4257672a927f10d349"
+      "content_xxh3_128": "f4cfed01f3ad4f84c1c03e94fdfa7fdc",
+      "source_path": "combat/000162.json",
+      "source_content_xxh3_128": "1570b485e394fc4257672a927f10d349"
     },
     {
       "id": "boundary.ws.hit_extra_main_floor.equal",
       "operation": "combat.ws",
-      "path": "combat/000163.json",
+      "path": "combat/000163.bitcode.zst",
       "source_sha256": "a5f979e34aa5886bc8403d0a958d969a9c9b85e24fdce80b62185c9a427ded1c",
-      "content_xxh3_128": "06d533aa6e0917db9d77c1fbbfa88871"
+      "content_xxh3_128": "6f2037346b8a613d85f72e4ece2e73f5",
+      "source_path": "combat/000163.json",
+      "source_content_xxh3_128": "06d533aa6e0917db9d77c1fbbfa88871"
     },
     {
       "id": "boundary.ws.hit_extra_main_floor.above",
       "operation": "combat.ws",
-      "path": "combat/000164.json",
+      "path": "combat/000164.bitcode.zst",
       "source_sha256": "00ed33971d51df03c4fb5bd29a9212623b1dda1f026ff4669fc6202dfba3f030",
-      "content_xxh3_128": "4e7e98d59999f6f355fc9807dfabd62e"
+      "content_xxh3_128": "8b29dfbc53a2b16752f1ee263da30c27",
+      "source_path": "combat/000164.json",
+      "source_content_xxh3_128": "4e7e98d59999f6f355fc9807dfabd62e"
     },
     {
       "id": "boundary.ws.hit_first_ranged_cap.below",
       "operation": "combat.ws",
-      "path": "combat/000165.json",
+      "path": "combat/000165.bitcode.zst",
       "source_sha256": "9bb8d700848cab09b48af790c3249e85bfcad023bba50120c68b7b8d84a3de10",
-      "content_xxh3_128": "f077d495ca2c322772991d38e787c194"
+      "content_xxh3_128": "8693b467d4677afc125801d5724e8b29",
+      "source_path": "combat/000165.json",
+      "source_content_xxh3_128": "f077d495ca2c322772991d38e787c194"
     },
     {
       "id": "boundary.ws.hit_first_ranged_cap.equal",
       "operation": "combat.ws",
-      "path": "combat/000166.json",
+      "path": "combat/000166.bitcode.zst",
       "source_sha256": "ee747b3383f24bb39239d69f1811cb51cbfd6f0fce2f9701d68a79a24f5b7caf",
-      "content_xxh3_128": "ff14ea7914adfa0b4f7c4b9b36a8e6d7"
+      "content_xxh3_128": "760669ed743367a79d3f637f7475211b",
+      "source_path": "combat/000166.json",
+      "source_content_xxh3_128": "ff14ea7914adfa0b4f7c4b9b36a8e6d7"
     },
     {
       "id": "boundary.ws.hit_first_ranged_cap.above",
       "operation": "combat.ws",
-      "path": "combat/000167.json",
+      "path": "combat/000167.bitcode.zst",
       "source_sha256": "6eecc7492cbb6bd5931a2ceda498213a7e6599c4931710591a04666971bb377a",
-      "content_xxh3_128": "46e0eb9428932a9a076cb39e7b598393"
+      "content_xxh3_128": "f2cd94585fbe5022b2cc6b5fdeb8d92f",
+      "source_path": "combat/000167.json",
+      "source_content_xxh3_128": "46e0eb9428932a9a076cb39e7b598393"
     },
     {
       "id": "boundary.ws.hit_first_ranged_floor.below",
       "operation": "combat.ws",
-      "path": "combat/000168.json",
+      "path": "combat/000168.bitcode.zst",
       "source_sha256": "b6bb707dee46519fdc36b48efc1e9c05b6e8545b57503092095512cec73e92e7",
-      "content_xxh3_128": "3389a1b990198dd790e4d7bc60610f0c"
+      "content_xxh3_128": "1ac1e722f7acc6d45e25b7a3933d5dbd",
+      "source_path": "combat/000168.json",
+      "source_content_xxh3_128": "3389a1b990198dd790e4d7bc60610f0c"
     },
     {
       "id": "boundary.ws.hit_first_ranged_floor.equal",
       "operation": "combat.ws",
-      "path": "combat/000169.json",
+      "path": "combat/000169.bitcode.zst",
       "source_sha256": "1004eb15d3895f4c29462179e5504b80fdc50ccb7ca338c3fb8b10429e333f83",
-      "content_xxh3_128": "b9f1ba7ff58fd50ed488acfe3e59b7b0"
+      "content_xxh3_128": "eef5a649c3796ed5b0cd9be6c59ed37d",
+      "source_path": "combat/000169.json",
+      "source_content_xxh3_128": "b9f1ba7ff58fd50ed488acfe3e59b7b0"
     },
     {
       "id": "boundary.ws.hit_first_ranged_floor.above",
       "operation": "combat.ws",
-      "path": "combat/000170.json",
+      "path": "combat/000170.bitcode.zst",
       "source_sha256": "7b78aadddfda6f43905412f773c9f91f7b09aed052493887e92fbf419f4214b1",
-      "content_xxh3_128": "ad3a598b831c62ff2eb9e980005a3285"
+      "content_xxh3_128": "b42f983dcffbac697b29b9494a943494",
+      "source_path": "combat/000170.json",
+      "source_content_xxh3_128": "ad3a598b831c62ff2eb9e980005a3285"
     },
     {
       "id": "boundary.ws.hit_next_ranged_cap.below",
       "operation": "combat.ws",
-      "path": "combat/000171.json",
+      "path": "combat/000171.bitcode.zst",
       "source_sha256": "0767a33f76193d8a95ce6a68f76a3549e3d4d909aeaf50b249be0c6d128a847b",
-      "content_xxh3_128": "c35ec61f973ffb78b0b25323099fabe4"
+      "content_xxh3_128": "3c078938783a229becb3e10ee5c5933b",
+      "source_path": "combat/000171.json",
+      "source_content_xxh3_128": "c35ec61f973ffb78b0b25323099fabe4"
     },
     {
       "id": "boundary.ws.hit_next_ranged_cap.equal",
       "operation": "combat.ws",
-      "path": "combat/000172.json",
+      "path": "combat/000172.bitcode.zst",
       "source_sha256": "8df38e41e1633ee7ab6f9bb60c2b3f95fe1220c3686f28c8e99c991f26dafb61",
-      "content_xxh3_128": "73b60f1991110cb333d4764366088ab0"
+      "content_xxh3_128": "6ff7a33c020b6ecf65f40956ac00e9f8",
+      "source_path": "combat/000172.json",
+      "source_content_xxh3_128": "73b60f1991110cb333d4764366088ab0"
     },
     {
       "id": "boundary.ws.hit_next_ranged_cap.above",
       "operation": "combat.ws",
-      "path": "combat/000173.json",
+      "path": "combat/000173.bitcode.zst",
       "source_sha256": "985e6eb49471fe58ec4617bf064cf58acfbbe01ab7a19fe5e0b580c46760e01d",
-      "content_xxh3_128": "643bc973afbb62ee32fdc7906300027f"
+      "content_xxh3_128": "e67c36e4ec8ec9867b6b7c3a95d355a1",
+      "source_path": "combat/000173.json",
+      "source_content_xxh3_128": "643bc973afbb62ee32fdc7906300027f"
     },
     {
       "id": "boundary.ws.hit_next_ranged_floor.below",
       "operation": "combat.ws",
-      "path": "combat/000174.json",
+      "path": "combat/000174.bitcode.zst",
       "source_sha256": "3a81d6e61a6c4275f9595789214c1b7b66d7a6d822103209e76643d3da2507a9",
-      "content_xxh3_128": "df6a44e7d37aba174a8e0a1e6b037727"
+      "content_xxh3_128": "1f8c49d4a2816d7de04e675c2e1348cb",
+      "source_path": "combat/000174.json",
+      "source_content_xxh3_128": "df6a44e7d37aba174a8e0a1e6b037727"
     },
     {
       "id": "boundary.ws.hit_next_ranged_floor.equal",
       "operation": "combat.ws",
-      "path": "combat/000175.json",
+      "path": "combat/000175.bitcode.zst",
       "source_sha256": "d7ac2b416d9aef6f2825a966f5db73dd9146dd81c4668342144bb8c7894effea",
-      "content_xxh3_128": "737fd608127e8a6d44311304ef290789"
+      "content_xxh3_128": "49011822ce179eb8c62809ed43f18e42",
+      "source_path": "combat/000175.json",
+      "source_content_xxh3_128": "737fd608127e8a6d44311304ef290789"
     },
     {
       "id": "boundary.ws.hit_next_ranged_floor.above",
       "operation": "combat.ws",
-      "path": "combat/000176.json",
+      "path": "combat/000176.bitcode.zst",
       "source_sha256": "876f863e9893fa84461103442fd065abed741d449259b1b8d52dd9e8861c9260",
-      "content_xxh3_128": "f43053169686e8b8a895c1dad018e146"
+      "content_xxh3_128": "60abce2de6fa2105f722f15d2c087c4a",
+      "source_path": "combat/000176.json",
+      "source_content_xxh3_128": "f43053169686e8b8a895c1dad018e146"
     },
     {
       "id": "boundary.ws.ma_main_qa.below",
       "operation": "combat.ws",
-      "path": "combat/000177.json",
+      "path": "combat/000177.bitcode.zst",
       "source_sha256": "f017419ffe3a4bdb7ee7abf19b7b6dc89cc3a6c91fb929be9954407de271a0c9",
-      "content_xxh3_128": "fefac84e8ed17b9d120e93c602e7ba0c"
+      "content_xxh3_128": "ff5feecf24acaa15b7ca4639d657287e",
+      "source_path": "combat/000177.json",
+      "source_content_xxh3_128": "fefac84e8ed17b9d120e93c602e7ba0c"
     },
     {
       "id": "boundary.ws.ma_main_qa.equal",
       "operation": "combat.ws",
-      "path": "combat/000178.json",
+      "path": "combat/000178.bitcode.zst",
       "source_sha256": "770fa0df051818c6a8c3bdc5dc2f2c378d04640716420a60e6805c01361d8358",
-      "content_xxh3_128": "1db11d7612724aa3e66ca9ff8305dde4"
+      "content_xxh3_128": "3c5f049cd74fda34fcf6633f46fe9b7e",
+      "source_path": "combat/000178.json",
+      "source_content_xxh3_128": "1db11d7612724aa3e66ca9ff8305dde4"
     },
     {
       "id": "boundary.ws.ma_main_qa.above",
       "operation": "combat.ws",
-      "path": "combat/000179.json",
+      "path": "combat/000179.bitcode.zst",
       "source_sha256": "29eeed68020664d9072b4229f09906987de27b4130359ce27563574290c13230",
-      "content_xxh3_128": "580bf6666a3df894e5178f224b5ddd13"
+      "content_xxh3_128": "ab78cfb047ff0df78abac06d3d9eba5e",
+      "source_path": "combat/000179.json",
+      "source_content_xxh3_128": "580bf6666a3df894e5178f224b5ddd13"
     },
     {
       "id": "boundary.ws.ma_main_ta.below",
       "operation": "combat.ws",
-      "path": "combat/000180.json",
+      "path": "combat/000180.bitcode.zst",
       "source_sha256": "42fc53cb2d9c8dc850947802113c190aa63037643ea5643d3c335ff0dbbda8c7",
-      "content_xxh3_128": "ba335bbfb50aee1f4f6d31d7dac7b2fa"
+      "content_xxh3_128": "fb5b58d1b15634d2292f6ce7339b2783",
+      "source_path": "combat/000180.json",
+      "source_content_xxh3_128": "ba335bbfb50aee1f4f6d31d7dac7b2fa"
     },
     {
       "id": "boundary.ws.ma_main_ta.equal",
       "operation": "combat.ws",
-      "path": "combat/000181.json",
+      "path": "combat/000181.bitcode.zst",
       "source_sha256": "48e6918ac5ca95bbf7e1bd19a4981cedf68c72d2e92bd668c61b9080e9e3648d",
-      "content_xxh3_128": "5d892b3fe842be1041ade5c91d12182e"
+      "content_xxh3_128": "48cc27e4ba06a79d77c1c2f7623b0d0b",
+      "source_path": "combat/000181.json",
+      "source_content_xxh3_128": "5d892b3fe842be1041ade5c91d12182e"
     },
     {
       "id": "boundary.ws.ma_main_ta.above",
       "operation": "combat.ws",
-      "path": "combat/000182.json",
+      "path": "combat/000182.bitcode.zst",
       "source_sha256": "a4a3dc703450528542a06b0055a87ce076261edb592214a13d9006584864e189",
-      "content_xxh3_128": "040b5df3d2201d28e3f18050ffd9ccb5"
+      "content_xxh3_128": "0a90b053bb80c3b6d3b8706d5d2bef29",
+      "source_path": "combat/000182.json",
+      "source_content_xxh3_128": "040b5df3d2201d28e3f18050ffd9ccb5"
     },
     {
       "id": "boundary.ws.ma_main_da.below",
       "operation": "combat.ws",
-      "path": "combat/000183.json",
+      "path": "combat/000183.bitcode.zst",
       "source_sha256": "e4d8a3fb05d4bb7aa6f5037e57a12ab24777f685e91e18cd56bc2da6ce5d5579",
-      "content_xxh3_128": "6646526eb21036d87fa54cd9b3ea2028"
+      "content_xxh3_128": "30f0fd13666056ae0e6a3889a20b05dd",
+      "source_path": "combat/000183.json",
+      "source_content_xxh3_128": "6646526eb21036d87fa54cd9b3ea2028"
     },
     {
       "id": "boundary.ws.ma_main_da.equal",
       "operation": "combat.ws",
-      "path": "combat/000184.json",
+      "path": "combat/000184.bitcode.zst",
       "source_sha256": "a74a68d561e6f0b97b11b15d3356935b15158ee7f44bfcc7eccaf9aed513c41f",
-      "content_xxh3_128": "edea4a80554715edfd2bafb6019938d5"
+      "content_xxh3_128": "6ab5cd9a59cc266a16516859107bd739",
+      "source_path": "combat/000184.json",
+      "source_content_xxh3_128": "edea4a80554715edfd2bafb6019938d5"
     },
     {
       "id": "boundary.ws.ma_main_da.above",
       "operation": "combat.ws",
-      "path": "combat/000185.json",
+      "path": "combat/000185.bitcode.zst",
       "source_sha256": "28076c8c90c4d7efcb3e6b036bd1e3272a2f192683baa191d8d947e1c883da27",
-      "content_xxh3_128": "0ae997fd18eaf84db257f7e539a3a518"
+      "content_xxh3_128": "04c8e51badba4f1e9a1803d740b20495",
+      "source_path": "combat/000185.json",
+      "source_content_xxh3_128": "0ae997fd18eaf84db257f7e539a3a518"
     },
     {
       "id": "boundary.ws.ma_main_oa8.below",
       "operation": "combat.ws",
-      "path": "combat/000186.json",
+      "path": "combat/000186.bitcode.zst",
       "source_sha256": "fc53b13418558fe3bd489fe0a62de7cb46df0d421e86c5cb1bf38214cb659943",
-      "content_xxh3_128": "fd0e58800048177d200c2e31403d4d7a"
+      "content_xxh3_128": "ff8e577bcfe6513d0a48aa748918fb68",
+      "source_path": "combat/000186.json",
+      "source_content_xxh3_128": "fd0e58800048177d200c2e31403d4d7a"
     },
     {
       "id": "boundary.ws.ma_main_oa8.equal",
       "operation": "combat.ws",
-      "path": "combat/000187.json",
+      "path": "combat/000187.bitcode.zst",
       "source_sha256": "5e1c8552c97256e3098b3bc1b3950e17d1c8c74bedf6423296ac4a419acddb43",
-      "content_xxh3_128": "6704744f12226a2820973750b7e2a00f"
+      "content_xxh3_128": "a3353d6591165308798f4ef0c19bdf61",
+      "source_path": "combat/000187.json",
+      "source_content_xxh3_128": "6704744f12226a2820973750b7e2a00f"
     },
     {
       "id": "boundary.ws.ma_main_oa8.above",
       "operation": "combat.ws",
-      "path": "combat/000188.json",
+      "path": "combat/000188.bitcode.zst",
       "source_sha256": "4391f38eb154817f233264391a4d3cc97de5aaa9329f9b333c8fb56ca3e383ba",
-      "content_xxh3_128": "b6ea531de7aa3f537082fec073d38e6d"
+      "content_xxh3_128": "b2c00229b12c5e879f0c602efc5907f8",
+      "source_path": "combat/000188.json",
+      "source_content_xxh3_128": "b6ea531de7aa3f537082fec073d38e6d"
     },
     {
       "id": "boundary.ws.ma_main_oa7.below",
       "operation": "combat.ws",
-      "path": "combat/000189.json",
+      "path": "combat/000189.bitcode.zst",
       "source_sha256": "04f8865a47574da80ab6ae732b7cf45400aa7ac34959d768e0359699f70e8d97",
-      "content_xxh3_128": "4fb9d92f5be1e3e9c4a4b4e484c717a4"
+      "content_xxh3_128": "5dc6897a1910df13aac8d28d71e5628a",
+      "source_path": "combat/000189.json",
+      "source_content_xxh3_128": "4fb9d92f5be1e3e9c4a4b4e484c717a4"
     },
     {
       "id": "boundary.ws.ma_main_oa7.equal",
       "operation": "combat.ws",
-      "path": "combat/000190.json",
+      "path": "combat/000190.bitcode.zst",
       "source_sha256": "6c48b0727d12ed4d8d1b990feda990010f8036542027983f2875f81cd899fe34",
-      "content_xxh3_128": "ba528989972b95e23bb049ed1a976e4e"
+      "content_xxh3_128": "dfa373d79ee9a9618ad42b4e244de905",
+      "source_path": "combat/000190.json",
+      "source_content_xxh3_128": "ba528989972b95e23bb049ed1a976e4e"
     },
     {
       "id": "boundary.ws.ma_main_oa7.above",
       "operation": "combat.ws",
-      "path": "combat/000191.json",
+      "path": "combat/000191.bitcode.zst",
       "source_sha256": "87db56351e115a7c44e478830818d03d856600c6869063fb16bde89d012695d1",
-      "content_xxh3_128": "614a5ee69d883a40f26bc7f17e49f815"
+      "content_xxh3_128": "38fe4dd044ebe6ffa72a0053c63e780a",
+      "source_path": "combat/000191.json",
+      "source_content_xxh3_128": "614a5ee69d883a40f26bc7f17e49f815"
     },
     {
       "id": "boundary.ws.ma_main_oa6.below",
       "operation": "combat.ws",
-      "path": "combat/000192.json",
+      "path": "combat/000192.bitcode.zst",
       "source_sha256": "5aac6449e10f1df8e724326161a236c63359bcea5274128d42fa375d5600f28b",
-      "content_xxh3_128": "4448c8cc308876155787c01354d1acb5"
+      "content_xxh3_128": "9f67d0816550c7355055903bb2853d70",
+      "source_path": "combat/000192.json",
+      "source_content_xxh3_128": "4448c8cc308876155787c01354d1acb5"
     },
     {
       "id": "boundary.ws.ma_main_oa6.equal",
       "operation": "combat.ws",
-      "path": "combat/000193.json",
+      "path": "combat/000193.bitcode.zst",
       "source_sha256": "ee6c03fc5e5f71151eadf42a74a3943fedeef19602a2bfa73141909236757e40",
-      "content_xxh3_128": "5802b04d41861df4ace6e00643946633"
+      "content_xxh3_128": "c144552abcbefb3908e48245fe82f6a9",
+      "source_path": "combat/000193.json",
+      "source_content_xxh3_128": "5802b04d41861df4ace6e00643946633"
     },
     {
       "id": "boundary.ws.ma_main_oa6.above",
       "operation": "combat.ws",
-      "path": "combat/000194.json",
+      "path": "combat/000194.bitcode.zst",
       "source_sha256": "12026c276b88697037100f54fc8eff2b61b934753cbad8e901b3e65a28ddd45e",
-      "content_xxh3_128": "3ed01caae93f262a62a43ad7b6406b32"
+      "content_xxh3_128": "7250f765adbdfe98b0c67957d7316004",
+      "source_path": "combat/000194.json",
+      "source_content_xxh3_128": "3ed01caae93f262a62a43ad7b6406b32"
     },
     {
       "id": "boundary.ws.ma_main_oa5.below",
       "operation": "combat.ws",
-      "path": "combat/000195.json",
+      "path": "combat/000195.bitcode.zst",
       "source_sha256": "3f58cc5ef349a7cd78cfa27fc629771798880de063887d05238e9acae6154e18",
-      "content_xxh3_128": "26d088acd2906b396f1686c078ac64f2"
+      "content_xxh3_128": "a221881bbd680896ea0fceecb3a72164",
+      "source_path": "combat/000195.json",
+      "source_content_xxh3_128": "26d088acd2906b396f1686c078ac64f2"
     },
     {
       "id": "boundary.ws.ma_main_oa5.equal",
       "operation": "combat.ws",
-      "path": "combat/000196.json",
+      "path": "combat/000196.bitcode.zst",
       "source_sha256": "947114380ef79aec4c83cec6550ea7b25df6d4fcaf5c968f0f78a049f40e4208",
-      "content_xxh3_128": "5bba7b11f10bf719d10c4db6ad24a175"
+      "content_xxh3_128": "d2399e7dea9931b9fadc9ffc71878fb4",
+      "source_path": "combat/000196.json",
+      "source_content_xxh3_128": "5bba7b11f10bf719d10c4db6ad24a175"
     },
     {
       "id": "boundary.ws.ma_main_oa5.above",
       "operation": "combat.ws",
-      "path": "combat/000197.json",
+      "path": "combat/000197.bitcode.zst",
       "source_sha256": "3e08917d80ca661866d3c3c6eea20406b98c609bcee527a580838092f78ddc46",
-      "content_xxh3_128": "fa77a171f9ca9726c34793668f1933cb"
+      "content_xxh3_128": "660e73b28784ae1a960b119e9518f857",
+      "source_path": "combat/000197.json",
+      "source_content_xxh3_128": "fa77a171f9ca9726c34793668f1933cb"
     },
     {
       "id": "boundary.ws.ma_main_oa4.below",
       "operation": "combat.ws",
-      "path": "combat/000198.json",
+      "path": "combat/000198.bitcode.zst",
       "source_sha256": "b1f8ba28a6bf3bd526c265a980b7c320531df4eebe3a9b8baa5017b23bddc63f",
-      "content_xxh3_128": "4ae1813271e845a1674eb4d78730ee4e"
+      "content_xxh3_128": "724a73d59bbbb1eda0ac9102097d241e",
+      "source_path": "combat/000198.json",
+      "source_content_xxh3_128": "4ae1813271e845a1674eb4d78730ee4e"
     },
     {
       "id": "boundary.ws.ma_main_oa4.equal",
       "operation": "combat.ws",
-      "path": "combat/000199.json",
+      "path": "combat/000199.bitcode.zst",
       "source_sha256": "26d56abf853f2cbed5325ac2fd4f940c60537f328990415f0808b7dcea0d81b2",
-      "content_xxh3_128": "d27179509bc73e1e1569bcd5f27e4951"
+      "content_xxh3_128": "ad158964de88504b5aa52e4fbdd238b1",
+      "source_path": "combat/000199.json",
+      "source_content_xxh3_128": "d27179509bc73e1e1569bcd5f27e4951"
     },
     {
       "id": "boundary.ws.ma_main_oa4.above",
       "operation": "combat.ws",
-      "path": "combat/000200.json",
+      "path": "combat/000200.bitcode.zst",
       "source_sha256": "4dda09877e4fec1cbe77a7a3232e1f08b94575089b98df2ca2140d67bf1b8c51",
-      "content_xxh3_128": "b134e7b834cbe490bfafc9f1af0384c3"
+      "content_xxh3_128": "639482611e63402e41e1579981d6664a",
+      "source_path": "combat/000200.json",
+      "source_content_xxh3_128": "b134e7b834cbe490bfafc9f1af0384c3"
     },
     {
       "id": "boundary.ws.ma_main_oa3.below",
       "operation": "combat.ws",
-      "path": "combat/000201.json",
+      "path": "combat/000201.bitcode.zst",
       "source_sha256": "42e4c68c1f0d591b0b48b2ef6b4bfcea90c0a2671ce268a89af40143c233b10a",
-      "content_xxh3_128": "06d5b5f8e59e9989c62d5ad4b984e852"
+      "content_xxh3_128": "989ae9258529d5e63176211245435a87",
+      "source_path": "combat/000201.json",
+      "source_content_xxh3_128": "06d5b5f8e59e9989c62d5ad4b984e852"
     },
     {
       "id": "boundary.ws.ma_main_oa3.equal",
       "operation": "combat.ws",
-      "path": "combat/000202.json",
+      "path": "combat/000202.bitcode.zst",
       "source_sha256": "8f5372b995f94c3d8ff25e8993242e415f28cfb767985f4a600778793adcafad",
-      "content_xxh3_128": "606c7719e446c173541cf52db27d75b2"
+      "content_xxh3_128": "96c9c650ea39f063ccaafaa50f0b6893",
+      "source_path": "combat/000202.json",
+      "source_content_xxh3_128": "606c7719e446c173541cf52db27d75b2"
     },
     {
       "id": "boundary.ws.ma_main_oa3.above",
       "operation": "combat.ws",
-      "path": "combat/000203.json",
+      "path": "combat/000203.bitcode.zst",
       "source_sha256": "7bfaed22395aed78b82faeea323d5a962a81ba660f60f9e3947702e8ca957098",
-      "content_xxh3_128": "ed29a55b009a9d0735dbe0c7e02b9ff2"
+      "content_xxh3_128": "4a568ff1902abf8e9c0f3386704a4000",
+      "source_path": "combat/000203.json",
+      "source_content_xxh3_128": "ed29a55b009a9d0735dbe0c7e02b9ff2"
     },
     {
       "id": "boundary.ws.ma_main_oa2.below",
       "operation": "combat.ws",
-      "path": "combat/000204.json",
+      "path": "combat/000204.bitcode.zst",
       "source_sha256": "f98d9f07c9705d3bb7d763544b0ef57603b3f116c650461ad4e254b3010e8db6",
-      "content_xxh3_128": "59e20f92e59ca8190cc308855d84e3be"
+      "content_xxh3_128": "4fafc9f4ac7778de0527fa3060906889",
+      "source_path": "combat/000204.json",
+      "source_content_xxh3_128": "59e20f92e59ca8190cc308855d84e3be"
     },
     {
       "id": "boundary.ws.ma_main_oa2.equal",
       "operation": "combat.ws",
-      "path": "combat/000205.json",
+      "path": "combat/000205.bitcode.zst",
       "source_sha256": "a5b31f075a34350d045e7b724a1da6745bc2ea674be0fc3dad466772fb62e9d3",
-      "content_xxh3_128": "779998fd15eb7953156a2549e9b5729f"
+      "content_xxh3_128": "ab7d4c5069ff4ab3fa0cac45f0008ed5",
+      "source_path": "combat/000205.json",
+      "source_content_xxh3_128": "779998fd15eb7953156a2549e9b5729f"
     },
     {
       "id": "boundary.ws.ma_main_oa2.above",
       "operation": "combat.ws",
-      "path": "combat/000206.json",
+      "path": "combat/000206.bitcode.zst",
       "source_sha256": "f987ad544fb7f6770bb89becc84a831861c306dd4e6445b050453bdb860dad3f",
-      "content_xxh3_128": "060c4ca67a255b8bceec1e173af6ff76"
+      "content_xxh3_128": "62d3d69044f2951bd4259ff6387c97fa",
+      "source_path": "combat/000206.json",
+      "source_content_xxh3_128": "060c4ca67a255b8bceec1e173af6ff76"
     },
     {
       "id": "boundary.ws.ma_sub_qa.below",
       "operation": "combat.ws",
-      "path": "combat/000207.json",
+      "path": "combat/000207.bitcode.zst",
       "source_sha256": "0dbc043ec87787e7a213b971d93c32f463a38d77330bd9d5d5cd149eb8366e3e",
-      "content_xxh3_128": "2e5a240a290448eb70afc55b212858da"
+      "content_xxh3_128": "57ada5eb01c2c0687670f3212fc68ab2",
+      "source_path": "combat/000207.json",
+      "source_content_xxh3_128": "2e5a240a290448eb70afc55b212858da"
     },
     {
       "id": "boundary.ws.ma_sub_qa.equal",
       "operation": "combat.ws",
-      "path": "combat/000208.json",
+      "path": "combat/000208.bitcode.zst",
       "source_sha256": "7bdc6e9461b8566f5056211d3e8e9665bf9397d92d4343694002bb80b44c866f",
-      "content_xxh3_128": "3f6baade6b453e7b710b8854c6142ce3"
+      "content_xxh3_128": "f9f2abd471c0bb85a0bb4198131c23d7",
+      "source_path": "combat/000208.json",
+      "source_content_xxh3_128": "3f6baade6b453e7b710b8854c6142ce3"
     },
     {
       "id": "boundary.ws.ma_sub_qa.above",
       "operation": "combat.ws",
-      "path": "combat/000209.json",
+      "path": "combat/000209.bitcode.zst",
       "source_sha256": "47833e43c79c8574e0da2b00299a289b9ff327c79b016e856f64b1ced3636731",
-      "content_xxh3_128": "cca02f59ce9c17ee06110d1322c944d1"
+      "content_xxh3_128": "30be21b29d7e1c052029031a3c3563ca",
+      "source_path": "combat/000209.json",
+      "source_content_xxh3_128": "cca02f59ce9c17ee06110d1322c944d1"
     },
     {
       "id": "boundary.ws.ma_sub_ta.below",
       "operation": "combat.ws",
-      "path": "combat/000210.json",
+      "path": "combat/000210.bitcode.zst",
       "source_sha256": "bff7b3079d266a19b7e873e7f454feeff67201310ff67598ac54903484c638c4",
-      "content_xxh3_128": "2a812397a99f99ad995c08048f5c38ed"
+      "content_xxh3_128": "b564e102b50a97c44f516392604983d8",
+      "source_path": "combat/000210.json",
+      "source_content_xxh3_128": "2a812397a99f99ad995c08048f5c38ed"
     },
     {
       "id": "boundary.ws.ma_sub_ta.equal",
       "operation": "combat.ws",
-      "path": "combat/000211.json",
+      "path": "combat/000211.bitcode.zst",
       "source_sha256": "72f37d15d46d76aa9297df97c45635c08c072f41a53b5e33d8bc1dc011d7b327",
-      "content_xxh3_128": "9342d7272b93ff3c4a686fe598471da5"
+      "content_xxh3_128": "fab0047d7ffa3e3abae0f094eb5edb44",
+      "source_path": "combat/000211.json",
+      "source_content_xxh3_128": "9342d7272b93ff3c4a686fe598471da5"
     },
     {
       "id": "boundary.ws.ma_sub_ta.above",
       "operation": "combat.ws",
-      "path": "combat/000212.json",
+      "path": "combat/000212.bitcode.zst",
       "source_sha256": "e7d0ce53461c542b7c2457238a691b98d93d7c5f1457a6e93006a4a06efbc37c",
-      "content_xxh3_128": "2e1cafd70c2b78c1228b735871a88d0b"
+      "content_xxh3_128": "b50459d9bafe460c8f42e54bb1b37a70",
+      "source_path": "combat/000212.json",
+      "source_content_xxh3_128": "2e1cafd70c2b78c1228b735871a88d0b"
     },
     {
       "id": "boundary.ws.ma_sub_da.below",
       "operation": "combat.ws",
-      "path": "combat/000213.json",
+      "path": "combat/000213.bitcode.zst",
       "source_sha256": "48c5d4d9a87d8e4f70b347fb609da4378434f07e41c5d92ef819a6c4248e26d4",
-      "content_xxh3_128": "7dc1109926d919b3c1495967bd1a7b14"
+      "content_xxh3_128": "a6d9dd776b480e5074881637a914f457",
+      "source_path": "combat/000213.json",
+      "source_content_xxh3_128": "7dc1109926d919b3c1495967bd1a7b14"
     },
     {
       "id": "boundary.ws.ma_sub_da.equal",
       "operation": "combat.ws",
-      "path": "combat/000214.json",
+      "path": "combat/000214.bitcode.zst",
       "source_sha256": "5ce7b2b0afa61a05861a530f445c435a903979f5bce48c920a569d5a5b640310",
-      "content_xxh3_128": "ebd50b6ba86941a4ecbac64a0ea5592d"
+      "content_xxh3_128": "e217bfdaca1256f46bd46841c590cb9f",
+      "source_path": "combat/000214.json",
+      "source_content_xxh3_128": "ebd50b6ba86941a4ecbac64a0ea5592d"
     },
     {
       "id": "boundary.ws.ma_sub_da.above",
       "operation": "combat.ws",
-      "path": "combat/000215.json",
+      "path": "combat/000215.bitcode.zst",
       "source_sha256": "c24ea5dd757a26e12bb10b066d519261c49e380d453283494c5110a882ffee4a",
-      "content_xxh3_128": "2c770326a37662b1171d41a43478be39"
+      "content_xxh3_128": "5a66db17ee3fa9ce839e736d37551c16",
+      "source_path": "combat/000215.json",
+      "source_content_xxh3_128": "2c770326a37662b1171d41a43478be39"
     },
     {
       "id": "boundary.ws.ma_sub_oa8.below",
       "operation": "combat.ws",
-      "path": "combat/000216.json",
+      "path": "combat/000216.bitcode.zst",
       "source_sha256": "1ab87954eb1d0beeacc9a2a6d75f24c5414ea4f5a7fcb6bc5d266acbbde41e0b",
-      "content_xxh3_128": "4e9ce2447dc0938c71aaa398a918c673"
+      "content_xxh3_128": "9f6a8363ec871b58ca26beb0c5977598",
+      "source_path": "combat/000216.json",
+      "source_content_xxh3_128": "4e9ce2447dc0938c71aaa398a918c673"
     },
     {
       "id": "boundary.ws.ma_sub_oa8.equal",
       "operation": "combat.ws",
-      "path": "combat/000217.json",
+      "path": "combat/000217.bitcode.zst",
       "source_sha256": "2b4f58a8ff5c6456e6258bca8deee02bd3627052f8eefd63e628063c31efa2bc",
-      "content_xxh3_128": "e0b25dca49d33094cb2eba0950854a93"
+      "content_xxh3_128": "09eaba73b38f80405f0efa58c8e6b001",
+      "source_path": "combat/000217.json",
+      "source_content_xxh3_128": "e0b25dca49d33094cb2eba0950854a93"
     },
     {
       "id": "boundary.ws.ma_sub_oa8.above",
       "operation": "combat.ws",
-      "path": "combat/000218.json",
+      "path": "combat/000218.bitcode.zst",
       "source_sha256": "0d25ad500f8f6311c88358232b60ac796914e91189908988f878f64903d8c7c7",
-      "content_xxh3_128": "74308242ec355e49c5ba667223018c33"
+      "content_xxh3_128": "537e8e3fac2f1901b22c450a67a4d801",
+      "source_path": "combat/000218.json",
+      "source_content_xxh3_128": "74308242ec355e49c5ba667223018c33"
     },
     {
       "id": "boundary.ws.ma_sub_oa7.below",
       "operation": "combat.ws",
-      "path": "combat/000219.json",
+      "path": "combat/000219.bitcode.zst",
       "source_sha256": "837a5375dbae9ed362a0b41a2153d782cadf070426b8818a2c70e2b3b82bb589",
-      "content_xxh3_128": "39ee05b10561d0750d339935cd13e9bc"
+      "content_xxh3_128": "39773eb1db6c3b09ab4ef63822a119bd",
+      "source_path": "combat/000219.json",
+      "source_content_xxh3_128": "39ee05b10561d0750d339935cd13e9bc"
     },
     {
       "id": "boundary.ws.ma_sub_oa7.equal",
       "operation": "combat.ws",
-      "path": "combat/000220.json",
+      "path": "combat/000220.bitcode.zst",
       "source_sha256": "b836f1dab5ddc0e2ac1b82b670ef0291fed0d2371a1c1c2f17db8ff49ffaee35",
-      "content_xxh3_128": "86701f6c23a8058e4f32cd1b8e63a82a"
+      "content_xxh3_128": "452c1d43dcf663ffd24ec2cf076ee696",
+      "source_path": "combat/000220.json",
+      "source_content_xxh3_128": "86701f6c23a8058e4f32cd1b8e63a82a"
     },
     {
       "id": "boundary.ws.ma_sub_oa7.above",
       "operation": "combat.ws",
-      "path": "combat/000221.json",
+      "path": "combat/000221.bitcode.zst",
       "source_sha256": "a439b4daa2da3ed82bd8338afcf81ed22aed4592530e6a5c4b94da76e4f6ef78",
-      "content_xxh3_128": "2dca3b0bb4161426a8ee50be1e031603"
+      "content_xxh3_128": "c9e1ff80a2171a51e4a0fd2c0b7dec71",
+      "source_path": "combat/000221.json",
+      "source_content_xxh3_128": "2dca3b0bb4161426a8ee50be1e031603"
     },
     {
       "id": "boundary.ws.ma_sub_oa6.below",
       "operation": "combat.ws",
-      "path": "combat/000222.json",
+      "path": "combat/000222.bitcode.zst",
       "source_sha256": "2ed9c2cb7e6348074f5a75e988c513e1a9e214c18712254bf16b3f2c18f198b9",
-      "content_xxh3_128": "8d3ae7df34a248038cd5b6d94c9fe695"
+      "content_xxh3_128": "01c84346ef7f7a3bfff77b0ca1ab9239",
+      "source_path": "combat/000222.json",
+      "source_content_xxh3_128": "8d3ae7df34a248038cd5b6d94c9fe695"
     },
     {
       "id": "boundary.ws.ma_sub_oa6.equal",
       "operation": "combat.ws",
-      "path": "combat/000223.json",
+      "path": "combat/000223.bitcode.zst",
       "source_sha256": "83490456298b5526dbb32d152620d8c959a1e63af83c66e82a55ed7350fcd02a",
-      "content_xxh3_128": "397f4247c8ce9ecd01e29e935b339282"
+      "content_xxh3_128": "37f77736f1bcd1628164915a92e219c8",
+      "source_path": "combat/000223.json",
+      "source_content_xxh3_128": "397f4247c8ce9ecd01e29e935b339282"
     },
     {
       "id": "boundary.ws.ma_sub_oa6.above",
       "operation": "combat.ws",
-      "path": "combat/000224.json",
+      "path": "combat/000224.bitcode.zst",
       "source_sha256": "d74118efcd585b1b1b1199a9d0747bbf63192814b0dc21dabd600e7797dad4cf",
-      "content_xxh3_128": "cf19a7f19f99d9857dbe747dd24c8a23"
+      "content_xxh3_128": "3c16d18a1ecf72227a0b833456c780bd",
+      "source_path": "combat/000224.json",
+      "source_content_xxh3_128": "cf19a7f19f99d9857dbe747dd24c8a23"
     },
     {
       "id": "boundary.ws.ma_sub_oa5.below",
       "operation": "combat.ws",
-      "path": "combat/000225.json",
+      "path": "combat/000225.bitcode.zst",
       "source_sha256": "17b65ea57bb2a8590aedc755fb8bc800881d3f3702de616c822e826b65e8c152",
-      "content_xxh3_128": "fe09b0169fde2f0eb55550d7662d3d76"
+      "content_xxh3_128": "01f711bae22d5740664a2b6a67f44507",
+      "source_path": "combat/000225.json",
+      "source_content_xxh3_128": "fe09b0169fde2f0eb55550d7662d3d76"
     },
     {
       "id": "boundary.ws.ma_sub_oa5.equal",
       "operation": "combat.ws",
-      "path": "combat/000226.json",
+      "path": "combat/000226.bitcode.zst",
       "source_sha256": "70d6f25ed5c1e392e1f02e4543fa9fb58dfabb97e7e7eaa8f8c9c29faf2afc6e",
-      "content_xxh3_128": "7400a851a8cd5005c50c4f4504427967"
+      "content_xxh3_128": "1373ff42407739a67decb66cb33c4fa3",
+      "source_path": "combat/000226.json",
+      "source_content_xxh3_128": "7400a851a8cd5005c50c4f4504427967"
     },
     {
       "id": "boundary.ws.ma_sub_oa5.above",
       "operation": "combat.ws",
-      "path": "combat/000227.json",
+      "path": "combat/000227.bitcode.zst",
       "source_sha256": "254f82ff38948c21cfcdf1ab7837f88f62d74193a83c07404393a08827ac12fd",
-      "content_xxh3_128": "38f50e7033e8ec2b2e0fa312d1088a6d"
+      "content_xxh3_128": "949971d5bf925caacec2774b7f103956",
+      "source_path": "combat/000227.json",
+      "source_content_xxh3_128": "38f50e7033e8ec2b2e0fa312d1088a6d"
     },
     {
       "id": "boundary.ws.ma_sub_oa4.below",
       "operation": "combat.ws",
-      "path": "combat/000228.json",
+      "path": "combat/000228.bitcode.zst",
       "source_sha256": "5d19da618fd042e321cac3729a6ceeb81a115c6aa2192896e99f680591b68a3d",
-      "content_xxh3_128": "eab13f02d680e8c39fc5cdcaa1256e18"
+      "content_xxh3_128": "a99a28564c47e15b1e6dd4aefd60428c",
+      "source_path": "combat/000228.json",
+      "source_content_xxh3_128": "eab13f02d680e8c39fc5cdcaa1256e18"
     },
     {
       "id": "boundary.ws.ma_sub_oa4.equal",
       "operation": "combat.ws",
-      "path": "combat/000229.json",
+      "path": "combat/000229.bitcode.zst",
       "source_sha256": "0cd0a228cf5a42afada1f425dee422cb0e00bde27d4a40eb51330bc5026133e2",
-      "content_xxh3_128": "87001da1146954836ae8ddc08ce99a91"
+      "content_xxh3_128": "6cbab503ddd1caafcb73a17b5da89ffe",
+      "source_path": "combat/000229.json",
+      "source_content_xxh3_128": "87001da1146954836ae8ddc08ce99a91"
     },
     {
       "id": "boundary.ws.ma_sub_oa4.above",
       "operation": "combat.ws",
-      "path": "combat/000230.json",
+      "path": "combat/000230.bitcode.zst",
       "source_sha256": "8f70ab626c2c480f72766073a1125b262b65c420c632a731f688293c1a68d65e",
-      "content_xxh3_128": "f8e937ffee41851006a85117a84dbb23"
+      "content_xxh3_128": "0a083efb4e0de2fc53f6a014373dda20",
+      "source_path": "combat/000230.json",
+      "source_content_xxh3_128": "f8e937ffee41851006a85117a84dbb23"
     },
     {
       "id": "boundary.ws.ma_sub_oa3.below",
       "operation": "combat.ws",
-      "path": "combat/000231.json",
+      "path": "combat/000231.bitcode.zst",
       "source_sha256": "800535f7450f52dd92fbd30587c914dfd7b957b6dec29fbe448b4773f7eeee25",
-      "content_xxh3_128": "747f68cd72519f65cf76dcebb3bb04d8"
+      "content_xxh3_128": "358711d4f35953efae64c78a2242c5aa",
+      "source_path": "combat/000231.json",
+      "source_content_xxh3_128": "747f68cd72519f65cf76dcebb3bb04d8"
     },
     {
       "id": "boundary.ws.ma_sub_oa3.equal",
       "operation": "combat.ws",
-      "path": "combat/000232.json",
+      "path": "combat/000232.bitcode.zst",
       "source_sha256": "1cf74a9da3103c95d52c877eb18b3dd4b5628ee2fec0ef5bb296c3b4312685d7",
-      "content_xxh3_128": "d98269cf35add0dd674050a433b0bf19"
+      "content_xxh3_128": "1b406960f4db69aa002936a0ead419e4",
+      "source_path": "combat/000232.json",
+      "source_content_xxh3_128": "d98269cf35add0dd674050a433b0bf19"
     },
     {
       "id": "boundary.ws.ma_sub_oa3.above",
       "operation": "combat.ws",
-      "path": "combat/000233.json",
+      "path": "combat/000233.bitcode.zst",
       "source_sha256": "952874cad0b9f40990c6d01917b77e65e28e33c34f3138319cf91f5658b2a33c",
-      "content_xxh3_128": "f702b0b031d76460c652c820306a9c25"
+      "content_xxh3_128": "fceea6f7fc66cb279fa47199f71536af",
+      "source_path": "combat/000233.json",
+      "source_content_xxh3_128": "f702b0b031d76460c652c820306a9c25"
     },
     {
       "id": "boundary.ws.ma_sub_oa2.below",
       "operation": "combat.ws",
-      "path": "combat/000234.json",
+      "path": "combat/000234.bitcode.zst",
       "source_sha256": "90c832ed504e24b5ec620afa89ddaf238d244c9b8cf9d0dc9fd9f257a61c9265",
-      "content_xxh3_128": "916077becd4924ec24521892e8b7d0bf"
+      "content_xxh3_128": "c8ff94dd960e5b09872620e8e08ff868",
+      "source_path": "combat/000234.json",
+      "source_content_xxh3_128": "916077becd4924ec24521892e8b7d0bf"
     },
     {
       "id": "boundary.ws.ma_sub_oa2.equal",
       "operation": "combat.ws",
-      "path": "combat/000235.json",
+      "path": "combat/000235.bitcode.zst",
       "source_sha256": "0e7c5c5694d71016da0646634d3228c152978634b36a3a3aa5cbf63fc30a977c",
-      "content_xxh3_128": "8d319360b7d2797e606903b42e1ab08c"
+      "content_xxh3_128": "e42fba6f9670912541b48e8a0a76ef6d",
+      "source_path": "combat/000235.json",
+      "source_content_xxh3_128": "8d319360b7d2797e606903b42e1ab08c"
     },
     {
       "id": "boundary.ws.ma_sub_oa2.above",
       "operation": "combat.ws",
-      "path": "combat/000236.json",
+      "path": "combat/000236.bitcode.zst",
       "source_sha256": "68a058ccf825d3193ed1f5352cd38e648df02d367020812e4d5e669cfdbb3cbe",
-      "content_xxh3_128": "4a1b909e2a5f2a33108ba7ec0f457f23"
+      "content_xxh3_128": "cbc288e9ec1630948a1cb519b396eeb9",
+      "source_path": "combat/000236.json",
+      "source_content_xxh3_128": "4a1b909e2a5f2a33108ba7ec0f457f23"
     },
     {
       "id": "boundary.ws.conserve_proc.below",
       "operation": "combat.ws",
-      "path": "combat/000237.json",
+      "path": "combat/000237.bitcode.zst",
       "source_sha256": "380420be107eb6ccdcb9d10e4c60eeca3895a1b93328e262f6dda0ae323595c3",
-      "content_xxh3_128": "17d198a341bf649e8188071b981ca77b"
+      "content_xxh3_128": "4b97ff7ee90c6177ffa4f20e9d7db173",
+      "source_path": "combat/000237.json",
+      "source_content_xxh3_128": "17d198a341bf649e8188071b981ca77b"
     },
     {
       "id": "boundary.ws.conserve_proc.equal",
       "operation": "combat.ws",
-      "path": "combat/000238.json",
+      "path": "combat/000238.bitcode.zst",
       "source_sha256": "863b668b39e281dc8cad700de8f20bed7d5196e4830708d1d984f2e45cabd8ce",
-      "content_xxh3_128": "b69d438746431b9084420ddd5e4175d3"
+      "content_xxh3_128": "6f1cc942237dbdd1a28aa8372063e1f5",
+      "source_path": "combat/000238.json",
+      "source_content_xxh3_128": "b69d438746431b9084420ddd5e4175d3"
     },
     {
       "id": "boundary.ws.conserve_proc.above",
       "operation": "combat.ws",
-      "path": "combat/000239.json",
+      "path": "combat/000239.bitcode.zst",
       "source_sha256": "e4f677e6b19722ba434dbf203c7ffd235a602b1fb685ae7920530e5c3d0f6c35",
-      "content_xxh3_128": "4c10434c5e60d354c756aeebc11370ba"
+      "content_xxh3_128": "b84e6932f804d0ccabc87c6956d1045b",
+      "source_path": "combat/000239.json",
+      "source_content_xxh3_128": "4c10434c5e60d354c756aeebc11370ba"
     },
     {
       "id": "boundary.ws.conserve_amount_104.below",
       "operation": "combat.ws",
-      "path": "combat/000240.json",
+      "path": "combat/000240.bitcode.zst",
       "source_sha256": "911a7c766e38c1327429d49695c9fa4731bfc092bc0289e5588b06d3acf333ac",
-      "content_xxh3_128": "678a8f21778369274d698e401814008d"
+      "content_xxh3_128": "03f8206e5dd42eef7826c4110975f0dc",
+      "source_path": "combat/000240.json",
+      "source_content_xxh3_128": "678a8f21778369274d698e401814008d"
     },
     {
       "id": "boundary.ws.conserve_amount_104.equal",
       "operation": "combat.ws",
-      "path": "combat/000241.json",
+      "path": "combat/000241.bitcode.zst",
       "source_sha256": "d20043ec79862c5fe22c1fcd1c88634b2b1754100bd7dbc0c91d79736f44b270",
-      "content_xxh3_128": "3e4c2faa8e90fd78f061bb2cb51ad693"
+      "content_xxh3_128": "01f48c7729f3d8dd235f93c001522d22",
+      "source_path": "combat/000241.json",
+      "source_content_xxh3_128": "3e4c2faa8e90fd78f061bb2cb51ad693"
     },
     {
       "id": "boundary.ws.conserve_amount_104.above",
       "operation": "combat.ws",
-      "path": "combat/000242.json",
+      "path": "combat/000242.bitcode.zst",
       "source_sha256": "ee2dcdcd242e72ca239f14b38df8d3dbfa3173c3f8fe1fb55655523270aa3b75",
-      "content_xxh3_128": "b8ac43531cfb4a53dc9b67c8ca330e0a"
+      "content_xxh3_128": "2059d14c15243952a5c5ad10f6f97589",
+      "source_path": "combat/000242.json",
+      "source_content_xxh3_128": "b8ac43531cfb4a53dc9b67c8ca330e0a"
     },
     {
       "id": "boundary.ws.magic_crit_sanguine_blade.below",
       "operation": "combat.ws",
-      "path": "combat/000243.json",
+      "path": "combat/000243.bitcode.zst",
       "source_sha256": "213046a3a1903e1457382cff43ef7c4eac42d2e7d68ebda21e38585bd16c0120",
-      "content_xxh3_128": "ab17ff975cdbf1a03f9001ab90d13452"
+      "content_xxh3_128": "f4a69100761e17d93cb5910bfb3f93a3",
+      "source_path": "combat/000243.json",
+      "source_content_xxh3_128": "ab17ff975cdbf1a03f9001ab90d13452"
     },
     {
       "id": "boundary.ws.magic_crit_sanguine_blade.equal",
       "operation": "combat.ws",
-      "path": "combat/000244.json",
+      "path": "combat/000244.bitcode.zst",
       "source_sha256": "83558ff64659c7045c018df7747ace84292a7fc3a2431d7973e39f0526d14ec3",
-      "content_xxh3_128": "0eb14aa99bb7bd13dd6ef4e91bc586d2"
+      "content_xxh3_128": "b614f93344a2e364ed0babe17c6e298e",
+      "source_path": "combat/000244.json",
+      "source_content_xxh3_128": "0eb14aa99bb7bd13dd6ef4e91bc586d2"
     },
     {
       "id": "boundary.ws.magic_crit_sanguine_blade.above",
       "operation": "combat.ws",
-      "path": "combat/000245.json",
+      "path": "combat/000245.bitcode.zst",
       "source_sha256": "ba26dee19afcf061dc7be7ded1e97e8ee50a0ef000a0ffdbad0737256bfdf5a6",
-      "content_xxh3_128": "c53ced9c5a3d6fe7c7e9e528bd321c1d"
+      "content_xxh3_128": "80851d9c8bf69338954a6b5300e1b144",
+      "source_path": "combat/000245.json",
+      "source_content_xxh3_128": "c53ced9c5a3d6fe7c7e9e528bd321c1d"
     },
     {
       "id": "boundary.ws.magic_crit_blade_chi.below",
       "operation": "combat.ws",
-      "path": "combat/000246.json",
+      "path": "combat/000246.bitcode.zst",
       "source_sha256": "41592373259e5b5c63a4fd42e5a14dced124a8637fdcbaa197481dd8592a7dbf",
-      "content_xxh3_128": "67f73d945eca792cb1ebb87f8dc72f42"
+      "content_xxh3_128": "c7735985f1b1a8d14eef342b5352bafc",
+      "source_path": "combat/000246.json",
+      "source_content_xxh3_128": "67f73d945eca792cb1ebb87f8dc72f42"
     },
     {
       "id": "boundary.ws.magic_crit_blade_chi.equal",
       "operation": "combat.ws",
-      "path": "combat/000247.json",
+      "path": "combat/000247.bitcode.zst",
       "source_sha256": "e4f09c2937d2294e1d0b8a8a016f9cd034bb65d16bdfb1e3c6b271846fb55776",
-      "content_xxh3_128": "c4b2750d702dc0fd9b65b62087bb06ae"
+      "content_xxh3_128": "8bb70793eaf10dd6bb168e92598f541b",
+      "source_path": "combat/000247.json",
+      "source_content_xxh3_128": "c4b2750d702dc0fd9b65b62087bb06ae"
     },
     {
       "id": "boundary.ws.magic_crit_blade_chi.above",
       "operation": "combat.ws",
-      "path": "combat/000248.json",
+      "path": "combat/000248.bitcode.zst",
       "source_sha256": "775160207d0f8ea57ed9540322f78dba580880e296e17301beea91bad838a033",
-      "content_xxh3_128": "b308eb75780595126947b9136fe83345"
+      "content_xxh3_128": "1c15f751b82a755d114039f9c2d3eb3b",
+      "source_path": "combat/000248.json",
+      "source_content_xxh3_128": "b308eb75780595126947b9136fe83345"
     },
     {
       "id": "boundary.ws.magic_crit_flaming_arrow.below",
       "operation": "combat.ws",
-      "path": "combat/000249.json",
+      "path": "combat/000249.bitcode.zst",
       "source_sha256": "bbef12c58d2fcb3acca1bdf3bb4975d0571b8fbbc6d442a508c43378f6ba2321",
-      "content_xxh3_128": "c0edf6512c985514fba3fe712e72692a"
+      "content_xxh3_128": "0600193665321cc0b14f0bda6c9cb0c7",
+      "source_path": "combat/000249.json",
+      "source_content_xxh3_128": "c0edf6512c985514fba3fe712e72692a"
     },
     {
       "id": "boundary.ws.magic_crit_flaming_arrow.equal",
       "operation": "combat.ws",
-      "path": "combat/000250.json",
+      "path": "combat/000250.bitcode.zst",
       "source_sha256": "08b5f29bccf2f647969694950b264d381ecc81fffe8969a6150746832103edec",
-      "content_xxh3_128": "090cede9b07b34bc9a4b8fca1d974a24"
+      "content_xxh3_128": "9a1bce90c1c451e491d54888d7ff69b1",
+      "source_path": "combat/000250.json",
+      "source_content_xxh3_128": "090cede9b07b34bc9a4b8fca1d974a24"
     },
     {
       "id": "boundary.ws.magic_crit_flaming_arrow.above",
       "operation": "combat.ws",
-      "path": "combat/000251.json",
+      "path": "combat/000251.bitcode.zst",
       "source_sha256": "5992a2d4cece66ce5ea1ad3e69a696c24253237c2dc39b4101130c7196e1f949",
-      "content_xxh3_128": "3567f361b7f0f9f84942ea99a2291da7"
+      "content_xxh3_128": "39838ad57ebc8ef0c31060bfcdf4cbbf",
+      "source_path": "combat/000251.json",
+      "source_content_xxh3_128": "3567f361b7f0f9f84942ea99a2291da7"
     },
     {
       "id": "boundary.ws.resist_check1_cap.below",
       "operation": "combat.ws",
-      "path": "combat/000252.json",
+      "path": "combat/000252.bitcode.zst",
       "source_sha256": "04b08db91e305b844bcabcfefb93990d15a6db15e7320962130f6f581c53546e",
-      "content_xxh3_128": "f094400ab39623d5c3018129e6e112a1"
+      "content_xxh3_128": "e84257ccf889ba94dbc588ffd6b54789",
+      "source_path": "combat/000252.json",
+      "source_content_xxh3_128": "f094400ab39623d5c3018129e6e112a1"
     },
     {
       "id": "boundary.ws.resist_check1_cap.equal",
       "operation": "combat.ws",
-      "path": "combat/000253.json",
+      "path": "combat/000253.bitcode.zst",
       "source_sha256": "3f18e43b2eb32d884c4ac598858840f77c39aae19be6b6f59b19741c50899ac2",
-      "content_xxh3_128": "a495b837e19d5b054ca1d00579f3bef7"
+      "content_xxh3_128": "1be206a687b7038136bdf7119df2e371",
+      "source_path": "combat/000253.json",
+      "source_content_xxh3_128": "a495b837e19d5b054ca1d00579f3bef7"
     },
     {
       "id": "boundary.ws.resist_check1_cap.above",
       "operation": "combat.ws",
-      "path": "combat/000254.json",
+      "path": "combat/000254.bitcode.zst",
       "source_sha256": "833dca88e873615d078c7c5ee04c0a219bcfcfea9b486a8ecde3f8bb5dbdad67",
-      "content_xxh3_128": "a522d958d72f8f7feaf249e0cb126794"
+      "content_xxh3_128": "243ba0272c7739f463d70648416b78fa",
+      "source_path": "combat/000254.json",
+      "source_content_xxh3_128": "a522d958d72f8f7feaf249e0cb126794"
     },
     {
       "id": "boundary.ws.resist_check2.below",
       "operation": "combat.ws",
-      "path": "combat/000255.json",
+      "path": "combat/000255.bitcode.zst",
       "source_sha256": "7d584c7292ac573acf6273445d77e5da39f410a41797c842f1603c2de165f997",
-      "content_xxh3_128": "9befc23640a7f9d0b879ce879dac0beb"
+      "content_xxh3_128": "80664e3c5a63411206e624c659cc86af",
+      "source_path": "combat/000255.json",
+      "source_content_xxh3_128": "9befc23640a7f9d0b879ce879dac0beb"
     },
     {
       "id": "boundary.ws.resist_check2.equal",
       "operation": "combat.ws",
-      "path": "combat/000256.json",
+      "path": "combat/000256.bitcode.zst",
       "source_sha256": "6b2d25ab46073a11eda0f4ff1405ab8f85634aa08bb603103c2f18242781d0b4",
-      "content_xxh3_128": "570314cb7f60b434a3547f6ebfce1239"
+      "content_xxh3_128": "d8816533853962cab1b0687dd64818ae",
+      "source_path": "combat/000256.json",
+      "source_content_xxh3_128": "570314cb7f60b434a3547f6ebfce1239"
     },
     {
       "id": "boundary.ws.resist_check2.above",
       "operation": "combat.ws",
-      "path": "combat/000257.json",
+      "path": "combat/000257.bitcode.zst",
       "source_sha256": "88ba5ee27ef0527ef424ef2571845c86cf7e526e42d06d70927ed18cf658655e",
-      "content_xxh3_128": "aa4c449f3ea63e11f1fe56793f45bc0a"
+      "content_xxh3_128": "8c72cf051335d65032a37b5f15d1d26d",
+      "source_path": "combat/000257.json",
+      "source_content_xxh3_128": "aa4c449f3ea63e11f1fe56793f45bc0a"
     },
     {
       "id": "boundary.ws.resist_check3.below",
       "operation": "combat.ws",
-      "path": "combat/000258.json",
+      "path": "combat/000258.bitcode.zst",
       "source_sha256": "f6d58c98c7d3a3a25a8ac964f87c41e67af623cebc96e9428eb0b15fa8f4985e",
-      "content_xxh3_128": "d4c35ad861b49499074cbac0480db008"
+      "content_xxh3_128": "c236798dc341ad896c0318f0f1a5166f",
+      "source_path": "combat/000258.json",
+      "source_content_xxh3_128": "d4c35ad861b49499074cbac0480db008"
     },
     {
       "id": "boundary.ws.resist_check3.equal",
       "operation": "combat.ws",
-      "path": "combat/000259.json",
+      "path": "combat/000259.bitcode.zst",
       "source_sha256": "c2b0579c1c9ee2cbe183ec139de1ed64ca3c6d019243a5e2ea142a9344c5e2bd",
-      "content_xxh3_128": "c5153998cffdbeb2e37e6acbdacf710d"
+      "content_xxh3_128": "b38f8aba85782411b2fba4023fd3be67",
+      "source_path": "combat/000259.json",
+      "source_content_xxh3_128": "c5153998cffdbeb2e37e6acbdacf710d"
     },
     {
       "id": "boundary.ws.resist_check3.above",
       "operation": "combat.ws",
-      "path": "combat/000260.json",
+      "path": "combat/000260.bitcode.zst",
       "source_sha256": "10adf592a903ecdfad2d0370b380c2d55c2a6d953cc527b569d6f26261a0855e",
-      "content_xxh3_128": "9504dbc057f606986a37bc9b90e4c092"
+      "content_xxh3_128": "63d65b94c8f164211fa488d5001ed16d",
+      "source_path": "combat/000260.json",
+      "source_content_xxh3_128": "9504dbc057f606986a37bc9b90e4c092"
     }
   ]
 }

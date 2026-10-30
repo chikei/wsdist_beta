@@ -1,7 +1,7 @@
 #[path = "numerical_boundaries/support.rs"]
 mod support;
 
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_core::math::*;
 use wsdist_core::model::CalcError;
 

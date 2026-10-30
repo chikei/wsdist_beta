@@ -1,1 +1,0 @@
-{"id":"combat.008710.bonus.Tizona_R15.Expiacion.both","operation":"combat.weapon_bonus","input":{"main_name2":"Tizona R15","ranged_name2":"Tizona R15","ws_name":"Expiacion"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.99}},"stdout":""}

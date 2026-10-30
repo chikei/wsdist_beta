@@ -1,1 +1,0 @@
-{"id":"combat.008712.bonus.Tupsimati_R15.Omniscience.main","operation":"combat.weapon_bonus","input":{"main_name2":"Tupsimati R15","ranged_name2":"Empty","ws_name":"Omniscience"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.495}},"stdout":""}

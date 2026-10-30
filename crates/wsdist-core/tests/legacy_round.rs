@@ -8,7 +8,7 @@ mod combat_support;
 #[allow(dead_code)]
 mod round_support;
 
-use combat_support::{document, fixture_root, index, replay_case, resource_root};
+use combat_support::{fixture, fixture_root, index, replay_case, resource_root};
 use round_support::{assert_enspell_sample, assert_trace_totals, enspell_sample, scripted_sample};
 
 #[test]
@@ -19,7 +19,7 @@ fn all_frozen_round_branches_match_compiled_and_scripted_oracles() {
     let mut recorded = 0;
     let mut scripted = 0;
     for entry in index(&root).cases.into_iter().filter(|entry| entry.operation == "combat.round") {
-        let case = document(&root.join(&entry.path));
+        let case = fixture(&root, &entry);
         assert_eq!(case["id"], entry.id, "indexed case identity");
         let replay = replay_case(&case, &catalog);
         cases += 1;
@@ -55,7 +55,7 @@ fn sampled_trace_keeps_misses_caps_and_special_hit_identity() {
             vec![false, true, true]),
     ] {
         let entry = entries.iter().find(|entry| entry.id.ends_with(suffix)).expect("frozen edge case");
-        let case = document(&root.join(&entry.path));
+        let case = fixture(&root, entry);
         let observed = scripted_sample(&case, &catalog);
         let actual = observed.trace.iter().map(|event| (event.kind, event.proc, event.landed)).collect::<Vec<_>>();
         let expected = kinds.into_iter().zip(procs).zip(landed)
@@ -71,7 +71,7 @@ fn nonzero_sampled_enspell_uses_main_percent_offhand_and_exposes_total() {
     let root = fixture_root();
     let entry = index(&root).cases.into_iter()
         .find(|entry| entry.id.ends_with("round.tape.dual_qa_over_ta_da")).expect("captured all-hit tape");
-    let case = document(&root.join(entry.path));
+    let case = fixture(&root, &entry);
     let observed = enspell_sample(&case, &catalog);
     assert_enspell_sample(&observed, &case);
 }

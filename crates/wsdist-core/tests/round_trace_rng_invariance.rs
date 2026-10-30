@@ -10,7 +10,7 @@ use wsdist_core::actions::evaluate_round;
 use wsdist_core::model::{ActionResult, CalculationStep, EvaluationContext, Metric};
 use wsdist_core::rng::ScriptedTape;
 
-use combat_support::{boundary_enemy, build_boundary, document, fixture_root, number, resource_root};
+use combat_support::{boundary_enemy, build_boundary, fixture_root, number, resource_root};
 use round_support::assert_close;
 
 fn operand(step: &CalculationStep, name: &str) -> f64 {
@@ -56,14 +56,14 @@ fn analytical_round_tracing_preserves_frozen_results_and_exact_random_protocol()
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
 
     for (path, expected_draws) in [
-        ("combat/018452.json", 0),
-        ("combat/018467.json", 0),
-        ("combat/018482.json", 0),
-        ("combat/019146.json", 2),
+        ("combat/018452.bitcode.zst", 0),
+        ("combat/018467.bitcode.zst", 0),
+        ("combat/018482.bitcode.zst", 0),
+        ("combat/019146.bitcode.zst", 2),
     ] {
-        let case = document(&fixture_root().join(path));
+        let case = wsdist_fixtures::read_value(&fixture_root().join(path), None).unwrap();
         let compiled = &case["expected"]["value"]["compiled"];
-        let tape = ScriptedTape::from_json_records(&compiled["draws"]).unwrap();
+        let tape = wsdist_fixtures::from_value::<ScriptedTape>(&compiled["draws"]).unwrap();
         let mut prepared = EvaluationContext::new(Arc::clone(&catalog), tape.clone());
         let player = build_boundary(&case, &mut prepared).unwrap();
         let enemy = boundary_enemy(&case);
@@ -83,7 +83,7 @@ fn analytical_round_tracing_preserves_frozen_results_and_exact_random_protocol()
             let plain = evaluate_round(&player, &enemy, starting_tp, threshold, &metric, &mut baseline).unwrap();
             let observed = evaluate_round(&player, &enemy, starting_tp, threshold, &metric, &mut traced).unwrap();
 
-            assert_eq!(serde_json::to_value(observed).unwrap(), serde_json::to_value(plain).unwrap(),
+            assert_eq!(wsdist_fixtures::to_value(&observed).unwrap(), wsdist_fixtures::to_value(&plain).unwrap(),
                 "{path} / {metric_name}: tracing changes an action result");
             assert!(baseline.calculation_trace.is_none());
             assert!(traced.action_trace.as_ref().unwrap().is_empty());

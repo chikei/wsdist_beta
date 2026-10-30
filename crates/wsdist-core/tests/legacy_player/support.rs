@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use serde_json::{Value, json};
+use wsdist_fixtures::Value;
 use wsdist_core::model::{
     Abilities, ActiveEffects, CalcError, EffectBucket, EvaluationContext, GearPiece, Job,
     LegacyF64, ModelState, Player, PlayerInput, PlayerStage, RandomSource, RandomStream,
@@ -41,8 +41,8 @@ pub fn app_fixtures() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../wsdist-app/tests/fixtures/legacy")
 }
 
-pub fn document(path: &Path) -> Value {
-    wsdist_fixtures::read_value(path, None).unwrap_or_else(|error| panic!("{error}"))
+pub fn document_json(path: &Path) -> Value {
+    wsdist_fixtures::read_json_value(path).unwrap_or_else(|error| panic!("{error}"))
 }
 
 pub fn fixture(root: &Path, entry: &Value) -> Value {
@@ -52,7 +52,7 @@ pub fn fixture(root: &Path, entry: &Value) -> Value {
 }
 
 pub fn number(value: &Value) -> f64 {
-    serde_json::from_value::<LegacyF64>(value.clone()).unwrap().0
+    wsdist_fixtures::from_value::<LegacyF64>(value).unwrap().0
 }
 
 pub fn assert_number(actual: f64, expected: &Value, path: &str) {
@@ -132,7 +132,7 @@ pub fn assert_piece(piece: &GearPiece, state: Option<&ModelState>, expected: &Va
     for (index, (actual, (name, expected))) in piece.stats.iter().zip(expected_stats).enumerate() {
         assert_eq!(actual.stat.name(), name, "{path}.stats[{index}]: order");
         assert_number(actual.value, expected, &format!("{path}.stats[{name}]"));
-        assert_eq!(json!(actual.literal), *expected, "{path}.stats[{name}]: original numeric literal");
+        assert_eq!(wsdist_fixtures::to_value(&actual.literal).unwrap(), *expected, "{path}.stats[{name}]: original numeric literal");
     }
 }
 
@@ -166,7 +166,7 @@ pub fn parse_input(value: &Value, catalog: &Catalog, state: &ModelState, path: &
     PlayerInput {
         main_job, sub_job, master_level: value["master_level"].as_i64().unwrap().try_into().unwrap(),
         gearset, effects: Arc::new(effects),
-        abilities: Abilities::from_legacy(value["abilities"].as_object().unwrap()).unwrap(),
+        abilities: wsdist_fixtures::from_value::<Abilities>(&value["abilities"]).unwrap(),
     }
 }
 

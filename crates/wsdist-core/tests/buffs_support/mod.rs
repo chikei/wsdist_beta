@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_core::model::{Abilities, Ability, BuffInputs, EnemyInput, RollInput};
 use wsdist_core::Stats;
 
@@ -10,7 +10,12 @@ pub mod observation;
 pub fn root() -> PathBuf { Path::new(env!("CARGO_MANIFEST_DIR")).join("../..") }
 pub fn ui_fixtures() -> PathBuf { root().join("crates/wsdist-app/tests/fixtures/legacy") }
 pub fn read_json(path: &Path) -> Value {
-    wsdist_fixtures::read_value(path, None).unwrap_or_else(|error| panic!("{error}"))
+    wsdist_fixtures::read_json_value(path).unwrap_or_else(|error| panic!("{error}"))
+}
+
+pub fn fixture(root: &Path, entry: &Value) -> Value {
+    wsdist_fixtures::read_value(&root.join(entry["path"].as_str().unwrap()), Some(entry["content_xxh3_128"].as_str().unwrap()))
+        .unwrap_or_else(|error| panic!("{error}"))
 }
 
 pub fn controls(state: &Value) -> BuffInputs {
@@ -38,7 +43,7 @@ pub fn controls(state: &Value) -> BuffInputs {
 
 pub fn enemy(state: &Value) -> EnemyInput {
     EnemyInput { name:Arc::from("captured GUI enemy"),location:Arc::from("captured UI"),
-        stats:serde_json::from_value::<Stats>(state["enemy_input"].clone()).unwrap() }
+        stats:wsdist_fixtures::from_value::<Stats>(&state["enemy_input"]).unwrap() }
 }
 
 pub fn states<'a>(value: &'a Value, output: &mut Vec<&'a Value>) {

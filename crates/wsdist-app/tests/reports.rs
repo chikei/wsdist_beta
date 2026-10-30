@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_app::exchange::GearSource;
 use wsdist_app::reports::{self, ComparisonOutputs, StatDisplay, StatGroups};
 use wsdist_core::Catalog;
@@ -18,14 +18,15 @@ use wsdist_core::weaponskills::resolve_name;
 #[path = "../../wsdist-core/tests/legacy_player/support.rs"]
 #[allow(dead_code)]
 mod support;
-use support::{document, number};
+use support::{document_json, number};
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../wsdist-core/tests/fixtures/legacy")
 }
 fn frozen(index: &str, id: &str) -> Value {
     let root = root();
-    let index = document(&root.join(index));
+    let index = document_json(&root.join(index));
+    assert_eq!(index["schema_version"], 3);
     let entry = index["cases"].as_array().unwrap().iter().find(|entry| entry["id"] == id).unwrap();
     support::fixture(&root, entry)
 }
@@ -48,12 +49,12 @@ fn captured_player(value: &Value, catalog: &Catalog) -> Player {
     player.master_level = value["master_level"].as_i64().unwrap() as i32;
     player.main_job_level = value["main_job_level"].as_i64().unwrap() as i32;
     player.sub_job_level = value["sub_job_level"].as_i64().unwrap() as i32;
-    player.stats = serde_json::from_value(value["stats"].clone()).unwrap();
+    player.stats = wsdist_fixtures::from_value(&value["stats"]).unwrap();
     player.wsc = value["wsc"].as_array().unwrap().iter().map(|row| WscContribution {
         stat: Stat::from_name(row[0].as_str().unwrap()).unwrap(), percent: number(&row[1]),
     }).collect();
     player.wyvern_bonus_attack = value["wyvern_bonus_attack"].as_bool().unwrap();
-    player.abilities = serde_json::from_value::<Abilities>(value["abilities"].clone()).unwrap();
+    player.abilities = wsdist_fixtures::from_value::<Abilities>(&value["abilities"]).unwrap();
     player
 }
 
@@ -321,14 +322,14 @@ fn histogram_title_annotations_and_raw_mean_use_the_same_frozen_distribution() {
     let expected = &fixture["expected"]["value"];
     let input = support::parse_input(&fixture["input"]["player"], &catalog,
         &ModelState::new(catalog.pieces().len()), "histogram input");
-    let stats: Stats = serde_json::from_value(expected["player"]["stats"].clone()).unwrap();
+    let stats: Stats = wsdist_fixtures::from_value(&expected["player"]["stats"]).unwrap();
     let before: Vec<_> = stats.ordered().map(|(stat, value)| (stat, value.to_bits())).collect();
     let summary = &expected["summary"];
     let values = |value: &Value| value.as_array().unwrap().iter().map(number).collect::<Vec<_>>();
     let result = DistributionResult {
         damage: values(&expected["damage_samples"]), tp: values(&expected["tp_samples"]),
         histogram: Histogram {
-            counts: serde_json::from_value(summary["histogram_counts"].clone()).unwrap(),
+            counts: wsdist_fixtures::from_value(&summary["histogram_counts"]).unwrap(),
             density: values(&summary["histogram_density"]), edges: values(&summary["histogram_edges"]),
         },
         minimum: number(&summary["minimum"]), mean: number(&summary["mean"]),
@@ -365,7 +366,7 @@ fn optimizer_feasibility_warning_precedes_the_set_and_no_winner_cannot_look_equi
     let request = OptimizeRequest {
         player: support::parse_input(&input["player"], &catalog, &ModelState::new(catalog.pieces().len()), "optimizer report"),
         enemy: wsdist_core::model::Enemy { name: Arc::from("Apex Toad"), location: Arc::from("captured"),
-            stats: serde_json::from_value(input["enemy"]["normalized_stats"].clone()).unwrap() },
+            stats: wsdist_fixtures::from_value(&input["enemy"]["normalized_stats"]).unwrap() },
         action, candidates: std::array::from_fn(|_| Vec::new()),
         ws_name: Arc::from(input["request"]["ws_name"].as_str().unwrap()), spell_name: Arc::from("None"),
         min_pdt: -100.0, min_mdt: -100.0, options: OptimizeOptions::default(),

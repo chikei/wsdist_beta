@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use serde_json::{Value, json};
+use wsdist_fixtures::Value;
 use wsdist_core::Catalog;
 use wsdist_core::actions::sample_round;
 use wsdist_core::model::{Ability, AttackKind, AttackProc, EvaluationContext, HitEvent, RoundSample};
-use wsdist_core::rng::ScriptedTape;
+use wsdist_core::rng::{ScriptedTape, TapeRecord};
 use wsdist_core::stats::Stat;
 
 use crate::combat_support::{boundary_enemy, build_boundary, number};
@@ -28,7 +28,7 @@ pub fn assert_close(label: &str, actual: f64, expected: f64) {
 }
 
 pub fn scripted_sample(case: &Value, catalog: &Arc<Catalog>) -> SampleObservation {
-    let tape = ScriptedTape::from_json_records(&case["expected"]["value"]["scripted"]["tape"])
+    let tape = wsdist_fixtures::from_value::<ScriptedTape>(&case["expected"]["value"]["scripted"]["tape"])
         .expect("frozen strict round tape");
     let mut ctx = EvaluationContext::new(Arc::clone(catalog), tape);
     let player = build_boundary(case, &mut ctx).expect("real captured player construction");
@@ -46,14 +46,12 @@ pub fn scripted_sample(case: &Value, catalog: &Arc<Catalog>) -> SampleObservatio
 // keeping every original physical/proc draw unchanged. This is a native edge
 // scenario, not modified oracle evidence or a second random implementation.
 pub fn enspell_sample(all_hit_case: &Value, catalog: &Arc<Catalog>) -> SampleObservation {
-    let original = all_hit_case["expected"]["value"]["scripted"]["tape"].as_array().unwrap();
-    let setup_draw = json!({ "stream": "NumpyHost", "operation": "uniform",
-        "parameters": [0.0, 1.0], "value": 0.0 });
-    let mut records = Vec::with_capacity(original.len() + 2);
-    records.push(setup_draw.clone());
-    records.push(setup_draw);
-    records.extend(original.iter().cloned());
-    let tape = ScriptedTape::from_json_records(&Value::Array(records)).expect("extended strict EnSpell tape");
+    let mut records = wsdist_fixtures::from_value::<Vec<TapeRecord>>(
+        &all_hit_case["expected"]["value"]["scripted"]["tape"],
+    ).expect("captured eight-hit dual-wield tape");
+    let setup = TapeRecord::uniform(wsdist_core::model::RandomStream::Primary, 0.0, 1.0, 0.0);
+    drop(records.splice(0..0, [setup, setup]));
+    let tape = ScriptedTape::new(records);
     let mut ctx = EvaluationContext::new(Arc::clone(catalog), tape);
     let mut player = build_boundary(all_hit_case, &mut ctx).expect("real captured dual-wield player construction");
     let enemy = boundary_enemy(all_hit_case);

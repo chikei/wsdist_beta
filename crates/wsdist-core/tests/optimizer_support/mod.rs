@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::model::*;
 use wsdist_core::optimizer::probe::*;
 use crate::native_support::{self as native, CountingRandom};
@@ -54,7 +54,7 @@ pub fn raw_request(catalog: &FrozenCatalog, input: &Value, state: &ModelState, l
     RawOptimizeRequest { player: catalog.player(&input["player"], state, label), enemy: support::enemy(&input["enemy"]),
         action: raw_action(&input["request"]), candidates: pools(catalog, &input["candidate_pools"]),
         min_pdt: number(&input["thresholds"]["pdt"]), min_mdt: number(&input["thresholds"]["mdt"]),
-        options: serde_json::from_value(input["options"].clone()).unwrap(), similar_results: true,
+        options: wsdist_fixtures::from_value(&input["options"]).unwrap(), similar_results: true,
         similar_percent: number(&input["next_best_percent"]), verbose_swaps: input["verbose_swaps"].as_bool().unwrap(), automatic_workers: None }
 }
 
@@ -80,7 +80,7 @@ pub fn assert_floats(actual: &[f64], expected: &Value, label: &str) {
     for (index, (&actual, expected)) in actual.iter().zip(expected).enumerate() { assert_number(actual, expected, &format!("{label}[{index}]")); }
 }
 fn exact<T: serde::Serialize>(actual: &T, expected: &Value, label: &str) {
-    assert_eq!(serde_json::to_value(actual).unwrap(), *expected, "{label}: exact order/identity/cursor");
+    assert_eq!(to_value(actual).unwrap(), *expected, "{label}: exact order/identity/cursor");
 }
 fn assert_evaluation(actual: &LegacyEvaluation, expected: &Value, label: &str) {
     assert_number(actual.metric, &expected[0], &format!("{label}.metric"));
@@ -273,26 +273,35 @@ fn assert_outcome<T>(actual: &Result<T, CalcError>, expected: &Value, label: &st
 
 fn error_value(error: &CalcError) -> Value {
     match error {
-        CalcError::Data { path, json_path, message } =>
-            json!({"kind": "data", "path": path, "json_path": json_path, "message": message}),
-        CalcError::Legacy { operation, field, category, message } =>
-            json!({"kind": "legacy", "operation": operation, "field": field, "category": category, "message": message}),
-        CalcError::Input { operation, field, message } =>
-            json!({"kind": "input", "operation": operation, "field": field, "message": message}),
-        CalcError::Interrupted { operation } => json!({"kind": "interrupted", "operation": operation}),
-        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => json!({
-            "kind": "nonprogress", "operation": operation, "starting_tp": native::num(*starting_tp),
-            "threshold": native::num(*threshold), "upper_bound": native::num(*upper_bound),
-        }),
+        CalcError::Data { path, json_path, message } => native::object([
+            ("kind", "data".into()), ("path", to_value(path).unwrap()),
+            ("json_path", json_path.as_str().into()), ("message", message.as_str().into()),
+        ]),
+        CalcError::Legacy { operation, field, category, message } => native::object([
+            ("kind", "legacy".into()), ("operation", (*operation).into()), ("field", (*field).into()),
+            ("category", (*category).into()), ("message", message.as_str().into()),
+        ]),
+        CalcError::Input { operation, field, message } => native::object([
+            ("kind", "input".into()), ("operation", (*operation).into()),
+            ("field", (*field).into()), ("message", message.as_str().into()),
+        ]),
+        CalcError::Interrupted { operation } => native::object([
+            ("kind", "interrupted".into()), ("operation", (*operation).into()),
+        ]),
+        CalcError::NonProgress { operation, starting_tp, threshold, upper_bound } => native::object([
+            ("kind", "nonprogress".into()), ("operation", (*operation).into()),
+            ("starting_tp", native::num(*starting_tp)), ("threshold", native::num(*threshold)),
+            ("upper_bound", native::num(*upper_bound)),
+        ]),
     }
 }
 
 fn accepted_value(accepted: &[AcceptedCandidate], catalog: &FrozenCatalog) -> Value {
-    Value::Array(accepted.iter().map(|candidate| json!({
-        "gearset": native::gearset_value(catalog, &candidate.gearset),
-        "metric": native::num(candidate.metric), "legacy_output": native::nums(&candidate.legacy_output),
-        "pdt": native::num(candidate.pdt), "mdt": native::num(candidate.mdt),
-    })).collect())
+    Value::Array(accepted.iter().map(|candidate| native::object([
+        ("gearset", native::gearset_value(catalog, &candidate.gearset)),
+        ("metric", native::num(candidate.metric)), ("legacy_output", native::nums(&candidate.legacy_output)),
+        ("pdt", native::num(candidate.pdt)), ("mdt", native::num(candidate.mdt)),
+    ])).collect())
 }
 
 pub struct NeighborhoodRun {
@@ -322,7 +331,7 @@ pub fn run_neighborhood(case: &Value, _catalog: &FrozenCatalog) -> NeighborhoodR
     while !neighborhood.exhausted() {
         let (groups, count) = neighborhood.take(&base, input["batch"].as_u64().unwrap() as usize, &mut random, &mut trace);
         for group in groups {
-            for ids in group.candidates { ordered_candidates.push(json!([group.combo, ids])); }
+            for ids in group.candidates { ordered_candidates.push(to_value((&group.combo, &ids)).unwrap()); }
         }
         if count == 0 { break; }
     }
@@ -337,18 +346,20 @@ pub fn run_neighborhood(case: &Value, _catalog: &FrozenCatalog) -> NeighborhoodR
 }
 
 pub fn assert_neighborhood_legacy(case: &Value, run: &NeighborhoodRun, _catalog: &FrozenCatalog) {
-    assert_eq!(json!(run.combos), case["expected"]["value"]["combos"], "{}: combo walk", case["id"]);
+    assert_eq!(to_value(&run.combos).unwrap(), case["expected"]["value"]["combos"], "{}: combo walk", case["id"]);
 }
 
 pub fn project_neighborhood(run: &NeighborhoodRun, catalog: &FrozenCatalog) -> Value {
-    json!({
-        "result": {
-            "ordered_candidates": run.ordered_candidates, "exhausted_cursor": run.exhausted_cursor,
-            "replay_count": run.replay_count, "replay_start": run.replay_start, "replayed_tail": run.replayed_tail,
-            "rewind_prefix": run.rewind_prefix, "rewind_prefix_count": run.rewind_prefix_count,
-        },
-        "trace": native::trace_value(&run.trace, catalog), "random": native::random_value(&run.random),
-    })
+    native::object([
+        ("result", native::object([
+            ("ordered_candidates", Value::Array(run.ordered_candidates.clone())),
+            ("exhausted_cursor", to_value(&run.exhausted_cursor).unwrap()),
+            ("replay_count", run.replay_count.into()), ("replay_start", to_value(&run.replay_start).unwrap()),
+            ("replayed_tail", to_value(&run.replayed_tail).unwrap()),
+            ("rewind_prefix", to_value(&run.rewind_prefix).unwrap()), ("rewind_prefix_count", run.rewind_prefix_count.into()),
+        ])),
+        ("trace", native::trace_value(&run.trace, catalog)), ("random", native::random_value(&run.random)),
+    ])
 }
 
 pub struct PassRun {
@@ -387,7 +398,7 @@ pub fn run_pass(case: &Value, catalog: &FrozenCatalog) -> PassRun {
 fn assert_pass_observation(expected: &Value, run: &PassRun, catalog: &FrozenCatalog, label: &str) {
     assert_outcome(&run.result, expected, label);
     if run.result.is_ok() {
-        assert_eq!(json!(run.initial_ids), expected["result"]["initial_ids"], "{label}: initial interned ids");
+        assert_eq!(to_value(&run.initial_ids).unwrap(), expected["result"]["initial_ids"], "{label}: initial interned ids");
     }
     assert_changes(catalog, &run.before, &run.state, &expected["catalog_metadata_changes"], label);
 }
@@ -397,13 +408,15 @@ pub fn assert_pass_legacy(case: &Value, run: &PassRun, catalog: &FrozenCatalog) 
 }
 
 pub fn project_pass(run: &PassRun, catalog: &FrozenCatalog) -> Value {
-    let mut observation = json!({"trace": native::trace_value(&run.trace, catalog), "random": native::random_value(&run.random)});
+    let mut observation = native::object([
+        ("trace", native::trace_value(&run.trace, catalog)), ("random", native::random_value(&run.random)),
+    ]);
     match &run.result {
-        Ok(result) => observation["result"] = json!({
-            "ids": result.ids, "metric": native::num(result.metric), "output": native::nums(&result.output),
-            "accepted": accepted_value(&result.accepted, catalog), "similar": native::similar_value(catalog, &result.similar),
-            "scored": result.scored,
-        }),
+        Ok(result) => observation["result"] = native::object([
+            ("ids", to_value(&result.ids).unwrap()), ("metric", native::num(result.metric)),
+            ("output", native::nums(&result.output)), ("accepted", accepted_value(&result.accepted, catalog)),
+            ("similar", native::similar_value(catalog, &result.similar)), ("scored", result.scored.into()),
+        ]),
         Err(error) => { observation["result"] = Value::Null; observation["error"] = error_value(error); }
     }
     observation
@@ -449,20 +462,22 @@ pub fn assert_build_legacy(case: &Value, run: &BuildRun, catalog: &FrozenCatalog
 }
 
 pub fn project_build_result(result: &OptimizeResult, catalog: &FrozenCatalog) -> Value {
-    json!({
-        "gearset": native::gearset_value(catalog, &result.gearset),
-        "player": result.player.as_ref().map(|player| native::player_value(catalog, player)),
-        "metric": native::num(result.metric), "legacy_output": native::nums(&result.legacy_output),
-        "pdt": native::num(result.pdt), "mdt": native::num(result.mdt), "feasible": result.feasible,
-        "termination": result.termination, "accepted": accepted_value(&result.accepted, catalog),
-        "similar": native::similar_value(catalog, &result.similar), "stages": result.stages,
-        "passes": result.passes, "scored": result.scored, "restarts": result.restarts, "invert": result.invert,
-        "warnings": result.warnings,
-    })
+    native::object([
+        ("gearset", native::gearset_value(catalog, &result.gearset)),
+        ("player", result.player.as_ref().map_or(Value::Null, |player| native::player_value(catalog, player))),
+        ("metric", native::num(result.metric)), ("legacy_output", native::nums(&result.legacy_output)),
+        ("pdt", native::num(result.pdt)), ("mdt", native::num(result.mdt)), ("feasible", result.feasible.into()),
+        ("termination", to_value(&result.termination).unwrap()), ("accepted", accepted_value(&result.accepted, catalog)),
+        ("similar", native::similar_value(catalog, &result.similar)), ("stages", result.stages.into()),
+        ("passes", result.passes.into()), ("scored", result.scored.into()), ("restarts", result.restarts.into()),
+        ("invert", result.invert.into()), ("warnings", to_value(&result.warnings).unwrap()),
+    ])
 }
 
 pub fn project_build(run: &BuildRun, catalog: &FrozenCatalog) -> Value {
-    let mut observation = json!({"trace": native::trace_value(&run.trace, catalog), "random": native::random_value(&run.engine.random)});
+    let mut observation = native::object([
+        ("trace", native::trace_value(&run.trace, catalog)), ("random", native::random_value(&run.engine.random)),
+    ]);
     match &run.result {
         Ok(result) => observation["result"] = project_build_result(result, catalog),
         Err(error) => { observation["result"] = Value::Null; observation["error"] = error_value(error); }
@@ -505,5 +520,5 @@ pub fn assert_sequence_legacy(case: &Value, run: &SequenceRun, catalog: &FrozenC
 }
 
 pub fn project_sequence(run: &SequenceRun, catalog: &FrozenCatalog) -> Value {
-    json!({"steps": run.steps.iter().map(|step| project_pass(step, catalog)).collect::<Vec<_>>()})
+    native::object([("steps", Value::Array(run.steps.iter().map(|step| project_pass(step, catalog)).collect()))])
 }

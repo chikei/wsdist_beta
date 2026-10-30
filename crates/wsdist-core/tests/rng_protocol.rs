@@ -1,9 +1,11 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 
+use serde::Deserialize;
 use serde_json::json;
 use wsdist_core::model::{RandomSource, RandomStream};
 use wsdist_core::rng::{RandomSources, ScriptedTape, TapeRecord};
+use wsdist_fixtures::{Number as FixtureNumber, Value as FixtureValue};
 
 use RandomStream::{Pdif, Primary};
 
@@ -146,16 +148,21 @@ fn tape_json_decoding_preserves_signed_zero_and_tagged_nonfinite_parameters_and_
         {"stream":"NumpyHost","operation":"reseed","parameters":[4294967296]},
         {"stream":"NumpyHost","operation":"reseed","parameters":[18446744073709551615]}
     ]"#).unwrap();
-    let mut tape = ScriptedTape::from_json_records(&records).unwrap();
-    assert!(tape.try_uniform(Primary, 0.0, f64::INFINITY).is_err());
-    assert!(tape.try_uniform(Primary, -0.0, f64::INFINITY).unwrap().is_nan());
-    assert_eq!(tape.try_uniform(Pdif, f64::NEG_INFINITY, f64::INFINITY).unwrap().to_bits(), (-0.0_f64).to_bits());
-    assert_eq!(tape.try_uniform(Pdif, f64::NAN, 1.0).unwrap(), f64::NEG_INFINITY);
-    assert_eq!(tape.try_bounded(Primary, 3).unwrap(), 2);
-    tape.try_reseed(Pdif, u64::from(u32::MAX)).unwrap();
-    tape.reseed(4_294_967_296);
-    tape.reseed(u64::MAX);
-    tape.assert_finished().unwrap();
+    let native = wsdist_fixtures::to_value(&records).unwrap();
+    for mut tape in [
+        ScriptedTape::deserialize(&records).unwrap(),
+        wsdist_fixtures::from_value::<ScriptedTape>(&native).unwrap(),
+    ] {
+        assert!(tape.try_uniform(Primary, 0.0, f64::INFINITY).is_err());
+        assert!(tape.try_uniform(Primary, -0.0, f64::INFINITY).unwrap().is_nan());
+        assert_eq!(tape.try_uniform(Pdif, f64::NEG_INFINITY, f64::INFINITY).unwrap().to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(tape.try_uniform(Pdif, f64::NAN, 1.0).unwrap(), f64::NEG_INFINITY);
+        assert_eq!(tape.try_bounded(Primary, 3).unwrap(), 2);
+        tape.try_reseed(Pdif, u64::from(u32::MAX)).unwrap();
+        tape.reseed(4_294_967_296);
+        tape.reseed(u64::MAX);
+        tape.assert_finished().unwrap();
+    }
 }
 
 #[test]
@@ -170,17 +177,32 @@ fn malformed_or_unsupported_tape_evidence_is_rejected_at_decode() {
         json!([{"stream":"NumpyHost","operation":"uniform","parameters":[0],"value":0.5}]),
         json!([{"stream":"NumpyHost","operation":"uniform","parameters":[0,1,2],"value":0.5}]),
         json!([{"stream":"NumpyHost","operation":"uniform","parameters":[0,1],"low":0,"value":0.5}]),
+        json!([{"stream":"NumpyHost","operation":"uniform","parameters":[0,1],"high":1,"value":0.5}]),
+        json!([{"stream":"NumpyHost","operation":"uniform","parameters":[0,1],"value":true}]),
         json!([{"stream":"NumpyHost","operation":"uniform","parameters":[{"nonfinite":"Infinity"},1],"value":0.5}]),
         json!([{"stream":"NumpyHost","operation":"uniform","parameters":["0",1],"value":0.5}]),
         json!([{"stream":"NumpyHost","operation":"bounded","parameters":[0],"value":0}]),
         json!([{"stream":"NumpyHost","operation":"bounded","parameters":[3],"value":3}]),
         json!([{"stream":"NumpyHost","operation":"bounded","parameters":[3],"value":-1}]),
+        json!([{"stream":"NumpyHost","operation":"bounded","parameters":[3.0],"value":2}]),
+        json!([{"stream":"NumpyHost","operation":"bounded","parameters":[3],"value":2.0}]),
+        json!([{"stream":"NumpyHost","operation":"bounded","parameters":[true],"value":0}]),
+        json!([{"stream":"NumpyHost","operation":"bounded","parameters":[3],"value":false}]),
+        json!([{"stream":"NumpyHost","operation":"bounded","parameters":[3],"upper_exclusive":3,"value":2}]),
         json!([{"stream":"NumpyHost","operation":"reseed","parameters":[-1]}]),
         json!([{"stream":"NumpyHost","operation":"reseed","parameters":[1.5]}]),
+        json!([{"stream":"NumpyHost","operation":"reseed","parameters":[1.0]}]),
+        json!([{"stream":"NumpyHost","operation":"reseed","parameters":[true]}]),
+        json!([{"stream":"NumpyHost","operation":"reseed","parameters":[null]}]),
         json!([{"stream":"NumpyHost","operation":"reseed","parameters":["1"]}]),
         json!([{"stream":"NumpyHost","operation":"reseed","parameters":[1],"value":0}]),
+        json!([{"stream":"NumpyHost","operation":"reseed","parameters":[1],"seed":1}]),
     ];
-    for records in invalid { assert!(ScriptedTape::from_json_records(&records).is_err(), "accepted {records}"); }
+    for records in invalid {
+        assert!(ScriptedTape::deserialize(&records).is_err(), "accepted JSON {records}");
+        let native = wsdist_fixtures::to_value(&records).unwrap();
+        assert!(wsdist_fixtures::from_value::<ScriptedTape>(&native).is_err(), "accepted native {records}");
+    }
 }
 
 #[test]
@@ -191,5 +213,80 @@ fn invalid_typed_bounded_results_cannot_be_returned_or_consumed() {
         assert!(tape.try_bounded(Primary, upper).is_err());
         assert_eq!(tape.position(), 0);
         assert!(tape.assert_finished().is_err());
+    }
+}
+
+#[test]
+fn native_tape_integer_fields_accept_signed_integers_but_not_floats_or_booleans() {
+    let mut records = wsdist_fixtures::to_value(json!([
+        {"stream":"NumpyHost","operation":"bounded","parameters":[3],"value":2},
+        {"stream":"NumbaPython","operation":"reseed","parameters":[11]},
+    ])).unwrap();
+    records[0]["parameters"][0] = FixtureValue::Number(FixtureNumber::I64(3));
+    records[0]["value"] = FixtureValue::Number(FixtureNumber::I64(2));
+    records[1]["parameters"][0] = FixtureValue::Number(FixtureNumber::I64(11));
+    let mut tape = wsdist_fixtures::from_value::<ScriptedTape>(&records).unwrap();
+    assert_eq!(tape.try_bounded(Primary, 3).unwrap(), 2);
+    tape.try_reseed(Pdif, 11).unwrap();
+    tape.assert_finished().unwrap();
+
+    for invalid in [
+        FixtureValue::Number(FixtureNumber::I64(-1)),
+        FixtureValue::Number(FixtureNumber::F64(1.0)),
+        FixtureValue::Bool(true),
+    ] {
+        for (record, field, parameter) in [(0, "parameters", true), (0, "value", false), (1, "parameters", true)] {
+            let mut malformed = records.clone();
+            if parameter { malformed[record][field][0] = invalid.clone(); }
+            else { malformed[record][field] = invalid.clone(); }
+            assert!(wsdist_fixtures::from_value::<ScriptedTape>(&malformed).is_err(), "accepted {malformed}");
+        }
+    }
+}
+
+#[test]
+fn tape_streaming_decoding_keeps_last_fields_and_ignores_unrelated_valid_metadata() {
+    let text = r#"[
+        {"stream":"Unknown","stream":"NumpyHost","operation":"unsupported","operation":"uniform",
+         "parameters":[0,1],"value":"overwritten","value":0.25,
+         "seed":{"irrelevant":[null,false,{"nested":[]}]},"capture":{"arguments":[1,"x"]}},
+        {"stream":"NumpyHost","operation":"bounded","upper_exclusive":3,"value":1},
+        {"stream":"NumbaPython","operation":"reseed","seed":11,
+         "low":["unused",{"nested":true}],"value":null}
+    ]"#;
+    let native: wsdist_fixtures::Value = serde_json::from_str(text).unwrap();
+    for mut tape in [
+        serde_json::from_str::<ScriptedTape>(text).unwrap(),
+        wsdist_fixtures::from_value::<ScriptedTape>(&native).unwrap(),
+    ] {
+        assert_eq!(tape.try_uniform(Primary, 0.0, 1.0).unwrap(), 0.25);
+        assert_eq!(tape.try_bounded(Primary, 3).unwrap(), 1);
+        tape.try_reseed(Pdif, 11).unwrap();
+        tape.assert_finished().unwrap();
+    }
+}
+
+#[test]
+fn discarded_tape_fields_still_require_fully_valid_json() {
+    let malformed = [
+        br#"[0,"\uD800"]"#.to_vec(),
+        br#"{"first":0,"ignored":"\uDC00"}"#.to_vec(),
+        br#"{"first":0,"\uD800":0}"#.to_vec(),
+        b"[0,\"bad\xff\"]".to_vec(),
+        b"{\"first\":0,\"bad\xff\":0}".to_vec(),
+        b"1e400".to_vec(),
+        b"[0,1e400]".to_vec(),
+        br#"{"first":0,"ignored":1e400}"#.to_vec(),
+        format!("{}0{}", "[".repeat(160), "]".repeat(160)).into_bytes(),
+    ];
+    for field in ["capture", "seed"] {
+        for value in &malformed {
+            let mut text = format!(
+                r#"[{{"stream":"NumpyHost","operation":"uniform","parameters":[0,1],"value":0.5,"{field}":"#
+            ).into_bytes();
+            text.extend_from_slice(value);
+            text.extend_from_slice(b"}]");
+            assert!(serde_json::from_slice::<ScriptedTape>(&text).is_err(), "accepted {text:?}");
+        }
     }
 }

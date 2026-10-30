@@ -2,5 +2,5 @@
 * text=auto
 
 # Binary fixture evidence is byte-exact, including checkout line endings.
-*.part -text
+*.bitcode.zst -text
 *.zip -text

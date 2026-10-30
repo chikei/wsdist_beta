@@ -1,19 +1,23 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "cases": [
     {
       "id": "boundary.kernel.pdif_melee_zero_clip",
       "operation": "kernel_tapes",
-      "path": "kernels/000000.json",
+      "path": "kernels/000000.bitcode.zst",
       "source_sha256": "9142348a81b08cb038c5a3a004403e63cfe4061506ad35136fe39289a37bec48",
-      "content_xxh3_128": "496b687b261fe1758b2a4ce224b74894"
+      "content_xxh3_128": "0020b682ff0831d8e6f87f54cf79b2cf",
+      "source_path": "kernels/000000.json",
+      "source_content_xxh3_128": "496b687b261fe1758b2a4ce224b74894"
     },
     {
       "id": "boundary.kernel.pdif_ranged_zero_clip",
       "operation": "kernel_tapes",
-      "path": "kernels/000001.json",
+      "path": "kernels/000001.bitcode.zst",
       "source_sha256": "3d719979b7bd4f34c8d75dd3e416d4d4018a6a3c9314acfd05fbfeae36d92ae9",
-      "content_xxh3_128": "5c90f9da11d7e0b8241b491c75d154db"
+      "content_xxh3_128": "c76ff30a36c6cc99843088f82764fdc5",
+      "source_path": "kernels/000001.json",
+      "source_content_xxh3_128": "5c90f9da11d7e0b8241b491c75d154db"
     }
   ]
 }

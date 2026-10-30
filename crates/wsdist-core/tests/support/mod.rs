@@ -13,6 +13,7 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use wsdist_fixtures::Value as FixtureValue;
 use wsdist_core::model::{EvaluationContext, Player, build_player};
 use wsdist_core::Catalog;
 
@@ -84,7 +85,7 @@ pub struct CorpusReport {
     pub provenance: Value,
     pub limitations: Vec<String>,
     #[serde(skip)]
-    pub manifest: Value,
+    pub manifest: FixtureValue,
 }
 
 pub fn resource_root() -> PathBuf { player_support::resource_root() }
@@ -113,7 +114,7 @@ fn finish_measurements() -> player_support::observation::Measurements {
     result
 }
 
-fn load_case(root: &Path, entry: &Entry) -> Value {
+fn load_case(root: &Path, entry: &Entry) -> FixtureValue {
     let relative = Path::new(&entry.path);
     assert!(relative.components().all(|component| matches!(component, Component::Normal(_))), "{}: fixture path is not relative", entry.id);
     let path = root.join(relative);
@@ -124,7 +125,7 @@ fn load_case(root: &Path, entry: &Entry) -> Value {
     case
 }
 
-fn replay(case: &Value, catalog: &Arc<Catalog>, work: &mut Work) {
+fn replay(case: &FixtureValue, catalog: &Arc<Catalog>, work: &mut Work) {
     let label = case["id"].as_str().unwrap();
     match case["operation"].as_str().unwrap() {
         "player_build" | "player_sequence" => {
@@ -206,7 +207,7 @@ fn record_case(report: &mut CorpusReport, entry: &Entry, root: &Path, catalog: &
         let case = load_case(root, entry);
         if ui { replay_ui_numeric(&case, catalog, &mut work); }
         else if entry.operation != "player_tables" { replay(&case, catalog, &mut work); }
-        tags = case.get("coverage").and_then(Value::as_array).map(|tags| tags.iter().filter_map(Value::as_str).map(str::to_owned).collect()).unwrap_or_default();
+        tags = case.get("coverage").and_then(FixtureValue::as_array).map(|tags| tags.iter().filter_map(FixtureValue::as_str).map(str::to_owned).collect()).unwrap_or_default();
         wsdist_fixtures::drop_value(case);
     }));
     let measured = finish_measurements();
@@ -232,7 +233,7 @@ fn record_case(report: &mut CorpusReport, entry: &Entry, root: &Path, catalog: &
         "scope": if ui { "core effective-input, buff, enemy and player checks only; controller/UI checked by app suites" } else { "core parity" }}));
 }
 
-fn replay_ui_numeric(case: &Value, catalog: &Arc<Catalog>, work: &mut Work) {
+fn replay_ui_numeric(case: &FixtureValue, catalog: &Arc<Catalog>, work: &mut Work) {
     let label = case["id"].as_str().unwrap();
     let mut states = Vec::new();
     buffs_support::states(&case["expected"], &mut states);
@@ -268,7 +269,7 @@ fn replay_ui_numeric(case: &Value, catalog: &Arc<Catalog>, work: &mut Work) {
 pub fn verify_corpus(root: &Path) -> CorpusReport {
     let mut report = CorpusReport::default();
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let manifest = player_support::document(&root.join("manifest.json"));
+        let manifest = player_support::document_json(&root.join("manifest.json"));
         assert_eq!(manifest["capture_complete"], true, "canonical capture must be complete");
         report.provenance = json!({"manifest_sha256": catalog::hash_file(&root.join("manifest.json")),
             "source": manifest["source"], "oracle_runtime": manifest["runtime"],
@@ -285,8 +286,8 @@ pub fn verify_corpus(root: &Path) -> CorpusReport {
         }
         let mut identities = BTreeSet::new();
         for (name, count_name) in [("players.json", "capture_players"), ("combat.json", "capture_combat"), ("search_simulation.json", "capture_search_simulation")] {
-            let index: Index = serde_json::from_value(player_support::document(&root.join(name))).unwrap();
-            assert_eq!(index.schema_version, 2, "{name}: supported fixture schema");
+            let index: Index = wsdist_fixtures::read_json(&root.join(name)).unwrap();
+            assert_eq!(index.schema_version, 3, "{name}: supported fixture schema");
             assert_eq!(index.cases.len() as u64, manifest["fixture_counts"][count_name].as_u64().unwrap(), "{name}: complete frozen family");
             for entry in index.cases {
                 assert!(identities.insert(entry.id.clone()), "{}: duplicate fixture identity", entry.id);
@@ -296,7 +297,8 @@ pub fn verify_corpus(root: &Path) -> CorpusReport {
         // The UI subset contains actual Qt-restored numerical inputs. This is
         // not a substitute for the separately executable app/controller gate.
         let ui_root = player_support::app_fixtures();
-        let ui_index: Index = serde_json::from_value(player_support::document(&ui_root.join("ui.json"))).unwrap();
+        let ui_index: Index = wsdist_fixtures::read_json(&ui_root.join("ui.json")).unwrap();
+        assert_eq!(ui_index.schema_version, 3, "ui.json: supported fixture schema");
         assert_eq!(ui_index.cases.len() as u64, manifest["fixture_counts"]["capture_ui"].as_u64().unwrap(), "complete effective-input UI subset");
         for entry in ui_index.cases { record_case(&mut report, &entry, &ui_root, &catalog, true); }
         report.manifest = manifest;

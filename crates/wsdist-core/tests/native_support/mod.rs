@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::LazyLock;
 
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::model::{CandidatePools, GearId, Gearset, LegacyF64, Player, RandomSource, RandomStream, SimilarSwap, Slot};
 use wsdist_core::optimizer::probe::{LegacyEvaluation, SearchTrace, TraceEvent};
 use wsdist_core::rng::RandomSources;
@@ -45,13 +45,17 @@ impl RandomSource for CountingRandom {
     }
 }
 
-pub fn num(value: f64) -> Value { serde_json::to_value(LegacyF64(value)).unwrap() }
+pub fn object<const N: usize>(fields: [(&str, Value); N]) -> Value {
+    Value::Object(fields.into_iter().map(|(key, value)| (key.to_owned(), value)).collect())
+}
+
+pub fn num(value: f64) -> Value { to_value(LegacyF64(value)).unwrap() }
 
 pub fn nums(values: &[f64]) -> Value { Value::Array(values.iter().copied().map(num).collect()) }
 
 pub fn piece_value(cat: &FrozenCatalog, id: GearId) -> Value {
     let piece = cat.catalog.piece(id);
-    json!([piece.original_id, piece.name2])
+    Value::Array(vec![Value::from(piece.original_id), Value::String(piece.name2.to_string())])
 }
 
 pub fn gearset_value(cat: &FrozenCatalog, gearset: &Gearset) -> Value {
@@ -63,100 +67,137 @@ pub fn pools_value(cat: &FrozenCatalog, pools: &CandidatePools) -> Value {
 }
 
 pub fn player_value(cat: &FrozenCatalog, player: &Player) -> Value {
-    json!({
-        "main_job": player.main_job.name(),
-        "sub_job": player.sub_job.map(|job| job.name()),
-        "gearset": gearset_value(cat, &player.gearset),
-        "stats": serde_json::to_value(&player.stats).unwrap(),
-    })
+    object([
+        ("main_job", Value::from(player.main_job.name())),
+        ("sub_job", player.sub_job.map_or(Value::Null, |job| Value::from(job.name()))),
+        ("gearset", gearset_value(cat, &player.gearset)),
+        ("stats", to_value(&player.stats).unwrap()),
+    ])
 }
 
 pub fn random_value(random: &CountingRandom) -> Value {
     let mut continuation = random.inner.clone();
     let primary: Vec<_> = (0..4).map(|_| num(continuation.uniform(RandomStream::Primary, 0.0, 1.0))).collect();
     let pdif: Vec<_> = (0..4).map(|_| num(continuation.uniform(RandomStream::Pdif, 0.0, 1.0))).collect();
-    json!({
-        "primary_uniforms": random.primary_uniforms,
-        "pdif_uniforms": random.pdif_uniforms,
-        "bounded": random.bounded,
-        "reseeds": random.reseeds,
-        "continuation": {"primary": primary, "pdif": pdif},
-    })
+    object([
+        ("primary_uniforms", Value::from(random.primary_uniforms)),
+        ("pdif_uniforms", Value::from(random.pdif_uniforms)),
+        ("bounded", Value::from(random.bounded)),
+        ("reseeds", Value::from(random.reseeds)),
+        ("continuation", object([("primary", Value::Array(primary)), ("pdif", Value::Array(pdif))])),
+    ])
 }
 
 pub fn evaluation_value(evaluation: &LegacyEvaluation) -> Value {
-    json!({"metric": num(evaluation.metric), "output": nums(&evaluation.output),
-        "invert": evaluation.invert, "decimals": evaluation.decimals, "nondecimals": evaluation.nondecimals})
+    object([
+        ("metric", num(evaluation.metric)),
+        ("output", nums(&evaluation.output)),
+        ("invert", Value::from(evaluation.invert)),
+        ("decimals", to_value(evaluation.decimals).unwrap()),
+        ("nondecimals", to_value(evaluation.nondecimals).unwrap()),
+    ])
 }
 
 pub fn similar_value(cat: &FrozenCatalog, similar: &[SimilarSwap]) -> Value {
-    Value::Array(similar.iter().map(|swap| json!({
-        "slot": swap.slot.name(), "gear": piece_value(cat, swap.gear),
-        "metric": num(swap.metric), "difference_percent": num(swap.difference_percent),
-    })).collect())
+    Value::Array(similar.iter().map(|swap| object([
+        ("slot", Value::from(swap.slot.name())),
+        ("gear", piece_value(cat, swap.gear)),
+        ("metric", num(swap.metric)),
+        ("difference_percent", num(swap.difference_percent)),
+    ])).collect())
 }
 
 pub fn trace_value(trace: &SearchTrace, cat: &FrozenCatalog) -> Value {
     Value::Array(trace.events.iter().map(|event| {
         let mut value = match event {
-            TraceEvent::Neighborhood { combos, pools } => json!({"combos": combos, "pools": pools}),
-            TraceEvent::Shuffle { before, after } => json!({"before": before, "after": after}),
-            TraceEvent::Choice { pool, selected, .. } => json!({
-                "pool": pool.iter().map(|&id| piece_value(cat, id)).collect::<Vec<_>>(), "selected": piece_value(cat, *selected),
-            }),
-            TraceEvent::PoolOrders { index, combo, orders } => json!({"index": index, "combo": combo, "orders": orders}),
-            TraceEvent::Take { base, limit, before, after, groups, total } => json!({
-                "base": base, "limit": limit, "before": before, "after": after, "groups": groups, "total": total,
-            }),
-            TraceEvent::Seek { before, after } => json!({"before": before, "after": after}),
-            TraceEvent::Legality { valid } => json!({"valid": valid}),
-            TraceEvent::FastDtRejection { combo, items, achieved, thresholds } => json!({
-                "combo": combo, "items": items, "achieved": nums(achieved), "thresholds": nums(thresholds),
-            }),
-            TraceEvent::FullPlayerDt { combo, items, achieved, thresholds, player, .. } => json!({
-                "combo": combo, "items": items, "achieved": nums(achieved), "thresholds": nums(thresholds),
-                "player": player_value(cat, player),
-            }),
-            TraceEvent::Metric { player, evaluation, .. } => json!({
-                "player": player_value(cat, player), "evaluation": evaluation_value(evaluation),
-            }),
-            TraceEvent::Rescore { ids, evaluation } => json!({"ids": ids, "evaluation": evaluation_value(evaluation)}),
-            TraceEvent::ScoreChunk { base, groups, thresholds, metrics } => json!({
-                "base": base, "groups": groups, "thresholds": nums(thresholds), "metrics": nums(metrics),
-            }),
-            TraceEvent::MapperSelection { workers, candidate_estimate, parallel, width, floor, ceiling } => json!({
-                "workers": workers, "candidate_estimate": candidate_estimate, "parallel": parallel,
-                "width": width, "floor": floor, "ceiling": ceiling,
-            }),
-            TraceEvent::MapperScores { base, groups, total, thresholds, metrics, parallel } => json!({
-                "base": base, "groups": groups, "total": total, "thresholds": nums(thresholds),
-                "metrics": nums(metrics), "parallel": parallel,
-            }),
-            TraceEvent::PassStart { ids, metric, thresholds } => json!({"ids": ids, "metric": num(*metric), "thresholds": nums(thresholds)}),
-            TraceEvent::Accepted { before, before_metric, combo, items, metric, batch, scanned, total, rewind } => json!({
-                "before": before, "before_metric": num(*before_metric), "combo": combo, "items": items,
-                "metric": num(*metric), "batch": batch, "scanned": scanned, "total": total, "rewind": rewind,
-            }),
-            TraceEvent::PassReturn { ids, metric, output, cursor, similar } => json!({
-                "ids": ids, "metric": num(*metric), "output": nums(output), "cursor": cursor, "similar": similar_value(cat, similar),
-            }),
-            TraceEvent::DtStage { thresholds, prior_achieved, ids, unchanged } => json!({
-                "thresholds": nums(thresholds), "prior_achieved": nums(prior_achieved), "ids": ids, "unchanged": unchanged,
-            }),
-            TraceEvent::DtStageEnd { achieved, next_thresholds, unchanged, metric } => json!({
-                "achieved": nums(achieved), "next_thresholds": nums(next_thresholds), "unchanged": unchanged, "metric": num(*metric),
-            }),
-            TraceEvent::UnsatisfiedDt { achieved, unchanged } => json!({"achieved": nums(achieved), "unchanged": unchanged}),
-            TraceEvent::RestartComparison { restart, metric, incumbent, improved } => json!({
-                "restart": restart, "metric": num(*metric), "incumbent": num(*incumbent), "improved": improved,
-            }),
-            TraceEvent::BuildReturn { ids, metric, output, invert, achieved_before_reorder, unchanged, starting, filtered, player, .. } => json!({
-                "ids": ids, "metric": num(*metric), "output": nums(output), "invert": invert,
-                "achieved_before_reorder": nums(achieved_before_reorder), "unchanged": unchanged,
-                "starting": gearset_value(cat, starting), "filtered": pools_value(cat, filtered), "player": player_value(cat, player),
-            }),
+            TraceEvent::Neighborhood { combos, pools } => object([
+                ("combos", to_value(combos).unwrap()), ("pools", to_value(pools).unwrap()),
+            ]),
+            TraceEvent::Shuffle { before, after } => object([
+                ("before", to_value(before).unwrap()), ("after", to_value(after).unwrap()),
+            ]),
+            TraceEvent::Choice { pool, selected, .. } => object([
+                ("pool", Value::Array(pool.iter().map(|&id| piece_value(cat, id)).collect())),
+                ("selected", piece_value(cat, *selected)),
+            ]),
+            TraceEvent::PoolOrders { index, combo, orders } => object([
+                ("index", to_value(index).unwrap()), ("combo", to_value(combo).unwrap()), ("orders", to_value(orders).unwrap()),
+            ]),
+            TraceEvent::Take { base, limit, before, after, groups, total } => object([
+                ("base", to_value(base).unwrap()), ("limit", to_value(limit).unwrap()),
+                ("before", to_value(before).unwrap()), ("after", to_value(after).unwrap()),
+                ("groups", to_value(groups).unwrap()), ("total", to_value(total).unwrap()),
+            ]),
+            TraceEvent::Seek { before, after } => object([
+                ("before", to_value(before).unwrap()), ("after", to_value(after).unwrap()),
+            ]),
+            TraceEvent::Legality { valid } => object([("valid", Value::from(*valid))]),
+            TraceEvent::FastDtRejection { combo, items, achieved, thresholds } => object([
+                ("combo", to_value(combo).unwrap()), ("items", to_value(items).unwrap()),
+                ("achieved", nums(achieved)), ("thresholds", nums(thresholds)),
+            ]),
+            TraceEvent::FullPlayerDt { combo, items, achieved, thresholds, player, .. } => object([
+                ("combo", to_value(combo).unwrap()), ("items", to_value(items).unwrap()),
+                ("achieved", nums(achieved)), ("thresholds", nums(thresholds)),
+                ("player", player_value(cat, player)),
+            ]),
+            TraceEvent::Metric { player, evaluation, .. } => object([
+                ("player", player_value(cat, player)), ("evaluation", evaluation_value(evaluation)),
+            ]),
+            TraceEvent::Rescore { ids, evaluation } => object([
+                ("ids", to_value(ids).unwrap()), ("evaluation", evaluation_value(evaluation)),
+            ]),
+            TraceEvent::ScoreChunk { base, groups, thresholds, metrics } => object([
+                ("base", to_value(base).unwrap()), ("groups", to_value(groups).unwrap()),
+                ("thresholds", nums(thresholds)), ("metrics", nums(metrics)),
+            ]),
+            TraceEvent::MapperSelection { workers, candidate_estimate, parallel, width, floor, ceiling } => object([
+                ("workers", to_value(workers).unwrap()), ("candidate_estimate", to_value(candidate_estimate).unwrap()),
+                ("parallel", Value::from(*parallel)), ("width", to_value(width).unwrap()),
+                ("floor", to_value(floor).unwrap()), ("ceiling", to_value(ceiling).unwrap()),
+            ]),
+            TraceEvent::MapperScores { base, groups, total, thresholds, metrics, parallel } => object([
+                ("base", to_value(base).unwrap()), ("groups", to_value(groups).unwrap()),
+                ("total", to_value(total).unwrap()), ("thresholds", nums(thresholds)),
+                ("metrics", nums(metrics)), ("parallel", Value::from(*parallel)),
+            ]),
+            TraceEvent::PassStart { ids, metric, thresholds } => object([
+                ("ids", to_value(ids).unwrap()), ("metric", num(*metric)), ("thresholds", nums(thresholds)),
+            ]),
+            TraceEvent::Accepted { before, before_metric, combo, items, metric, batch, scanned, total, rewind } => object([
+                ("before", to_value(before).unwrap()), ("before_metric", num(*before_metric)),
+                ("combo", to_value(combo).unwrap()), ("items", to_value(items).unwrap()),
+                ("metric", num(*metric)), ("batch", to_value(batch).unwrap()),
+                ("scanned", to_value(scanned).unwrap()), ("total", to_value(total).unwrap()),
+                ("rewind", to_value(rewind).unwrap()),
+            ]),
+            TraceEvent::PassReturn { ids, metric, output, cursor, similar } => object([
+                ("ids", to_value(ids).unwrap()), ("metric", num(*metric)), ("output", nums(output)),
+                ("cursor", to_value(cursor).unwrap()), ("similar", similar_value(cat, similar)),
+            ]),
+            TraceEvent::DtStage { thresholds, prior_achieved, ids, unchanged } => object([
+                ("thresholds", nums(thresholds)), ("prior_achieved", nums(prior_achieved)),
+                ("ids", to_value(ids).unwrap()), ("unchanged", Value::from(*unchanged)),
+            ]),
+            TraceEvent::DtStageEnd { achieved, next_thresholds, unchanged, metric } => object([
+                ("achieved", nums(achieved)), ("next_thresholds", nums(next_thresholds)),
+                ("unchanged", Value::from(*unchanged)), ("metric", num(*metric)),
+            ]),
+            TraceEvent::UnsatisfiedDt { achieved, unchanged } => object([
+                ("achieved", nums(achieved)), ("unchanged", Value::from(*unchanged)),
+            ]),
+            TraceEvent::RestartComparison { restart, metric, incumbent, improved } => object([
+                ("restart", to_value(restart).unwrap()), ("metric", num(*metric)),
+                ("incumbent", num(*incumbent)), ("improved", Value::from(*improved)),
+            ]),
+            TraceEvent::BuildReturn { ids, metric, output, invert, achieved_before_reorder, unchanged, starting, filtered, player, .. } => object([
+                ("ids", to_value(ids).unwrap()), ("metric", num(*metric)), ("output", nums(output)),
+                ("invert", Value::from(*invert)), ("achieved_before_reorder", nums(achieved_before_reorder)),
+                ("unchanged", Value::from(*unchanged)), ("starting", gearset_value(cat, starting)),
+                ("filtered", pools_value(cat, filtered)), ("player", player_value(cat, player)),
+            ]),
         };
-        value.as_object_mut().unwrap().insert("kind".to_owned(), json!(crate::optimizer_support::event_kind(event)));
+        value.as_object_mut().unwrap().insert("kind".to_owned(), Value::from(crate::optimizer_support::event_kind(event)));
         value
     }).collect())
 }
@@ -165,13 +206,18 @@ pub const NATIVE_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtur
 
 pub fn expect_native(id: &str, legacy_sha256: &str, actual: &Value) {
     static INDEX: LazyLock<Value> = LazyLock::new(|| {
-        wsdist_fixtures::read_value(&Path::new(NATIVE_ROOT).join("index.json"), None).expect("native golden index")
+        let index = wsdist_fixtures::read_json_value(&Path::new(NATIVE_ROOT).join("index.json")).expect("native golden index");
+        assert_eq!(index["schema_version"].as_u64(), Some(3), "native fixture storage schema");
+        index
     });
     let entry = INDEX["cases"].as_array().unwrap().iter().find(|entry| entry["id"].as_str() == Some(id))
         .unwrap_or_else(|| panic!("no native golden for {id}; regenerate with examples/regenerate_native_goldens"));
     assert_eq!(entry["legacy_sha256"].as_str().unwrap(), legacy_sha256, "{id}: native golden legacy provenance");
     let doc = wsdist_fixtures::read_value(&Path::new(NATIVE_ROOT).join(entry["path"].as_str().unwrap()),
         Some(entry["content_xxh3_128"].as_str().unwrap())).unwrap();
+    assert_eq!(doc["id"], entry["id"], "{id}: native golden identity");
+    assert_eq!(doc["legacy_case"]["path"], entry["legacy_path"], "{id}: native golden legacy path");
+    assert_eq!(doc["legacy_case"]["sha256"], entry["legacy_sha256"], "{id}: native golden legacy source SHA-256");
     assert_json_eq(actual, &doc["observation"], id);
 }
 

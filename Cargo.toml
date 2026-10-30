@@ -11,6 +11,9 @@ rust-version = "1.92"
 wsdist-fixtures = { path = "crates/wsdist-fixtures" }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+bitcode = { version = "=0.6.9", default-features = false, features = ["serde", "std"] }
+zstd = { version = "=0.14.3", default-features = false }
+indexmap = { version = "=2.14.2", features = ["serde"] }
 thiserror = "2"
 csv = "1"
 rayon = "1"
@@ -37,6 +40,18 @@ codegen-units = 1
 
 # Keep fixture ingestion efficient without optimizing the parity/test targets.
 [profile.dev.package.wsdist-fixtures]
+opt-level = 3
+
+[profile.dev.package.bitcode]
+opt-level = 3
+
+[profile.dev.package.zstd]
+opt-level = 3
+
+[profile.dev.package.zstd-safe]
+opt-level = 3
+
+[profile.dev.package.zstd-sys]
 opt-level = 3
 
 [profile.dev.package.xxhash-rust]

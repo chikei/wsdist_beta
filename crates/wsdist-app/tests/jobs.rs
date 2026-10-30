@@ -4,7 +4,7 @@ use std::sync::{Arc, LazyLock, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use serde_json::{Value, json};
+use wsdist_fixtures::Value;
 use wsdist_app::exchange::GearSource;
 use wsdist_app::jobs::{
     AnalyticalKind, GuiAction, JobCompletion, WorkRequest, WorkResult, WorkerCoordinator,
@@ -22,7 +22,7 @@ use wsdist_core::rng::RandomSources;
 #[path = "../../wsdist-core/tests/legacy_player/support.rs"]
 #[allow(dead_code)]
 mod support;
-use support::{assert_number, document, number};
+use support::{assert_number, document_json, number};
 
 type Engine = EvaluationContext<RandomSources>;
 const COMPLETION_DEADLINE: Duration = Duration::from_secs(30);
@@ -40,7 +40,8 @@ fn fixture_root() -> PathBuf {
 
 fn frozen(index: &str, id: &str) -> Value {
     let root = fixture_root();
-    let index = document(&root.join(index));
+    let index = document_json(&root.join(index));
+    assert_eq!(index["schema_version"], 3);
     let entry = index["cases"].as_array().unwrap().iter()
         .find(|entry| entry["id"] == id).unwrap_or_else(|| panic!("uncaptured scenario {id}"));
     support::fixture(&root, entry)
@@ -48,7 +49,8 @@ fn frozen(index: &str, id: &str) -> Value {
 
 fn native(id: &str) -> Value {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../wsdist-core/tests/fixtures/native");
-    let index = document(&root.join("index.json"));
+    let index = document_json(&root.join("index.json"));
+    assert_eq!(index["schema_version"], 3);
     let entry = index["cases"].as_array().unwrap().iter()
         .find(|entry| entry["id"] == id).unwrap_or_else(|| panic!("uncaptured native scenario {id}"));
     support::fixture(&root, entry)["observation"].clone()
@@ -121,7 +123,7 @@ fn combat_inputs(case: &Value) -> (CalculationInputs, Engine) {
         player,
         enemy: Enemy {
             name: Arc::from("Apex Toad"), location: Arc::from("captured"),
-            stats: serde_json::from_value(case["expected"]["value"]["enemy_at_action_boundary"].clone()).unwrap(),
+            stats: wsdist_fixtures::from_value(&case["expected"]["value"]["enemy_at_action_boundary"]).unwrap(),
         },
         ws_name: Arc::from(action["name"].as_str().unwrap_or("Savage Blade")),
         ws_type: WsType::from_name(action["ws_type"].as_str().unwrap_or("melee")).unwrap(),
@@ -143,7 +145,7 @@ fn search_inputs(case: &Value) -> (CalculationInputs, Engine) {
     (CalculationInputs {
         player,
         enemy: Enemy { name: Arc::from("Apex Toad"), location: Arc::from("captured"),
-            stats: serde_json::from_value(input["enemy"]["normalized_stats"].clone()).unwrap() },
+            stats: wsdist_fixtures::from_value(&input["enemy"]["normalized_stats"]).unwrap() },
         ws_name: Arc::from(request["ws_name"].as_str().unwrap()),
         ws_type: WsType::from_name(request["ws_type"].as_str().unwrap()).unwrap(),
         spell_name: Arc::from("None"),
@@ -162,7 +164,7 @@ fn optimize_action(case: &Value, catalog: &Catalog) -> GuiAction {
         kind: AnalyticalKind::Ws, metric: Arc::from(input["request"]["input_metric"].as_str().unwrap()),
         candidates, min_pdt: number(&input["thresholds"]["pdt"]),
         min_mdt: number(&input["thresholds"]["mdt"]),
-        options: serde_json::from_value::<OptimizeOptions>(input["options"].clone()).unwrap(),
+        options: wsdist_fixtures::from_value::<OptimizeOptions>(&input["options"]).unwrap(),
         similar_results: false, similar_percent: number(&input["next_best_percent"]),
         verbose_swaps: false,
     }
@@ -266,8 +268,8 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
             physical_damage: 1918.992683330928, magical_damage: 0.0, tp_return: 75.0 };
         context.action_trace = Some(vec![retained_hit]);
         context.player_stages = Some(vec![PlayerStageSnapshot {
-            stage: PlayerStage::Final, stats: serde_json::from_value(
-                fixture["expected"]["value"]["player_at_action_boundary"]["stats"].clone()).unwrap(),
+            stage: PlayerStage::Final, stats: wsdist_fixtures::from_value(
+                &fixture["expected"]["value"]["player_at_action_boundary"]["stats"]).unwrap(),
             wsc: Vec::new(), wyvern_bonus_attack: false,
             skills: std::array::from_fn(|index| SkillType::from_name(
                 fixture["expected"]["value"]["player_at_action_boundary"]["gearset"]
@@ -278,8 +280,8 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
             formula: "prior = {prior}", values: vec![("prior", 37.5)],
         }]);
         let saved_calculation = context.calculation_trace.clone();
-        let saved_trace = serde_json::to_value(context.action_trace.as_ref().unwrap()).unwrap();
-        let saved_stats = serde_json::to_value(&context.player_stages.as_ref().unwrap()[0].stats).unwrap();
+        let saved_trace = wsdist_fixtures::to_value(context.action_trace.as_ref().unwrap()).unwrap();
+        let saved_stats = wsdist_fixtures::to_value(&context.player_stages.as_ref().unwrap()[0].stats).unwrap();
         let mut worker = WorkerCoordinator::new();
         worker.start(WorkRequest { quicklook: inputs.clone(), action: GuiAction::SingleWs }, context).unwrap();
         let (completion, _) = finish(&mut worker);
@@ -287,8 +289,8 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
             panic!("single WS must not replace the analytical result labels");
         };
         let expected = native("combat.019404.ws.Savage_Blade.sample.tp1000.seed11.singleTrue");
-        assert_eq!(serde_json::to_value(sample).unwrap(), expected["result"]);
-        assert_eq!(serde_json::to_value(&events).unwrap(), expected["hits"]);
+        assert_eq!(wsdist_fixtures::to_value(sample).unwrap(), expected["result"]);
+        assert_eq!(wsdist_fixtures::to_value(&events).unwrap(), expected["hits"]);
         assert!(!report.text.contains("Average Damage"));
         assert_eq!(report.text.contains("Missed"), events.iter().any(|hit| !hit.landed));
         let mut continuation = completion.context.random.clone();
@@ -300,9 +302,9 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
                     "recovered {key} must continue the native stream, not restart it");
             }
         }
-        assert_eq!(serde_json::to_value(completion.context.action_trace.as_ref().unwrap()).unwrap(), saved_trace);
+        assert_eq!(wsdist_fixtures::to_value(completion.context.action_trace.as_ref().unwrap()).unwrap(), saved_trace);
         assert_eq!(completion.context.player_stages.as_ref().unwrap().len(), 1);
-        assert_eq!(serde_json::to_value(&completion.context.player_stages.as_ref().unwrap()[0].stats).unwrap(), saved_stats);
+        assert_eq!(wsdist_fixtures::to_value(&completion.context.player_stages.as_ref().unwrap()[0].stats).unwrap(), saved_stats);
         assert_eq!(completion.context.calculation_trace, saved_calculation,
             "a displayed sampled calculation must not overwrite the caller's observer");
 
@@ -418,10 +420,10 @@ fn optimizer_progress_is_nonterminal_and_final_set_matches_the_frozen_complete_s
         assert_eq!(player.gearset, result.gearset, "winning player uses the returned gearset");
         for slot in Slot::ALL {
             let piece = completion.context.catalog.piece(result.gearset[slot.index()]);
-            assert_eq!(json!([piece.original_id, piece.name2]), expected["gearset"][slot.index()],
+            assert_eq!(wsdist_fixtures::to_value((piece.original_id, &piece.name2)).unwrap(), expected["gearset"][slot.index()],
                 "worker winning gearset/{}", slot.name());
         }
-        assert_eq!(serde_json::to_value(&result.legacy_output).unwrap(), expected["legacy_output"]);
+        assert_eq!(wsdist_fixtures::to_value(&result.legacy_output).unwrap(), expected["legacy_output"]);
         assert_eq!(result.legacy_output.len(), 3);
         assert_eq!(result.metric.to_bits(), number(&expected["metric"]).to_bits(), "complete search score");
         assert_eq!(result.feasible, expected["feasible"].as_bool().unwrap());
@@ -552,7 +554,7 @@ fn distribution_worker_returns_all_frozen_bins_and_annotations_without_leaking_i
             ("median", result.median), ("maximum", result.maximum)] {
             assert_eq!(actual.to_bits(), number(&expected_result[field]).to_bits(), "{field}");
         }
-        assert_eq!(result.histogram.counts, serde_json::from_value::<Vec<u64>>(expected_result["histogram"]["counts"].clone()).unwrap(),
+        assert_eq!(result.histogram.counts, wsdist_fixtures::from_value::<Vec<u64>>(&expected_result["histogram"]["counts"]).unwrap(),
             "every inclusive-edge density bin matches the native 20000-sample result");
         assert_eq!(result.histogram.edges.len(), 301);
         assert_eq!(result.histogram.density.len(), 300);

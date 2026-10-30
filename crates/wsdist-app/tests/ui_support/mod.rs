@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock};
 
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_app::exchange::GearSource;
 use wsdist_app::input_metadata::ABILITY_SPECS;
 use wsdist_app::profile_registry::{INPUT_REGISTRY, InputKind};
@@ -19,7 +19,7 @@ use wsdist_core::stats::Stats;
 #[path = "../../../wsdist-core/tests/legacy_player/support.rs"]
 #[allow(dead_code)]
 pub mod support;
-pub use support::{assert_number, document};
+pub use support::{assert_number, document_json};
 
 pub fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy")
@@ -33,7 +33,9 @@ pub fn catalog() -> Arc<Catalog> {
 }
 
 pub fn case_entries(operation: &str) -> Vec<Value> {
-    document(&root().join("ui.json"))["cases"].as_array().unwrap().iter()
+    let index = document_json(&root().join("ui.json"));
+    assert_eq!(index["schema_version"], 3, "unsupported UI fixture index schema");
+    index["cases"].as_array().unwrap().iter()
         .filter(|case| case["operation"] == operation).cloned().collect()
 }
 
@@ -70,28 +72,28 @@ pub fn assert_piece_state(state: &UiState, id: GearId, expected: &Value, label: 
 }
 
 pub fn assert_radio_model(state: &UiState, actual: &RadioModel, expected: &Value, label: &str) {
-    assert_eq!(json!(names(state, &actual.items.master)), expected["master_data"], "{label}: full master order");
-    assert_eq!(json!(names(state, &actual.items.visible)), expected["visible_data"], "{label}: visible order");
+    assert_eq!(to_value(names(state, &actual.items.master)).unwrap(), expected["master_data"], "{label}: full master order");
+    assert_eq!(to_value(names(state, &actual.items.visible)).unwrap(), expected["visible_data"], "{label}: visible order");
     assert_eq!(actual.selected.map(|id| state.engine.catalog.piece(id).name2.as_ref()).unwrap_or(""), expected["selected"].as_str().unwrap(), "{label}: retained selection");
-    let visible = actual.visible_selection().map(|id| json!(state.engine.catalog.piece(id).name2.as_ref())).unwrap_or(Value::Null);
+    let visible = actual.visible_selection().map(|id| Value::from(state.engine.catalog.piece(id).name2.as_ref())).unwrap_or(Value::Null);
     assert_eq!(visible, expected["visible_current"], "{label}: visible current item");
 }
 
 pub fn assert_checkbox_model(state: &UiState, actual: &CheckboxModel, expected: &Value, label: &str) {
-    assert_eq!(json!(names(state, &actual.items.master)), expected["master_data"], "{label}: full master order");
-    assert_eq!(json!(names(state, &actual.items.visible)), expected["visible_data"], "{label}: visible order");
-    assert_eq!(json!(names(state, &actual.selected())), expected["selected"], "{label}: full checked pool including hidden entries");
+    assert_eq!(to_value(names(state, &actual.items.master)).unwrap(), expected["master_data"], "{label}: full master order");
+    assert_eq!(to_value(names(state, &actual.items.visible)).unwrap(), expected["visible_data"], "{label}: visible order");
+    assert_eq!(to_value(names(state, &actual.selected())).unwrap(), expected["selected"], "{label}: full checked pool including hidden entries");
     let source_checks = expected["selection_state"].as_object().unwrap();
     assert_eq!(actual.items.unique.len(), source_checks.len(), "{label}: checked-state domain");
     for &id in actual.items.unique.iter() {
         let name = state.engine.catalog.piece(id).name2.as_ref();
         assert_eq!(actual.is_checked(id), source_checks[name].as_bool().unwrap(), "{label}: hidden/full check {name}");
     }
-    let visible_checks = actual.items.visible.iter().map(|&id| json!({
-        "name": state.engine.catalog.piece(id).name2.as_ref(),
-        "state": if actual.is_checked(id) { "Checked" } else { "Unchecked" },
-    })).collect::<Vec<_>>();
-    assert_eq!(json!(visible_checks), expected["visible_checks"], "{label}: visible check states");
+    let visible_checks = actual.items.visible.iter().map(|&id| Value::Object([
+        ("name".to_owned(), Value::from(state.engine.catalog.piece(id).name2.as_ref())),
+        ("state".to_owned(), Value::from(if actual.is_checked(id) { "Checked" } else { "Unchecked" })),
+    ].into_iter().collect())).collect();
+    assert_eq!(Value::Array(visible_checks), expected["visible_checks"], "{label}: visible check states");
 }
 
 pub fn assert_legacy_error(actual: &CalcError, expected: &Value, label: &str) {
@@ -144,7 +146,7 @@ pub fn assert_snapshot(state: &UiState, expected: &Value, label: &str) {
         assert_eq!(actual.value, row["checked"], "{label}: {} availability state", spec.name);
         assert_eq!(actual.hidden, row["explicit_hidden"].as_bool().unwrap(), "{label}: {} availability visibility", spec.name);
         assert_eq!(i64::from(spec.level), row["requirements"]["level requirement"].as_i64().unwrap(), "{label}: {} availability level", spec.name);
-        assert_eq!(json!(spec.jobs.iter().map(|job| job.name()).collect::<Vec<_>>()), row["requirements"]["job requirement"], "{label}: {} availability jobs", spec.name);
+        assert_eq!(to_value(spec.jobs.iter().map(|job| job.name()).collect::<Vec<_>>()).unwrap(), row["requirements"]["job requirement"], "{label}: {} availability jobs", spec.name);
     }
     for (index, key) in ["Dia", "Haste", "Boost", "Storm"].iter().enumerate() {
         assert_eq!(state.whm_selections[index], expected["cached_whm_selections"][key], "{label}.cached {key}");
@@ -163,7 +165,7 @@ pub fn assert_snapshot(state: &UiState, expected: &Value, label: &str) {
             assert_piece_state(state, state.gear.equipped[source.index()][slot.index()], &row["piece"], &format!("{label}.{}.{}", source.name(), slot.name()));
             let radio = &state.gear.radios[source.index()][slot.index()];
             assert_eq!(radio.selected.map(|id| state.engine.catalog.piece(id).name2.as_ref()).unwrap_or(""), row["radio_selection"].as_str().unwrap(), "{label}.{}.{}.radio", source.name(), slot.name());
-            let visible = radio.visible_selection().map(|id| json!(state.engine.catalog.piece(id).name2.as_ref())).unwrap_or(Value::Null);
+            let visible = radio.visible_selection().map(|id| Value::from(state.engine.catalog.piece(id).name2.as_ref())).unwrap_or(Value::Null);
             assert_eq!(visible, row["visible_radio_selection"], "{label}.{}.{}.visible radio", source.name(), slot.name());
             if let Some(models) = expected.get("radio_models") {
                 assert_radio_model(state, radio, &models[source.name()][slot.name()], &format!("{label}.{}.{}.model", source.name(), slot.name()));
@@ -200,8 +202,8 @@ pub fn assert_snapshot(state: &UiState, expected: &Value, label: &str) {
         // frozen endpoint is distinct from the visible widget snapshot.
         assert_gathered_abilities(&actual.player.abilities, &expected["actual_enemy_preparation_inputs"]["gathered"], &format!("{label}.prepared player"));
     }
-    assert_eq!(json!(state.controls["defaults_ws_combobox"].choices), expected["ws_choices"], "{label}: literal WS choices");
-    assert_eq!(json!(state.controls["defaults_spell_combobox"].choices), expected["spell_choices"], "{label}: literal spell choices");
+    assert_eq!(to_value(&state.controls["defaults_ws_combobox"].choices).unwrap(), expected["ws_choices"], "{label}: literal WS choices");
+    assert_eq!(to_value(&state.controls["defaults_spell_combobox"].choices).unwrap(), expected["spell_choices"], "{label}: literal spell choices");
     if let Some(models) = expected.get("checkbox_models") {
         for slot in Slot::ALL {
             assert_checkbox_model(state, &state.gear.candidates[slot.index()], &models[slot.name()], &format!("{label}.{}.checkbox model", slot.name()));

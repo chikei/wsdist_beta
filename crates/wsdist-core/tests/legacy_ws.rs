@@ -2,13 +2,13 @@ mod ws_support;
 
 use std::sync::Arc;
 
-use serde_json::Value;
+use wsdist_fixtures::Value;
 use wsdist_core::catalog::Catalog;
 use wsdist_core::model::{CalcError, EvaluationContext, WscContribution};
 use wsdist_core::stats::Stat;
 use wsdist_core::weaponskills::{CritScaling, DStatFormula, TpScaling, WS_TABLE, WsHook, interpolate_tp, resolve_name, weaponskill_info};
 
-use ws_support::{NoSetupDraws, assert_number, boundary_enemy, boundary_player, document, evaluate_case, fixture_root, helper_event, index, number, resource_root, verify_case};
+use ws_support::{NoSetupDraws, assert_number, boundary_enemy, boundary_player, evaluate_case, fixture, fixture_root, helper_event, index, number, resource_root, verify_case};
 
 #[test]
 fn index_rejects_invalid_json_in_unused_fields() {
@@ -21,7 +21,7 @@ fn index_rejects_invalid_json_in_unused_fields() {
         ("excessive nesting", format!("{}0{}", "[".repeat(129), "]".repeat(129)).into_bytes()),
     ];
     for (label, discarded) in discarded_fields {
-        let mut source = br#"{"cases":[],"unused":"#.to_vec();
+        let mut source = br#"{"schema_version":3,"cases":[],"unused":"#.to_vec();
         source.extend_from_slice(&discarded);
         source.push(b'}');
         std::fs::write(&path, source).unwrap();
@@ -71,7 +71,7 @@ fn verify_hook(label: &str, actual: WsHook, expected: &Value) {
 fn ordered_static_specs_cover_the_frozen_source_table() {
     let root = fixture_root();
     let metadata_case = index(&root).cases.into_iter().find(|case| case.operation == "combat.metadata").expect("reference table case");
-    let metadata = document(&root.join(metadata_case.path));
+    let metadata = fixture(&root, &metadata_case);
     let expected = metadata["expected"]["value"]["actual_reference_tables"]["ws_table"].as_object().expect("frozen WS table");
     assert_eq!(WS_TABLE.len(), 184);
     assert_eq!(WS_TABLE.len(), expected.len());
@@ -145,7 +145,7 @@ fn all_captured_ws_setups_replay_from_resolved_numeric_boundaries() {
     let mut successes = 0;
     let mut errors = 0;
     for row in index(&root).cases.into_iter().filter(|row| row.operation == "combat.ws") {
-        let case = document(&root.join(&row.path));
+        let case = fixture(&root, &row);
         assert_eq!(case["id"].as_str().unwrap(), row.id, "{}: fixture identity", row.path);
         let actual = evaluate_case(&case, &ctx);
         verify_case(&case, &actual);
@@ -180,7 +180,7 @@ fn require_legacy_error(error: CalcError, expected_field: &str, expected_categor
 fn required_sheet_values_and_zero_attack_denominators_keep_legacy_errors() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     let ctx = EvaluationContext::new(catalog, NoSetupDraws);
-    let case = document(&fixture_root().join("combat/008475.json")); // Naegling / Savage Blade
+    let case = wsdist_fixtures::read_value(&fixture_root().join("combat/008475.bitcode.zst"), None).unwrap(); // Naegling / Savage Blade
     let mut player = boundary_player(&case, &ctx.catalog);
     let mut enemy = boundary_enemy(&case);
     let skill = resolve_name("Savage Blade").unwrap();
@@ -210,7 +210,7 @@ fn tp_interpolation_retains_numpy_endpoints_and_nonfinite_classes() {
         (f64::NEG_INFINITY, 1.0), (999.0, 1.0), (1000.0, 1.0), (1500.0, 1.5),
         (2000.0, 2.0), (2500.0, 3.0), (3000.0, 4.0), (3001.0, 4.0), (f64::INFINITY, 4.0),
     ] {
-        assert_number(&format!("interpolate_tp({tp:?})"), interpolate_tp(tp, points), &serde_json::json!(expected));
+        assert_number(&format!("interpolate_tp({tp:?})"), interpolate_tp(tp, points), &Value::from(expected));
     }
     assert!(interpolate_tp(f64::NAN, points).is_nan());
     assert_eq!(interpolate_tp(1000.0, [-0.0, 1.0, 2.0]).to_bits(), (-0.0_f64).to_bits());

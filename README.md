@@ -163,18 +163,21 @@ allowlisted staging directory, target-filtered locked dependency notices and
 archive checksums; it does not ship reference fixtures, capture tools or caches.
 
 [VERIFY.md](VERIFY.md) documents the complete test commands, executable numerical
-verifier, real-backend screenshot smoke and extracted-archive proof. Frozen JSON
-fixtures record the reviewed original implementation. Oversized captures use
-byte-exact multipart storage; tests and verification reassemble the original
-JSON. Runtime content checks use XXH3-128; original SHA-256 provenance and exact
-capture indexes remain preserved. Shared build-only decoding is optimized
-without optimizing application or parity-test logic. The test profile also
-optimizes only the native `rand_chacha` dependency among RNG packages. See the
-[fixture integrity and storage contract](VERIFY.md#fixture-ingestion-and-content-equality)
-and [native RNG test profile](VERIFY.md#native-rng-test-profile-optimization).
-The full-corpus test and numerical verifier additionally use an explicit,
-verification-only MiMalloc allocator and optimized fixture-tree destruction;
-the production GUI allocator is unchanged. See the
+verifier, real-backend screenshot smoke and extracted-archive proof. Frozen
+legacy, boundary and native case payloads use lossless bitcode with a checksummed
+Zstandard layer, one `.bitcode.zst` file per case. Readable JSON indexes retain
+original capture paths and SHA-256 provenance; runtime XXH3-128 checks cover the
+uncompressed bitcode. Editable catalogs and profiles remain JSON.
+Fixtures deserialize directly into ordered native `wsdist_fixtures::Value`
+trees; typed inputs borrow those values without a `serde_json::Value` intermediary.
+Shared build-only codec, compression and hash code is optimized without
+optimizing application or parity-test logic. The test profile also optimizes
+only `rand_chacha` among RNG packages. See the
+[fixture storage contract](VERIFY.md#compressed-bitcode-fixture-storage) and
+[native RNG test profile](VERIFY.md#native-rng-test-profile-optimization).
+The full-corpus test and numerical verifier retain their verification-only
+MiMalloc allocator and optimized native-tree destruction; the production GUI
+allocator is unchanged. See the
 [fixture Value lifecycle controls](VERIFY.md#fixture-value-lifecycle).
 Legacy formulas and recorded-draw numerical results are preserved, including
 known analytical/sampled discrepancies. Generator-dependent searches and

@@ -17,6 +17,8 @@ parking_lot.workspace = true
 
 [dev-dependencies]
 wsdist-fixtures.workspace = true
+bitcode.workspace = true
+zstd.workspace = true
 sha2.workspace = true
 tempfile.workspace = true
 mimalloc.workspace = true

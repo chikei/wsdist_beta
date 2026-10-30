@@ -14,7 +14,7 @@ use wsdist_core::stats::Stat;
 use wsdist_core::weaponskills::resolve_name;
 
 use combat_support::{
-    boundary_enemy, build_boundary, document, fixture_root, index, number,
+    boundary_enemy, build_boundary, fixture, fixture_root, index, number,
     replay_case, resource_root,
 };
 
@@ -31,7 +31,7 @@ fn all_frozen_weapon_actions_match_results_errors_draws_and_components() {
     let mut hits = 0;
     for entry in index(&root).cases {
         if entry.operation != "combat.ws" { continue; }
-        let case = document(&root.join(entry.path));
+        let case = fixture(&root, &entry);
         let replay = replay_case(&case, &catalog);
         cases += 1;
         recorded += replay.recorded;
@@ -42,7 +42,7 @@ fn all_frozen_weapon_actions_match_results_errors_draws_and_components() {
     eprintln!("WS action parity: {cases} cases, {recorded} recorded compiled-draw replays, {scripted} scripted, {hits} traced hits");
 }
 
-fn request(case: &serde_json::Value) -> WsRequest {
+fn request(case: &wsdist_fixtures::Value) -> WsRequest {
     let action = &case["input"]["action"];
     WsRequest {
         skill: resolve_name(action["name"].as_str().unwrap()).unwrap(),
@@ -53,8 +53,8 @@ fn request(case: &serde_json::Value) -> WsRequest {
 }
 
 fn traced_sample(path: &str, catalog: &Arc<Catalog>) -> (WsSample, Vec<HitEvent>) {
-    let case = document(&fixture_root().join(path));
-    let tape = ScriptedTape::from_json_records(
+    let case = wsdist_fixtures::read_value(&fixture_root().join(path), None).unwrap();
+    let tape = wsdist_fixtures::from_value::<ScriptedTape>(
         &case["expected"]["value"]["scripted"]["tape"],
     ).expect("independently captured endpoint tape");
     let mut ctx = EvaluationContext::new(Arc::clone(catalog), tape);
@@ -76,7 +76,7 @@ fn assert_close(actual: f64, expected: f64) {
 #[test]
 fn sampled_misses_use_attempts_and_selected_multiattack_precedence() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
-    let (misses, trace) = traced_sample("combat/023398.json", &catalog);
+    let (misses, trace) = traced_sample("combat/023398.bitcode.zst", &catalog);
     assert_eq!(misses.damage, 0.0);
     assert_eq!(misses.tp_return, 0.0);
     assert_eq!(trace.len(), 8);
@@ -90,14 +90,14 @@ fn sampled_misses_use_attempts_and_selected_multiattack_precedence() {
         assert_eq!(event.tp_return, 0.0);
         assert_eq!(event.proc, if n < 2 { AttackProc::Normal } else { AttackProc::QuadAttack });
     }
-    let (_, landed) = traced_sample("combat/023397.json", &catalog);
+    let (_, landed) = traced_sample("combat/023397.bitcode.zst", &catalog);
     assert_eq!(landed.len(), 8);
     assert!(landed.iter().all(|event| event.landed));
     assert!(landed[2..].iter().all(|event| event.proc == AttackProc::QuadAttack));
 
     // Seven native H2H main hits plus one offhand attempt exhaust the cap even
     // when every attempt misses. Guaranteed QA must never create a ninth hit.
-    let (_, h2h) = traced_sample("combat/023404.json", &catalog);
+    let (_, h2h) = traced_sample("combat/023404.bitcode.zst", &catalog);
     assert_eq!(h2h.len(), 8);
     assert_eq!(h2h[0].kind, AttackKind::Main);
     assert_eq!(h2h[1].kind, AttackKind::Offhand);
@@ -112,11 +112,11 @@ fn sampled_misses_use_attempts_and_selected_multiattack_precedence() {
 fn single_only_sneak_trick_and_flourishes_affect_only_the_first_sampled_hit() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     for (disabled, enabled, critical) in [
-        ("combat/023465.json", "combat/023466.json", true),
-        ("combat/023471.json", "combat/023472.json", true),
-        ("combat/023477.json", "combat/023478.json", true),
-        ("combat/023483.json", "combat/023484.json", true),
-        ("combat/023489.json", "combat/023490.json", false),
+        ("combat/023465.bitcode.zst", "combat/023466.bitcode.zst", true),
+        ("combat/023471.bitcode.zst", "combat/023472.bitcode.zst", true),
+        ("combat/023477.bitcode.zst", "combat/023478.bitcode.zst", true),
+        ("combat/023483.bitcode.zst", "combat/023484.bitcode.zst", true),
+        ("combat/023489.bitcode.zst", "combat/023490.bitcode.zst", false),
     ] {
         let (_, ordinary) = traced_sample(disabled, &catalog);
         let (_, single) = traced_sample(enabled, &catalog);
@@ -141,7 +141,7 @@ fn single_only_sneak_trick_and_flourishes_affect_only_the_first_sampled_hit() {
 #[test]
 fn sampled_cap_does_not_overwrite_physical_magical_or_hit_components() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
-    for path in ["combat/023505.json", "combat/023509.json", "combat/023513.json"] {
+    for path in ["combat/023505.bitcode.zst", "combat/023509.bitcode.zst", "combat/023513.bitcode.zst"] {
         let (result, trace) = traced_sample(path, &catalog);
         assert_eq!(result.damage, 99999.0);
         let mut physical = 0.0;
@@ -156,13 +156,13 @@ fn sampled_cap_does_not_overwrite_physical_magical_or_hit_components() {
         assert_close(magical, result.magical_damage);
         assert_close(tp, result.tp_return);
         assert!(physical + magical > result.damage, "the legacy total alone is capped");
-        if path == "combat/023509.json" {
+        if path == "combat/023509.bitcode.zst" {
             let last = trace.last().unwrap();
             assert_eq!(last.kind, AttackKind::Magical);
             assert_eq!(last.attempt, 0, "hybrid magic is a component, not another physical attempt");
             assert_eq!(last.tp_return, 0.0);
             assert!(result.physical_damage > 0.0 && result.magical_damage > 0.0);
-        } else if path == "combat/023513.json" {
+        } else if path == "combat/023513.bitcode.zst" {
             assert_eq!(trace.len(), 1);
             assert_eq!(trace[0].kind, AttackKind::Magical);
             assert_eq!(trace[0].attempt, 1);
@@ -179,8 +179,8 @@ fn sampled_cap_does_not_overwrite_physical_magical_or_hit_components() {
 fn fotia_and_conserve_are_typed_tp_procs_not_fabricated_damage_hits() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
     for (path, proc, returned) in [
-        ("combat/023420.json", AttackProc::Fotia, 1000.0),
-        ("combat/023429.json", AttackProc::ConserveTp, 104.0),
+        ("combat/023420.bitcode.zst", AttackProc::Fotia, 1000.0),
+        ("combat/023429.bitcode.zst", AttackProc::ConserveTp, 104.0),
     ] {
         let (result, trace) = traced_sample(path, &catalog);
         assert_eq!(trace.len(), 3);
@@ -195,7 +195,7 @@ fn fotia_and_conserve_are_typed_tp_procs_not_fabricated_damage_hits() {
         assert_eq!(retention.tp_return, returned);
         assert_eq!(trace[0].tp_return + trace[1].tp_return + returned, result.tp_return);
     }
-    let (_, no_proc) = traced_sample("combat/023408.json", &catalog);
+    let (_, no_proc) = traced_sample("combat/023408.bitcode.zst", &catalog);
     assert_eq!(no_proc.len(), 2);
     assert!(no_proc.iter().all(|event| event.kind != AttackKind::TpRetention));
 }
@@ -203,7 +203,7 @@ fn fotia_and_conserve_are_typed_tp_procs_not_fabricated_damage_hits() {
 #[test]
 fn action_required_key_errors_keep_source_precedence_before_any_draw() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
-    let case = document(&fixture_root().join("combat/000215.json"));
+    let case = wsdist_fixtures::read_value(&fixture_root().join("combat/000215.bitcode.zst"), None).unwrap();
     let mut ctx = EvaluationContext::new(catalog, ScriptedTape::new(Vec::new()));
     let mut player = build_boundary(&case, &mut ctx).unwrap();
     let original_enemy = boundary_enemy(&case);
@@ -226,9 +226,9 @@ fn action_required_key_errors_keep_source_precedence_before_any_draw() {
 #[test]
 fn magic_and_hybrid_ws_do_not_inherit_spell_burst_or_resist_rank_rules() {
     let catalog = Arc::new(Catalog::load(&resource_root()).unwrap());
-    for path in ["combat/023432.json", "combat/023443.json"] {
-        let case = document(&fixture_root().join(path));
-        let tape = ScriptedTape::from_json_records(
+    for path in ["combat/023432.bitcode.zst", "combat/023443.bitcode.zst"] {
+        let case = wsdist_fixtures::read_value(&fixture_root().join(path), None).unwrap();
+        let tape = wsdist_fixtures::from_value::<ScriptedTape>(
             &case["expected"]["value"]["scripted"]["tape"],
         ).unwrap();
         let mut ctx = EvaluationContext::new(Arc::clone(&catalog), tape.clone());

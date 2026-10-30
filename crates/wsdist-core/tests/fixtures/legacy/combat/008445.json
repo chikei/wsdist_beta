@@ -1,1 +1,0 @@
-{"id":"combat.008445.bonus.Dolichenus.Decimation.ranged","operation":"combat.weapon_bonus","input":{"main_name2":"Empty","ranged_name2":"Dolichenus","ws_name":"Decimation"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":1.2}},"stdout":""}

@@ -34,12 +34,13 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rayon::prelude::*;
-use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::actions::sample_ws;
 use wsdist_core::model::{EvaluationContext, Metric, WsRequest, WsType};
 use wsdist_core::weaponskills::resolve_name;
 
-use native_support::{CountingRandom, random_value};
+use native_support::{CountingRandom, object, random_value};
 use support::{FrozenCatalog, IndexedCase};
 
 const USAGE: &str = "Usage: regenerate_native_goldens --legacy <legacy-root> --out <native-root>";
@@ -72,7 +73,11 @@ fn observe_combat_ws(case: &Value, cat: &FrozenCatalog) -> Value {
     };
     context.action_trace = Some(Vec::new());
     let result = sample_ws(&player, &enemy, &request, true, &mut context).unwrap();
-    json!({"result": result, "hits": context.action_trace.as_ref().unwrap(), "random": random_value(&context.random)})
+    object([
+        ("result", to_value(result).unwrap()),
+        ("hits", to_value(context.action_trace.as_ref().unwrap()).unwrap()),
+        ("random", random_value(&context.random)),
+    ])
 }
 
 fn observation(case: &Value, cat: &FrozenCatalog) -> Value {
@@ -105,27 +110,44 @@ fn seed(case: &Value) -> Value {
     }
 }
 
-fn compute(legacy: &Path, entry: &IndexedCase) -> Result<(Value, Vec<u8>), String> {
+struct ComputedGolden<'a> {
+    source: &'a IndexedCase,
+    document: Value,
+    path: String,
+    source_path: String,
+    source_sha256: String,
+    source_content_xxh3_128: String,
+}
+
+fn compute<'a>(legacy: &Path, entry: &'a IndexedCase) -> Result<ComputedGolden<'a>, String> {
     let case = wsdist_fixtures::read_value(&legacy.join(&entry.path), Some(&entry.content_xxh3_128))
         .map_err(|error| error.to_string())?;
     assert_eq!(case["id"], entry.id);
     assert_eq!(case["operation"], entry.operation);
     let cat = FrozenCatalog::from_input(&case["input"]);
-    let doc = json!({
-        "id": entry.id, "operation": entry.operation,
-        "legacy_case": {"path": entry.path, "sha256": entry.source_sha256},
-        "seed": seed(&case), "observation": observation(&case, &cat),
-    });
-    let mut bytes = serde_json::to_vec(&doc).unwrap();
-    bytes.push(b'\n');
-    let ordinal = Path::new(&entry.path).file_name().unwrap().to_str().unwrap();
-    let path = format!("{}/{ordinal}", entry.operation);
-    let index_entry = json!({
-        "id": entry.id, "operation": entry.operation, "path": path,
-        "content_xxh3_128": format!("{:032x}", wsdist_fixtures::content_hash(&bytes)),
-        "legacy_path": entry.path, "legacy_sha256": entry.source_sha256,
-    });
-    Ok((index_entry, bytes))
+    let document = object([
+        ("id", Value::from(entry.id.as_str())),
+        ("operation", Value::from(entry.operation.as_str())),
+        ("legacy_case", object([
+            ("path", Value::from(entry.source_path.as_str())),
+            ("sha256", Value::from(entry.source_sha256.as_str())),
+        ])),
+        ("seed", seed(&case)),
+        ("observation", observation(&case, &cat)),
+    ]);
+    let mut source_bytes = serde_json::to_vec(&document).unwrap();
+    source_bytes.push(b'\n');
+    let source_sha256 = format!("{:x}", Sha256::digest(&source_bytes));
+    let source_content_xxh3_128 = format!("{:032x}", wsdist_fixtures::content_hash(&source_bytes));
+    let ordinal = Path::new(&entry.source_path).file_stem().unwrap().to_str().unwrap();
+    Ok(ComputedGolden {
+        source: entry,
+        document,
+        path: format!("{}/{ordinal}.bitcode.zst", entry.operation),
+        source_path: format!("{}/{ordinal}.json", entry.operation),
+        source_sha256,
+        source_content_xxh3_128,
+    })
 }
 
 fn write_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
@@ -136,13 +158,15 @@ fn run(legacy: PathBuf, out: PathBuf) -> Result<(), String> {
     if out.try_exists().map_err(|error| format!("{}: {error}", out.display()))? {
         return Err(format!("Refusing to overwrite existing native goldens: {}", out.display()));
     }
-    let search: support::FixtureIndex = wsdist_fixtures::read(&legacy.join("search_simulation.json"), None)
+    let search: support::FixtureIndex = wsdist_fixtures::read_json(&legacy.join("search_simulation.json"))
         .map_err(|error| error.to_string())?;
+    assert_eq!(search.schema_version, 3, "search fixture storage schema");
     let mut cases: Vec<_> = search.cases.into_iter().filter(|entry| matches!(entry.operation.as_str(),
         "optimizer_neighborhood" | "optimizer_pass" | "optimizer_build" | "optimizer_sequence" |
         "simulation_dps" | "simulation_distribution" | "simulation_nonprogress")).collect();
-    let combat: support::FixtureIndex = wsdist_fixtures::read(&legacy.join("combat.json"), None)
+    let combat: support::FixtureIndex = wsdist_fixtures::read_json(&legacy.join("combat.json"))
         .map_err(|error| error.to_string())?;
+    assert_eq!(combat.schema_version, 3, "combat fixture storage schema");
     cases.push(combat.cases.into_iter().find(|entry| entry.id == COMBAT_ID).ok_or("missing native combat WS source case")?);
     assert_eq!(cases.len(), 137, "native golden case selection");
 
@@ -154,20 +178,31 @@ fn run(legacy: PathBuf, out: PathBuf) -> Result<(), String> {
     }
     fs::create_dir(&out).map_err(|error| format!("{}: {error}", out.display()))?;
     let mut entries = Vec::with_capacity(computed.len());
-    for (entry, bytes) in computed {
-        let path = out.join(entry["path"].as_str().unwrap());
+    for computed in computed {
+        let path = out.join(&computed.path);
         let parent = path.parent().unwrap();
         fs::create_dir_all(parent).map_err(|error| format!("{}: {error}", parent.display()))?;
-        write_file(&path, &bytes)?;
-        println!("{} -> {} ({} bytes)", entry["id"].as_str().unwrap(), path.display(), bytes.len());
-        entries.push(entry);
+        let content_xxh3_128 = wsdist_fixtures::write_value(&path, &computed.document).map_err(|error| error.to_string())?;
+        let bytes = fs::metadata(&path).map_err(|error| format!("{}: {error}", path.display()))?.len();
+        println!("{} -> {} ({} bytes)", computed.source.id, path.display(), bytes);
+        entries.push(object([
+            ("id", Value::from(computed.source.id.as_str())),
+            ("operation", Value::from(computed.source.operation.as_str())),
+            ("path", Value::String(computed.path)),
+            ("source_path", Value::String(computed.source_path)),
+            ("source_sha256", Value::String(computed.source_sha256)),
+            ("source_content_xxh3_128", Value::String(computed.source_content_xxh3_128)),
+            ("content_xxh3_128", Value::String(content_xxh3_128)),
+            ("legacy_path", Value::from(computed.source.source_path.as_str())),
+            ("legacy_sha256", Value::from(computed.source.source_sha256.as_str())),
+        ]));
     }
-    let index = json!({
-        "schema_version": 2,
-        "generator": "rand_chacha 0.9.0 ChaCha8Rng",
-        "seed_layout": "u64 little-endian in key bytes 0..8, zero bytes 8..32; Primary stream 0, Pdif stream 1",
-        "cases": entries,
-    });
+    let index = object([
+        ("schema_version", Value::from(3_u32)),
+        ("generator", Value::from("rand_chacha 0.9.0 ChaCha8Rng")),
+        ("seed_layout", Value::from("u64 little-endian in key bytes 0..8, zero bytes 8..32; Primary stream 0, Pdif stream 1")),
+        ("cases", Value::Array(entries)),
+    ]);
     let mut bytes = serde_json::to_vec(&index).unwrap();
     bytes.push(b'\n');
     write_file(&out.join("index.json"), &bytes)?;

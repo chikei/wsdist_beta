@@ -52,7 +52,7 @@ fn independent_conditioning_integration_attempt_trees_and_staged_truncation_keep
     let diagnostics = verification::independent::diagnostics(&verification::fixture_root());
     let capped = diagnostics.iter().find(|row| row["id"] == "pdif.capped_sword").unwrap();
     assert_eq!(capped["legacy_analytical"], serde_json::json!(3.33125));
-    player_support::assert_number(capped["independent_sampled_expectation"].as_f64().unwrap(), &serde_json::json!(3.23515625), "pdif.capped_sword independent integral");
+    player_support::assert_number(capped["independent_sampled_expectation"].as_f64().unwrap(), &wsdist_fixtures::Value::from(3.23515625), "pdif.capped_sword independent integral");
     let cap = diagnostics.iter().find(|row| row["id"] == "multiattack.eight_attempts").unwrap();
     assert_eq!(cap["legacy_analytical_landed_hits"], serde_json::json!(5.0));
     assert_eq!(cap["independent_sampled_landed_hits"], serde_json::json!(4.0));

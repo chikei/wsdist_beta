@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicBool;
 use std::sync::LazyLock;
 
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::model::*;
 use wsdist_core::optimizer::{optimize, probe::*};
 
@@ -24,10 +24,10 @@ pub fn replay(case: &Value) {
     let expected = &case["expected"]["value"];
     match case["operation"].as_str().unwrap() {
         "optimizer_helpers" => match input["helper"].as_str().unwrap() {
-            "slot_combos" => assert_eq!(json!(slot_combos(input["slot_count"].as_u64().unwrap() as usize,
-                input["max_swap_slots"].as_u64().unwrap() as usize)), expected["ordered_combos"], "{label}: combination walk"),
+            "slot_combos" => assert_eq!(to_value(slot_combos(input["slot_count"].as_u64().unwrap() as usize,
+                input["max_swap_slots"].as_u64().unwrap() as usize)).unwrap(), expected["ordered_combos"], "{label}: combination walk"),
             "options" => {
-                let options: Option<OptimizeOptions> = serde_json::from_value(input["options"].clone()).unwrap();
+                let options: Option<OptimizeOptions> = wsdist_fixtures::from_value(&input["options"]).unwrap();
                 let normalized = normalize_options(options.as_ref());
                 adapter::assert_options(&normalized, &expected["normalized"], label);
                 for index in 0..3 { adapter::assert_options(&restart_options(&normalized, index).unwrap(), &expected["restart_options"][index], label); }
@@ -35,8 +35,9 @@ pub fn replay(case: &Value) {
             "split_groups" => {
                 let groups = adapter::groups(&input["groups"]);
                 let shares = split_groups(&groups, input["total"].as_u64().unwrap() as usize, input["parts"].as_u64().unwrap() as usize);
-                let actual = shares.iter().map(|share| share.iter().map(|group| json!([group.combo, group.candidates])).collect::<Vec<_>>()).collect::<Vec<_>>();
-                assert_eq!(json!(actual), expected["ordered_shares"], "{label}: ordered chunk flattening");
+                let actual = shares.iter().map(|share| Value::Array(share.iter()
+                    .map(|group| to_value((&group.combo, &group.candidates)).unwrap()).collect())).collect();
+                assert_eq!(Value::Array(actual), expected["ordered_shares"], "{label}: ordered chunk flattening");
             }
             "intern_pieces" => {
                 let catalog = FrozenCatalog::from_input(input);
@@ -44,7 +45,7 @@ pub fn replay(case: &Value) {
                 let groups = input["groups"].as_array().unwrap().iter().map(|group| group.as_array().unwrap().iter().map(|gear| catalog.gear(gear)).collect::<Vec<_>>()).collect::<Vec<_>>();
                 let interned = intern_pieces(&catalog.catalog, &engine.state, groups.iter().map(Vec::as_slice));
                 let mapping = groups.iter().map(|group| group.iter().map(|&gear| interned.id(gear)).collect::<Vec<_>>()).collect::<Vec<_>>();
-                assert_eq!(json!(mapping), expected["input_to_interned_id"], "{label}: full-record interning order");
+                assert_eq!(to_value(&mapping).unwrap(), expected["input_to_interned_id"], "{label}: full-record interning order");
                 assert_eq!(interned.pieces.len(), expected["interned_records"].as_array().unwrap().len(), "{label}: distinct full records");
                 for (&gear, record) in interned.pieces.iter().zip(expected["interned_records"].as_array().unwrap()) {
                     let record = Value::Object(Slot::ALL.iter().map(|slot| (slot.name().to_owned(), record.clone())).collect());
@@ -53,8 +54,8 @@ pub fn replay(case: &Value) {
                 let all = groups.into_iter().flatten().collect::<Vec<_>>();
                 let equal = all.iter().map(|&a| all.iter().map(|&b| catalog.catalog.piece(a).value_equal(catalog.catalog.piece(b), &engine.state)).collect::<Vec<_>>()).collect::<Vec<_>>();
                 let identical = all.iter().map(|&a| all.iter().map(|&b| a == b).collect::<Vec<_>>()).collect::<Vec<_>>();
-                assert_eq!(json!(equal), expected["full_equality"], "{label}: ordered jobs, absent versus zero");
-                assert_eq!(json!(identical), expected["object_identity"], "{label}: source object identity");
+                assert_eq!(to_value(&equal).unwrap(), expected["full_equality"], "{label}: ordered jobs, absent versus zero");
+                assert_eq!(to_value(&identical).unwrap(), expected["object_identity"], "{label}: source object identity");
             }
             helper => panic!("{label}: unhandled helper {helper}"),
         },
@@ -70,7 +71,7 @@ pub fn replay(case: &Value) {
             let rules = adapter::legality(&catalog, input, &engine.state, label);
             let gearset = catalog.gearset(&input["player"]["gearset"]);
             assert_eq!(Some(rules.is_valid(&gearset, &catalog.catalog, &engine.state)), expected["valid"].as_bool(), "{label}: name/value legality");
-            assert_eq!(json!(jse_ear_names()), expected["jse_ears"], "{label}: earring restrictions");
+            assert_eq!(to_value(jse_ear_names()).unwrap(), expected["jse_ears"], "{label}: earring restrictions");
             catalog.assert_gearset(&gearset, &engine.state, &expected["effective_gearset"], label);
             assert_eq!(engine.random.uniforms() + engine.random.bounded + engine.random.reseeds, 0, "{label}: legality consumes no random calls");
         }
@@ -83,7 +84,7 @@ pub fn replay(case: &Value) {
             let slots = input["score_slots"].as_array().unwrap().iter().map(|slot| Slot::from_name(slot.as_str().unwrap()).unwrap().index()).collect::<Vec<_>>();
             let groups = adapter::product_groups(&slots, &pools);
             let metrics = ScoreScratch::new(&ctx).score(&ctx, &ids, &groups, adapter::thresholds(&input["thresholds"]), &mut engine, &AtomicBool::new(false), &mut trace).unwrap();
-            assert_eq!(json!(groups), expected["result"]["groups"], "{label}: score order");
+            assert_eq!(to_value(&groups).unwrap(), expected["result"]["groups"], "{label}: score order");
             adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
             assert_eq!(Some(ctx.fast_gate), expected["result"]["fast_gate"].as_bool(), "{label}: aftermath fast gate");
             adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
@@ -122,7 +123,7 @@ pub fn replay(case: &Value) {
             let groups = vec![Group { combo: Tuple::new(&[head]), candidates: (0..total).map(|index| Tuple::new(&[available[index % available.len()]])).collect() }];
             let metrics = mapper.score(&ids, &groups, total, adapter::thresholds(&input["thresholds"]), &mut engine,
                 &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut trace).unwrap();
-            assert_eq!(json!(groups), expected["result"]["groups"], "{label}: original dispatch payload");
+            assert_eq!(to_value(&groups).unwrap(), expected["result"]["groups"], "{label}: original dispatch payload");
             adapter::assert_floats(&metrics, &expected["result"]["metrics"], label);
             adapter::assert_trace(trace.as_ref().unwrap(), &expected["evidence"], &catalog, label);
             adapter::assert_draw_count(&engine.random, &expected["evidence"], label);

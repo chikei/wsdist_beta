@@ -5,17 +5,18 @@ use std::sync::Arc;
 use wsdist_core::buffs::{aggregate_buffs, build_enemy};
 use wsdist_core::model::{ActiveEffects, BuffInputs, CalcError, EnemyInput};
 use wsdist_core::{Catalog, Stat, Stats};
-use buffs_support::{assert_stats, controls, enemy, read_json, root, states, ui_fixtures};
+use buffs_support::{assert_stats, controls, enemy, fixture, read_json, root, states, ui_fixtures};
 
 #[test]
 fn frozen_effective_controls_reproduce_every_distinct_buff_and_enemy_state() {
     let catalog = Catalog::load(&root()).unwrap();
     let fixtures = ui_fixtures();
     let index = read_json(&fixtures.join("ui.json"));
+    assert_eq!(index["schema_version"], 3, "UI fixture storage schema");
     let mut seen = HashSet::new();
     let mut compared = 0;
     for entry in index["cases"].as_array().unwrap() {
-        let case = read_json(&fixtures.join(entry["path"].as_str().unwrap()));
+        let case = fixture(&fixtures, entry);
         let id = case["id"].as_str().unwrap();
         let mut snapshots = Vec::new();
         states(&case["expected"], &mut snapshots);

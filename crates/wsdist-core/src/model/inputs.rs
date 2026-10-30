@@ -163,39 +163,8 @@ impl Abilities {
         self.resist_rank_index = RESIST_RANKS.iter().position(|rank| *rank == name.as_ref()).map(|index| index as u8);
         self.resist_rank_name = name;
     }
-    pub fn from_legacy(values: &serde_json::Map<String, serde_json::Value>) -> Result<Self, CalcError> {
-        let mut result = Self::default();
-        for (name, value) in values {
-            if let Some(ability) = Ability::from_name(name) { result.set(ability, python_truth(value)); }
-            else {
-                match name.as_str() {
-                    "Aftermath" => {
-                        result.aftermath = legacy_number(value, "Aftermath")?;
-                        result.aftermath_source = match value {
-                            serde_json::Value::Number(value) => AftermathSource::Number(value.clone()),
-                            serde_json::Value::Bool(value) => AftermathSource::Bool(*value),
-                            _ => AftermathSource::Nonfinite(result.aftermath),
-                        };
-                    }
-                    "Enhancing Skill" => result.enhancing_skill = legacy_number(value, "Enhancing Skill")?,
-                    "Storm spell" => {
-                        if value == &serde_json::Value::Bool(false) || value.is_null() { result.set_storm(None); }
-                        else { result.set_storm(Some(Arc::from(value.as_str().ok_or_else(|| CalcError::legacy("abilities", "Storm spell", "TypeError", "Storm spell must be text or false"))?))); }
-                    }
-                    "Enemy Resist Rank" => result.set_resist_rank(Arc::from(value.as_str().ok_or_else(|| CalcError::legacy("abilities", "Enemy Resist Rank", "TypeError", "Enemy Resist Rank must be text"))?)),
-                    _ => {}
-                }
-            }
-        }
-        Ok(result)
-    }
 }
 
-fn legacy_number(value: &serde_json::Value, field: &'static str) -> Result<f64, CalcError> {
-    if let serde_json::Value::Bool(value) = value { return Ok(if *value { 1.0 } else { 0.0 }); }
-    LegacyF64::deserialize(value).map(|number| number.0)
-        .map_err(|_| CalcError::legacy("abilities", field, "TypeError", format!("{field} must be numeric")))
-}
 
 pub fn python_truth(value: &serde_json::Value) -> bool {
     match value {
@@ -220,10 +189,192 @@ impl Serialize for Abilities {
     }
 }
 
+/// Discards a map key only after the deserializer validates its text.
+pub(crate) struct LegacyKey;
+
+impl<'de> Deserialize<'de> for LegacyKey {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct KeyVisitor;
+        impl<'de> serde::de::Visitor<'de> for KeyVisitor {
+            type Value = LegacyKey;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a JSON object key") }
+            fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<LegacyKey, E> { Ok(LegacyKey) }
+        }
+        deserializer.deserialize_identifier(KeyVisitor)
+    }
+}
+
+/// Validates and reduces a legacy JSON value without retaining its contents.
+/// `IgnoredAny` would skip validation of overflowing numbers in unknown fields.
+pub(crate) struct LegacyTruth(bool);
+
+impl<'de> Deserialize<'de> for LegacyTruth {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct TruthVisitor;
+        impl<'de> serde::de::Visitor<'de> for TruthVisitor {
+            type Value = LegacyTruth;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a legacy JSON value") }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(LegacyTruth(false)) }
+            fn visit_bool<E: serde::de::Error>(self, value: bool) -> Result<Self::Value, E> { Ok(LegacyTruth(value)) }
+            fn visit_i64<E: serde::de::Error>(self, value: i64) -> Result<Self::Value, E> { Ok(LegacyTruth(value != 0)) }
+            fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Self::Value, E> { Ok(LegacyTruth(value != 0)) }
+            fn visit_f64<E: serde::de::Error>(self, value: f64) -> Result<Self::Value, E> {
+                if !value.is_finite() { return Err(E::custom("number out of range")); }
+                Ok(LegacyTruth(value != 0.0))
+            }
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> { Ok(LegacyTruth(!value.is_empty())) }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut values: A) -> Result<Self::Value, A::Error> {
+                let mut present = false;
+                while values.next_element::<LegacyTruth>()?.is_some() { present = true; }
+                Ok(LegacyTruth(present))
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut values: A) -> Result<Self::Value, A::Error> {
+                let mut present = false;
+                while values.next_key::<LegacyKey>()?.is_some() {
+                    values.next_value::<LegacyTruth>()?;
+                    present = true;
+                }
+                Ok(LegacyTruth(present))
+            }
+        }
+        deserializer.deserialize_any(TruthVisitor)
+    }
+}
+
+enum AbilityFieldValue {
+    Null,
+    Bool(bool),
+    Number(serde_json::Number),
+    Text(Arc<str>),
+    Nonfinite(f64),
+    Other,
+}
+
+impl AbilityFieldValue {
+    fn number(self, field: &'static str) -> Result<(f64, AftermathSource), CalcError> {
+        match self {
+            Self::Bool(value) => Ok((if value { 1.0 } else { 0.0 }, AftermathSource::Bool(value))),
+            Self::Number(value) => Ok((value.as_f64().unwrap(), AftermathSource::Number(value))),
+            Self::Nonfinite(value) => Ok((value, AftermathSource::Nonfinite(value))),
+            _ => Err(CalcError::legacy("abilities", field, "TypeError", format!("{field} must be numeric"))),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AbilityFieldValue {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct FieldVisitor;
+        impl<'de> serde::de::Visitor<'de> for FieldVisitor {
+            type Value = AbilityFieldValue;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a legacy ability value") }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(AbilityFieldValue::Null) }
+            fn visit_bool<E: serde::de::Error>(self, value: bool) -> Result<Self::Value, E> { Ok(AbilityFieldValue::Bool(value)) }
+            fn visit_i64<E: serde::de::Error>(self, value: i64) -> Result<Self::Value, E> { Ok(AbilityFieldValue::Number(value.into())) }
+            fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Self::Value, E> { Ok(AbilityFieldValue::Number(value.into())) }
+            fn visit_f64<E: serde::de::Error>(self, value: f64) -> Result<Self::Value, E> {
+                serde_json::Number::from_f64(value).map(AbilityFieldValue::Number)
+                    .ok_or_else(|| E::custom("number out of range"))
+            }
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> { Ok(AbilityFieldValue::Text(Arc::from(value))) }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut values: A) -> Result<Self::Value, A::Error> {
+                while values.next_element::<LegacyTruth>()?.is_some() {}
+                Ok(AbilityFieldValue::Other)
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut values: A) -> Result<Self::Value, A::Error> {
+                let mut tag = None;
+                let mut other = false;
+                while let Some(key) = values.next_key::<String>()? {
+                    if key == "nonfinite" {
+                        tag = Some(match values.next_value::<AbilityFieldValue>()? {
+                            AbilityFieldValue::Text(value) => match value.as_ref() {
+                                "NaN" => Some(f64::NAN), "+Infinity" => Some(f64::INFINITY),
+                                "-Infinity" => Some(f64::NEG_INFINITY), _ => None,
+                            },
+                            _ => None,
+                        });
+                    } else {
+                        values.next_value::<LegacyTruth>()?;
+                        other = true;
+                    }
+                }
+                Ok(match (other, tag) {
+                    (false, Some(Some(value))) => AbilityFieldValue::Nonfinite(value),
+                    _ => AbilityFieldValue::Other,
+                })
+            }
+        }
+        deserializer.deserialize_any(FieldVisitor)
+    }
+}
+
 impl<'de> Deserialize<'de> for Abilities {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let values = serde_json::Map::<String, serde_json::Value>::deserialize(deserializer)?;
-        Self::from_legacy(&values).map_err(serde::de::Error::custom)
+        enum Key { Flag(Ability), Field(usize), Unknown }
+        impl<'de> Deserialize<'de> for Key {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                struct KeyVisitor;
+                impl<'de> serde::de::Visitor<'de> for KeyVisitor {
+                    type Value = Key;
+                    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("an ability name") }
+                    fn visit_str<E: serde::de::Error>(self, name: &str) -> Result<Key, E> {
+                        Ok(if let Some(ability) = Ability::from_name(name) { Key::Flag(ability) } else {
+                            match name {
+                                "Aftermath" => Key::Field(0), "Enhancing Skill" => Key::Field(1),
+                                "Storm spell" => Key::Field(2), "Enemy Resist Rank" => Key::Field(3),
+                                _ => Key::Unknown,
+                            }
+                        })
+                    }
+                }
+                deserializer.deserialize_identifier(KeyVisitor)
+            }
+        }
+        struct AbilitiesVisitor;
+        impl<'de> serde::de::Visitor<'de> for AbilitiesVisitor {
+            type Value = Abilities;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a legacy abilities object") }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut map: A) -> Result<Abilities, A::Error> {
+                let mut result = Abilities::default();
+                let mut fields: [Option<AbilityFieldValue>; 4] = std::array::from_fn(|_| None);
+                let mut order = [0; 4];
+                let mut count = 0;
+                while let Some(key) = map.next_key::<Key>()? {
+                    match key {
+                        Key::Flag(ability) => result.set(ability, map.next_value::<LegacyTruth>()?.0),
+                        Key::Unknown => { map.next_value::<LegacyTruth>()?; }
+                        Key::Field(index) => {
+                            if fields[index].is_none() { order[count] = index; count += 1; }
+                            fields[index] = Some(map.next_value::<AbilityFieldValue>()?);
+                        }
+                    }
+                }
+                // As with the original ordered map, duplicate keys retain their
+                // first position and last value, including type validation.
+                for index in &order[..count] {
+                    let value = fields[*index].take().unwrap();
+                    match index {
+                        0 => {
+                            let (value, source) = value.number("Aftermath").map_err(serde::de::Error::custom)?;
+                            result.aftermath = value;
+                            result.aftermath_source = source;
+                        }
+                        1 => result.enhancing_skill = value.number("Enhancing Skill").map_err(serde::de::Error::custom)?.0,
+                        2 => match value {
+                            AbilityFieldValue::Null | AbilityFieldValue::Bool(false) => result.set_storm(None),
+                            AbilityFieldValue::Text(name) => result.set_storm(Some(name)),
+                            _ => return Err(serde::de::Error::custom(CalcError::legacy("abilities", "Storm spell", "TypeError", "Storm spell must be text or false"))),
+                        },
+                        3 => match value {
+                            AbilityFieldValue::Text(name) => result.set_resist_rank(name),
+                            _ => return Err(serde::de::Error::custom(CalcError::legacy("abilities", "Enemy Resist Rank", "TypeError", "Enemy Resist Rank must be text"))),
+                        },
+                        _ => unreachable!(),
+                    }
+                }
+                Ok(result)
+            }
+        }
+        deserializer.deserialize_map(AbilitiesVisitor)
     }
 }
 

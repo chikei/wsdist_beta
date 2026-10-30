@@ -21,14 +21,14 @@ fn all_shipped_profiles_restore_in_source_order_with_exact_effective_players() {
     assert_eq!(cases.len(), 23);
     for fixture in cases {
         let label = fixture["id"].as_str().unwrap();
-        let store = ProfileStore::from_document(fixture["input"]["profile_document"].as_object().unwrap().clone()).unwrap();
+        let store = ProfileStore::from_document(wsdist_fixtures::from_value(&fixture["input"]["profile_document"]).unwrap()).unwrap();
         let mut state = seeded(Some(&store));
         if fixture["input"]["profile_name"] == "default" {
             assert_snapshot(&state, &fixture["expected"]["value"]["initial_state"], "shipped default startup");
         }
         let step = &fixture["input"]["steps"][0];
         match step["action"].as_str().unwrap() {
-            "activate" => state.activate(step["key"].as_str().unwrap(), &step["value"], Some(&store)).unwrap(),
+            "activate" => state.activate(step["key"].as_str().unwrap(), &serde_json::to_value(&step["value"]).unwrap(), Some(&store)).unwrap(),
             "load_defaults" => state.load_profile(&store, step["type"].as_str().unwrap()),
             action => panic!("unexpected profile activation {action}"),
         }
@@ -74,9 +74,9 @@ fn complete_job_subjob_level_availability_keeps_unchecking_and_literal_menu_tran
             assert_eq!(control.hidden, row["abilities"][spec.name]["explicit_hidden"].as_bool().unwrap(), "row {index}: {} hidden", spec.name);
         }
         for (key, expected) in [("defaults_spell_combobox", "spell_choices"), ("defaults_subjob_combobox", "subjob_choices"), ("defaults_boost_combobox", "boost_choices")] {
-            assert_eq!(json!(state.controls[key].choices), row[expected], "row {index}: {key}");
+            assert_eq!(wsdist_fixtures::to_value(&state.controls[key].choices).unwrap(), row[expected], "row {index}: {key}");
         }
-        assert_eq!(json!(names(&state, &state.gear.radios[0][Slot::Sub.index()].items.visible)), row["sub_radio_choices"], "row {index}: offhand choices");
+        assert_eq!(wsdist_fixtures::to_value(names(&state, &state.gear.radios[0][Slot::Sub.index()].items.visible)).unwrap(), row["sub_radio_choices"], "row {index}: offhand choices");
         for (cache, key) in ["Dia", "Haste", "Boost", "Storm"].iter().enumerate() {
             assert_eq!(state.whm_selections[cache], row["cached_whm_selections"][key], "row {index}: source cache {key}");
         }
@@ -115,7 +115,7 @@ fn raw_restore_retains_stale_cache_but_direct_activation_keeps_calculation_input
     state.activate("defaults_ml_combobox", &json!("50"), None).unwrap();
     assert_eq!(state.sub_job_level, 59);
     state.set_raw("defaults_tp_entry", &json!("  +１_９００ ")).unwrap();
-    assert_number(state.calculation_inputs(GearSource::Quicklook).unwrap().tp, &json!(1900), "Python integer entry");
+    assert_number(state.calculation_inputs(GearSource::Quicklook).unwrap().tp, &wsdist_fixtures::Value::from(1900), "Python integer entry");
     state.set_raw(ENEMY_FIELDS[0].1, &json!("-0")).unwrap();
     assert_eq!(state.integer(ENEMY_FIELDS[0].1).unwrap().to_bits(), 0.0f64.to_bits(), "integer negative zero becomes positive zero");
 }

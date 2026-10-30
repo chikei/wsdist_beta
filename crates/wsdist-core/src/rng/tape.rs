@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use serde_json::{Map, Value};
+use serde::de::{DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer};
 
-use crate::model::{CalcError, LegacyF64, RandomSource, RandomStream};
+use crate::model::{CalcError, LegacyKey, LegacyTruth, RandomSource, RandomStream};
 
 /// A complete scalar random protocol record. Uniform parameters retain their
 /// binary64 bits, including signed zero and explicitly tagged nonfinites.
@@ -26,39 +27,6 @@ impl TapeRecord {
         Self::Reseed { stream, seed }
     }
 
-    fn from_json(value: &Value, index: usize) -> Result<Self, CalcError> {
-        let record = value.as_object().ok_or_else(|| record_error(index, "record", "expected an object"))?;
-        let stream = match required(record, index, "stream")?.as_str() {
-            Some("NumpyHost") => RandomStream::Primary,
-            Some("NumbaPython") => RandomStream::Pdif,
-            other => return Err(record_error(index, "stream", format!("unsupported stream {other:?}"))),
-        };
-        match required(record, index, "operation")?.as_str() {
-            Some("uniform") => Ok(Self::uniform(
-                stream,
-                number(parameter(record, index, 0, 2, "low")?, index, "low")?,
-                number(parameter(record, index, 1, 2, "high")?, index, "high")?,
-                number(required(record, index, "value")?, index, "value")?,
-            )),
-            Some("bounded") => {
-                let upper = integer(parameter(record, index, 0, 1, "upper_exclusive")?, index, "upper_exclusive")?;
-                let result = integer(required(record, index, "value")?, index, "value")?;
-                if upper == 0 || result >= upper {
-                    return Err(record_error(index, "value", "bounded result is outside its nonempty exclusive range"));
-                }
-                Ok(Self::bounded(stream, upper, result))
-            }
-            Some("reseed") => {
-                let seed = parameter(record, index, 0, 1, "seed")?.as_u64()
-                    .ok_or_else(|| record_error(index, "seed", "expected a nonnegative u64 integer"))?;
-                if record.get("value").is_some_and(|value| !value.is_null()) {
-                    return Err(record_error(index, "value", "reseed has no return value"));
-                }
-                Ok(Self::reseed(stream, seed))
-            }
-            other => Err(record_error(index, "operation", format!("unsupported operation {other:?}"))),
-        }
-    }
 }
 
 /// Strict replay with immutable shared evidence and a clone-local cursor.
@@ -78,15 +46,6 @@ impl ScriptedTape {
         Self { records, cursor: 0 }
     }
 
-    /// Decode captured draw arrays once, outside action/hit loops. Accepts the
-    /// combat `parameters` array and direct-helper named scalar parameters.
-    /// Capture metadata is intentionally not part of the random protocol.
-    pub fn from_json_records(records: &Value) -> Result<Self, CalcError> {
-        let records = records.as_array().ok_or_else(|| record_error(0, "records", "expected a draw array"))?;
-        let decoded = records.iter().enumerate().map(|(index, record)| TapeRecord::from_json(record, index))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::new(decoded))
-    }
 
     pub fn position(&self) -> usize { self.cursor }
 
@@ -157,31 +116,293 @@ fn record_error(index: usize, field: &'static str, message: impl Into<String>) -
     CalcError::Input { operation: "rng.tape", field, message: format!("record {index}: {}", message.into()) }
 }
 
-fn required<'a>(record: &'a Map<String, Value>, index: usize, name: &'static str) -> Result<&'a Value, CalcError> {
-    record.get(name).ok_or_else(|| record_error(index, name, "missing field"))
+#[derive(Debug)]
+enum TapeText {
+    Primary, Pdif, Uniform, Bounded, Reseed, Nan, PositiveInfinity, NegativeInfinity,
+    Other(Box<str>),
 }
 
-fn parameter<'a>(record: &'a Map<String, Value>, index: usize, position: usize, arity: usize, name: &'static str) -> Result<&'a Value, CalcError> {
-    if let Some(parameters) = record.get("parameters") {
-        if record.contains_key(name) {
-            return Err(record_error(index, name, "parameter specified twice"));
+impl TapeText {
+    fn from_str(value: &str) -> Self {
+        match value {
+            "NumpyHost" => Self::Primary, "NumbaPython" => Self::Pdif,
+            "uniform" => Self::Uniform, "bounded" => Self::Bounded, "reseed" => Self::Reseed,
+            "NaN" => Self::Nan, "+Infinity" => Self::PositiveInfinity, "-Infinity" => Self::NegativeInfinity,
+            value => Self::Other(value.into()),
         }
-        let parameters = parameters.as_array().ok_or_else(|| record_error(index, "parameters", "expected an array"))?;
-        if parameters.len() != arity {
-            return Err(record_error(index, "parameters", format!("expected {arity} parameters, got {}", parameters.len())));
+    }
+    fn as_str(&self) -> &str {
+        match self {
+            Self::Primary => "NumpyHost", Self::Pdif => "NumbaPython", Self::Uniform => "uniform",
+            Self::Bounded => "bounded", Self::Reseed => "reseed", Self::Nan => "NaN",
+            Self::PositiveInfinity => "+Infinity", Self::NegativeInfinity => "-Infinity",
+            Self::Other(value) => value,
         }
-        Ok(&parameters[position])
-    } else {
-        required(record, index, name)
     }
 }
 
-fn number(value: &Value, index: usize, field: &'static str) -> Result<f64, CalcError> {
-    serde_json::from_value::<LegacyF64>(value.clone()).map(|value| value.0)
-        .map_err(|error| record_error(index, field, error.to_string()))
+#[derive(Debug)]
+enum TapeScalar {
+    Null, Bool, U64(u64), I64(i64), F64(f64), Text(TapeText), Nonfinite(f64), Other,
 }
 
-fn integer(value: &Value, index: usize, field: &'static str) -> Result<usize, CalcError> {
-    value.as_u64().and_then(|value| usize::try_from(value).ok())
+impl TapeScalar {
+    fn text(&self) -> Option<&str> {
+        if let Self::Text(value) = self { Some(value.as_str()) } else { None }
+    }
+}
+
+impl<'de> Deserialize<'de> for TapeScalar {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct ScalarVisitor;
+        impl<'de> Visitor<'de> for ScalarVisitor {
+            type Value = TapeScalar;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a captured random scalar") }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(TapeScalar::Null) }
+            fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<Self::Value, E> { Ok(TapeScalar::Bool) }
+            fn visit_u64<E: serde::de::Error>(self, value: u64) -> Result<Self::Value, E> { Ok(TapeScalar::U64(value)) }
+            fn visit_i64<E: serde::de::Error>(self, value: i64) -> Result<Self::Value, E> { Ok(TapeScalar::I64(value)) }
+            fn visit_f64<E: serde::de::Error>(self, value: f64) -> Result<Self::Value, E> {
+                if !value.is_finite() { return Err(E::custom("number out of range")); }
+                Ok(TapeScalar::F64(value))
+            }
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> { Ok(TapeScalar::Text(TapeText::from_str(value))) }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut values: A) -> Result<Self::Value, A::Error> {
+                while values.next_element::<LegacyTruth>()?.is_some() {}
+                Ok(TapeScalar::Other)
+            }
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+                let mut tag = None;
+                let mut other = false;
+                while let Some(key) = map.next_key::<TapeKey>()? {
+                    if matches!(key, TapeKey::Nonfinite) {
+                        tag = Some(match map.next_value::<TapeScalar>()? {
+                            TapeScalar::Text(TapeText::Nan) => Some(f64::NAN),
+                            TapeScalar::Text(TapeText::PositiveInfinity) => Some(f64::INFINITY),
+                            TapeScalar::Text(TapeText::NegativeInfinity) => Some(f64::NEG_INFINITY),
+                            _ => None,
+                        });
+                    } else {
+                        map.next_value::<LegacyTruth>()?;
+                        other = true;
+                    }
+                }
+                Ok(match (other, tag) {
+                    (false, Some(Some(value))) => TapeScalar::Nonfinite(value),
+                    _ => TapeScalar::Other,
+                })
+            }
+        }
+        deserializer.deserialize_any(ScalarVisitor)
+    }
+}
+
+enum TapeKey { Stream, Operation, Parameters, Low, High, Upper, Seed, Value, Nonfinite, Other }
+
+impl<'de> Deserialize<'de> for TapeKey {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct KeyVisitor;
+        impl<'de> Visitor<'de> for KeyVisitor {
+            type Value = TapeKey;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a random record field") }
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+                Ok(match value {
+                    "stream" => TapeKey::Stream, "operation" => TapeKey::Operation, "parameters" => TapeKey::Parameters,
+                    "low" => TapeKey::Low, "high" => TapeKey::High, "upper_exclusive" => TapeKey::Upper,
+                    "seed" => TapeKey::Seed, "value" => TapeKey::Value, "nonfinite" => TapeKey::Nonfinite,
+                    _ => TapeKey::Other,
+                })
+            }
+        }
+        deserializer.deserialize_identifier(KeyVisitor)
+    }
+}
+
+enum Parameters {
+    Array { values: [TapeScalar; 2], len: usize },
+    Other,
+}
+
+impl<'de> Deserialize<'de> for Parameters {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct ParametersVisitor;
+        impl<'de> Visitor<'de> for ParametersVisitor {
+            type Value = Parameters;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("captured random parameters") }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> { Ok(Parameters::Other) }
+            fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<Self::Value, E> { Ok(Parameters::Other) }
+            fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<Self::Value, E> { Ok(Parameters::Other) }
+            fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<Self::Value, E> { Ok(Parameters::Other) }
+            fn visit_f64<E: serde::de::Error>(self, value: f64) -> Result<Self::Value, E> {
+                if !value.is_finite() { return Err(E::custom("number out of range")); }
+                Ok(Parameters::Other)
+            }
+            fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<Self::Value, E> { Ok(Parameters::Other) }
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+                while map.next_key::<LegacyKey>()?.is_some() { map.next_value::<LegacyTruth>()?; }
+                Ok(Parameters::Other)
+            }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut input: A) -> Result<Self::Value, A::Error> {
+                let mut values = [TapeScalar::Null, TapeScalar::Null];
+                let mut len = 0;
+                while let Some(value) = input.next_element::<TapeScalar>()? {
+                    if len < values.len() { values[len] = value; }
+                    len += 1;
+                }
+                Ok(Parameters::Array { values, len })
+            }
+        }
+        deserializer.deserialize_any(ParametersVisitor)
+    }
+}
+
+#[derive(Default)]
+struct CapturedRecord {
+    stream: Option<TapeScalar>,
+    operation: Option<TapeScalar>,
+    parameters: Option<Parameters>,
+    low: Option<TapeScalar>,
+    high: Option<TapeScalar>,
+    upper: Option<TapeScalar>,
+    seed: Option<TapeScalar>,
+    value: Option<TapeScalar>,
+}
+
+impl<'de> Deserialize<'de> for CapturedRecord {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct RecordVisitor;
+        impl<'de> Visitor<'de> for RecordVisitor {
+            type Value = CapturedRecord;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a captured random record object") }
+            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+                let mut record = CapturedRecord::default();
+                while let Some(key) = map.next_key::<TapeKey>()? {
+                    match key {
+                        TapeKey::Stream => record.stream = Some(map.next_value()?),
+                        TapeKey::Operation => record.operation = Some(map.next_value()?),
+                        TapeKey::Parameters => record.parameters = Some(map.next_value()?),
+                        TapeKey::Low => record.low = Some(map.next_value()?),
+                        TapeKey::High => record.high = Some(map.next_value()?),
+                        TapeKey::Upper => record.upper = Some(map.next_value()?),
+                        TapeKey::Seed => record.seed = Some(map.next_value()?),
+                        TapeKey::Value => record.value = Some(map.next_value()?),
+                        TapeKey::Nonfinite | TapeKey::Other => { map.next_value::<LegacyTruth>()?; }
+                    }
+                }
+                Ok(record)
+            }
+        }
+        deserializer.deserialize_map(RecordVisitor)
+    }
+}
+
+fn required<'a>(value: &'a Option<TapeScalar>, index: usize, name: &'static str) -> Result<&'a TapeScalar, CalcError> {
+    value.as_ref().ok_or_else(|| record_error(index, name, "missing field"))
+}
+
+fn parameter<'a>(
+    record: &'a CapturedRecord, direct: &'a Option<TapeScalar>, index: usize,
+    position: usize, arity: usize, name: &'static str,
+) -> Result<&'a TapeScalar, CalcError> {
+    if let Some(parameters) = &record.parameters {
+        if direct.is_some() { return Err(record_error(index, name, "parameter specified twice")); }
+        let Parameters::Array { values, len } = parameters else {
+            return Err(record_error(index, "parameters", "expected an array"));
+        };
+        if *len != arity {
+            return Err(record_error(index, "parameters", format!("expected {arity} parameters, got {len}")));
+        }
+        Ok(&values[position])
+    } else {
+        required(direct, index, name)
+    }
+}
+
+fn number(value: &TapeScalar, index: usize, field: &'static str) -> Result<f64, CalcError> {
+    match value {
+        TapeScalar::U64(value) => Ok(*value as f64), TapeScalar::I64(value) => Ok(*value as f64),
+        TapeScalar::F64(value) | TapeScalar::Nonfinite(value) => Ok(*value),
+        _ => Err(record_error(index, field, "expected a number or an explicit nonfinite tag")),
+    }
+}
+
+fn unsigned(value: &TapeScalar) -> Option<u64> {
+    match value {
+        TapeScalar::U64(value) => Some(*value),
+        TapeScalar::I64(value) => u64::try_from(*value).ok(),
+        _ => None,
+    }
+}
+
+fn integer(value: &TapeScalar, index: usize, field: &'static str) -> Result<usize, CalcError> {
+    unsigned(value).and_then(|value| usize::try_from(value).ok())
         .ok_or_else(|| record_error(index, field, "expected a representable nonnegative integer"))
+}
+
+struct TapeRecordSeed(usize);
+
+impl<'de> DeserializeSeed<'de> for TapeRecordSeed {
+    type Value = TapeRecord;
+    fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<Self::Value, D::Error> {
+        let index = self.0;
+        let record = CapturedRecord::deserialize(deserializer)
+            .map_err(|error| <D::Error as serde::de::Error>::custom(record_error(index, "record", error.to_string())))?;
+        let decode = || -> Result<TapeRecord, CalcError> {
+            let stream = match required(&record.stream, index, "stream")? {
+                TapeScalar::Text(TapeText::Primary) => RandomStream::Primary,
+                TapeScalar::Text(TapeText::Pdif) => RandomStream::Pdif,
+                other => return Err(record_error(index, "stream", format!("unsupported stream {:?}", other.text()))),
+            };
+            match required(&record.operation, index, "operation")? {
+                TapeScalar::Text(TapeText::Uniform) => Ok(TapeRecord::uniform(
+                    stream,
+                    number(parameter(&record, &record.low, index, 0, 2, "low")?, index, "low")?,
+                    number(parameter(&record, &record.high, index, 1, 2, "high")?, index, "high")?,
+                    number(required(&record.value, index, "value")?, index, "value")?,
+                )),
+                TapeScalar::Text(TapeText::Bounded) => {
+                    let upper = integer(parameter(&record, &record.upper, index, 0, 1, "upper_exclusive")?, index, "upper_exclusive")?;
+                    let value = integer(required(&record.value, index, "value")?, index, "value")?;
+                    if upper == 0 || value >= upper {
+                        return Err(record_error(index, "value", "bounded result is outside its nonempty exclusive range"));
+                    }
+                    Ok(TapeRecord::bounded(stream, upper, value))
+                }
+                TapeScalar::Text(TapeText::Reseed) => {
+                    let seed = unsigned(parameter(&record, &record.seed, index, 0, 1, "seed")?)
+                        .ok_or_else(|| record_error(index, "seed", "expected a nonnegative u64 integer"))?;
+                    if record.value.as_ref().is_some_and(|value| !matches!(value, TapeScalar::Null)) {
+                        return Err(record_error(index, "value", "reseed has no return value"));
+                    }
+                    Ok(TapeRecord::reseed(stream, seed))
+                }
+                other => Err(record_error(index, "operation", format!("unsupported operation {:?}", other.text()))),
+            }
+        };
+        decode().map_err(serde::de::Error::custom)
+    }
+}
+
+impl<'de> Deserialize<'de> for TapeRecord {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        TapeRecordSeed(0).deserialize(deserializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ScriptedTape {
+    /// Decode captured draw arrays directly into typed records, outside hit
+    /// loops. Both positional and named parameters are accepted and validated.
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct TapeVisitor;
+        impl<'de> Visitor<'de> for TapeVisitor {
+            type Value = ScriptedTape;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("a captured random draw array") }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut input: A) -> Result<Self::Value, A::Error> {
+                let mut records = Vec::with_capacity(input.size_hint().unwrap_or(0));
+                while let Some(record) = input.next_element_seed(TapeRecordSeed(records.len()))? { records.push(record); }
+                Ok(ScriptedTape::new(records))
+            }
+        }
+        deserializer.deserialize_seq(TapeVisitor)
+    }
 }

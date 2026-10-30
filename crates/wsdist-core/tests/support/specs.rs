@@ -1,10 +1,10 @@
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::math::{WeaponBonusSkill, WeaponBonusWeapon, get_weapon_bonus};
 use wsdist_core::stats::Stat;
 use wsdist_core::weaponskills::{CritScaling, DStatFormula, TpScaling, WS_TABLE, WsHook, resolve_name};
 
 fn exact(actual: f64, expected: &Value, path: &str) {
-    crate::kernel_support::assert_value(&json!(actual), expected, true, path);
+    crate::kernel_support::assert_value(&to_value(actual).unwrap(), expected, true, path);
 }
 
 fn points(actual: [f64; 3], expected: &Value, path: &str) {

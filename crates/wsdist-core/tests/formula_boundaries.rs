@@ -8,13 +8,13 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::{Value, json};
+use wsdist_fixtures::Value;
 use wsdist_core::Catalog;
 
 #[test]
 fn formula_boundaries_match_python_at_every_threshold() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/boundaries");
-    let manifest = wsdist_fixtures::read_value(&root.join("manifest.json"), None).unwrap();
+    let manifest = wsdist_fixtures::read_json_value(&root.join("manifest.json")).unwrap();
     let groups = manifest["groups"].as_array().unwrap();
     assert_eq!(groups.len() + manifest["rejected_groups"].as_array().unwrap().len(), 89);
     let catalog = Arc::new(Catalog::load(&combat_support::resource_root()).unwrap());
@@ -22,7 +22,8 @@ fn formula_boundaries_match_python_at_every_threshold() {
     let mut replay_failures = Vec::new();
 
     for index_name in ["combat.json", "kernels.json"] {
-        let index = wsdist_fixtures::read_value(&root.join(index_name), None).unwrap();
+        let index = wsdist_fixtures::read_json_value(&root.join(index_name)).unwrap();
+        assert_eq!(index["schema_version"], 3, "{index_name}: fixture storage schema");
         for entry in index["cases"].as_array().unwrap() {
             let case = wsdist_fixtures::read_value(
                 &root.join(entry["path"].as_str().unwrap()),
@@ -48,7 +49,10 @@ fn formula_boundaries_match_python_at_every_threshold() {
                         continue;
                     }
                 };
-                let observation = json!({"fields": counts.last_fields, "hits": counts.scripted_trace});
+                let observation = Value::Object([
+                    ("fields".to_owned(), counts.last_fields.unwrap_or(Value::Null)),
+                    ("hits".to_owned(), wsdist_fixtures::to_value(counts.scripted_trace).unwrap()),
+                ].into_iter().collect());
                 let side = case["boundary"]["side"].as_str().unwrap();
                 assert!(sides.insert(side.to_owned(), observation).is_none(), "{group}: duplicate {side}");
             } else {

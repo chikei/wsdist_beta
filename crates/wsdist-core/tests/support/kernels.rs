@@ -1,4 +1,4 @@
-use serde_json::{Value, json};
+use wsdist_fixtures::{Value, to_value};
 use wsdist_core::math::*;
 
 use crate::kernel_support::{self, StrictTape, assert_value, numeric};
@@ -12,8 +12,8 @@ pub fn replay(case: &Value) -> (usize, usize) {
                 let input = numeric(&row["input"]);
                 let python = python_round1(input);
                 let numpy = numpy_round1(input);
-                assert_value(&json!(python), &row["python_round"], true, &format!("{label}[{index}].python"));
-                assert_value(&json!(numpy), &row["numpy_round"], true, &format!("{label}[{index}].numpy"));
+                assert_value(&to_value(python).unwrap(), &row["python_round"], true, &format!("{label}[{index}].python"));
+                assert_value(&to_value(numpy).unwrap(), &row["numpy_round"], true, &format!("{label}[{index}].numpy"));
                 assert_eq!(python.is_sign_negative(), numeric(&row["python_sign"]) < 0.0, "{label}: Python signed zero");
                 assert_eq!(numpy.is_sign_negative(), numeric(&row["numpy_sign"]) < 0.0, "{label}: NumPy signed zero");
             }
@@ -29,8 +29,8 @@ pub fn replay(case: &Value) -> (usize, usize) {
                                 let window: f64 = window_name.parse().unwrap();
                                 let (m, v, actual_window) = get_mv_blm(BlmElement::from_name(element_name).unwrap(), BlmTier::from_name(tier_name).unwrap(), window).unwrap();
                                 let path = format!("{label}.{tier_name}.{element_name}.{window_name}");
-                                assert_value(&json!(m), &coefficients[1], true, &format!("{path}.M"));
-                                assert_value(&json!(v), &coefficients[0], true, &format!("{path}.V"));
+                                assert_value(&to_value(m).unwrap(), &coefficients[1], true, &format!("{path}.M"));
+                                assert_value(&to_value(v).unwrap(), &coefficients[0], true, &format!("{path}.V"));
                                 assert_eq!(actual_window, window, "{path}: coefficient window");
                                 count += 1;
                             }
@@ -39,7 +39,7 @@ pub fn replay(case: &Value) -> (usize, usize) {
                     "get_weapon_bonus.weapon_skill_bonuses" => for (weapon, skills) in table["value"].as_object().unwrap() {
                         for (skill, amount) in skills.as_object().unwrap() {
                             let actual = get_weapon_bonus(WeaponBonusWeapon::from_name(weapon), WeaponBonusWeapon::from_name(""), WeaponBonusSkill::from_name(skill));
-                            assert_value(&json!(actual), amount, true, &format!("{label}.{weapon}.{skill}"));
+                            assert_value(&to_value(actual).unwrap(), amount, true, &format!("{label}.{weapon}.{skill}"));
                             count += 1;
                         }
                     },
@@ -54,7 +54,7 @@ pub fn replay(case: &Value) -> (usize, usize) {
                 let path = format!("{label}.{}", row["label"].as_str().unwrap());
                 let result = wsdist_core::model::get_skill_accuracy(numeric(&row["args"][0]));
                 match (result, row["outcome"].as_str().unwrap()) {
-                    (Ok(actual), "success") => assert_value(&json!(actual), &row["result"], true, &path),
+                    (Ok(actual), "success") => assert_value(&to_value(actual).unwrap(), &row["result"], true, &path),
                     (Err(error), "error") => crate::support::assert_error(&error, &row["exception"], &path),
                     (actual, expected) => panic!("{path}: expected {expected}, got {actual:?}"),
                 }

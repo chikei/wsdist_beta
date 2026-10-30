@@ -1,1 +1,0 @@
-{"id":"combat.008728.bonus.Aymur.Primal_Rend.main","operation":"combat.weapon_bonus","input":{"main_name2":"Aymur","ranged_name2":"Empty","ws_name":"Primal Rend"},"source_anchors":["weapon_bonus.py:6-140"],"coverage":["all_weapon_bonus_rows","additive_main_ranged_lookup"],"expected":{"outcome":"result","value":{"status":"ok","bonus":0.3}},"stdout":""}

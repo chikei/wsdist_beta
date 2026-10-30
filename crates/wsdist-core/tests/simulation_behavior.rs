@@ -7,8 +7,8 @@ mod native_support;
 #[allow(dead_code)]
 mod optimizer_support;
 
-use serde_json::Value;
-use support::{document, fixture, fixture_root, index};
+use wsdist_fixtures::Value;
+use support::{fixture, fixture_root, index};
 
 fn replay_all(operation: &str, replay: fn(&Value)) -> usize {
     let mut count = 0;
@@ -94,7 +94,7 @@ fn unreachable_zanshin_or_daken_cannot_mask_a_proven_no_tp_loop() {
 fn ws_only_threshold_keeps_empty_tp_averages_as_nonfinite_results() {
     use std::sync::atomic::AtomicBool;
     use wsdist_core::simulation::simulate_dps;
-    let case = document(&fixture_root().join("search_simulation/000399.json"));
+    let case = wsdist_fixtures::read_value(&fixture_root().join("search_simulation/000399.bitcode.zst"), None).unwrap();
     let frozen = support::FrozenCatalog::from_input(&case["input"]);
     let mut ctx = frozen.context(&case["input"]["seeds"]);
     let mut request = simulation_support::dps_request(&frozen, &case["input"], &ctx, "WS-only threshold");
@@ -107,8 +107,9 @@ fn ws_only_threshold_keeps_empty_tp_averages_as_nonfinite_results() {
     assert_eq!(result.damage, result.ws_damage);
     assert!(result.tp_series.is_empty());
     assert!(result.events.iter().all(|event| event.kind == wsdist_core::model::SimulationEventKind::WeaponSkill));
-    let serialized = serde_json::to_value(result).unwrap();
+    let serialized = wsdist_fixtures::to_value(result).unwrap();
+    let nan = wsdist_fixtures::to_value(wsdist_core::model::LegacyF64(f64::NAN)).unwrap();
     for field in ["average_tp_damage", "average_physical_round_damage", "average_magical_round_damage"] {
-        assert_eq!(serialized[field], serde_json::json!({"nonfinite": "NaN"}), "{field}: empty NumPy reduction is not null or fabricated zero");
+        assert_eq!(serialized[field], nan, "{field}: empty NumPy reduction is not null or fabricated zero");
     }
 }
