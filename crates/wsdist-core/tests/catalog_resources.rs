@@ -88,6 +88,13 @@ fn assert_data_error(root: &Path, file: &str, json_path: &str) -> String {
     }
 }
 
+// Paths compare by component: Windows messages may mix `/` and `\` separators.
+fn assert_first_declared_at(message: &str, file: &Path, json_path: &str) {
+    let location = message.split_once("; first declared at ").unwrap_or_else(|| panic!("{message}")).1;
+    let (path, actual) = location.rsplit_once(": ").unwrap_or_else(|| panic!("{message}"));
+    assert_eq!((Path::new(path), actual), (file, json_path), "{message}");
+}
+
 fn assert_data_error_file(root: &Path, file: &str) {
     match Catalog::load(root) {
         Err(CalcError::Data { path, .. }) => assert_eq!(path, root.join(file)),
@@ -516,8 +523,7 @@ fn selectable_labels_cannot_conflict_across_fragments_or_selection_kinds() {
         write_fragment(temporary.path(), "nested/z.json5", vec![conflicting]);
         let message = assert_data_error(temporary.path(), "data/gear/nested/z.json5", "$.pieces[0].name2");
         assert!(message.contains("Conflicting selection"), "{message}");
-        assert!(message.contains(&temporary.path().join("data/gear/a.json5").display().to_string()), "{message}");
-        assert!(message.contains("$.pieces[0].name2"), "{message}");
+        assert_first_declared_at(&message, &temporary.path().join("data/gear/a.json5"), "$.pieces[0].name2");
     }
 }
 
@@ -532,8 +538,7 @@ fn food_base_name_ambiguity_reports_both_origins_instead_of_overriding() {
     write_fragment(temporary.path(), "nested/z.json5", vec![second]);
     let message = assert_data_error(temporary.path(), "data/gear/nested/z.json5", "$.pieces[0].name");
     assert!(message.contains("Shared meal"), "{message}");
-    assert!(message.contains(&temporary.path().join("data/gear/a.json5").display().to_string()), "{message}");
-    assert!(message.contains("$.pieces[0].name"), "{message}");
+    assert_first_declared_at(&message, &temporary.path().join("data/gear/a.json5"), "$.pieces[0].name");
 }
 
 #[test]
@@ -753,7 +758,7 @@ fn one_shared_empty_piece_is_required_but_need_not_be_listed() {
     write_fragment(temporary.path(), "z/duplicate-empty.json5", vec![test_piece("Empty", &[])]);
     let message = assert_data_error(temporary.path(), "data/gear/z/duplicate-empty.json5", "$.pieces[0].name2");
     assert!(message.contains("duplicate Empty"), "{message}");
-    assert!(message.contains(&temporary.path().join("data/gear/test.json5").display().to_string()), "{message}");
+    assert_first_declared_at(&message, &temporary.path().join("data/gear/test.json5"), "$.pieces[0].name2");
     fs::remove_file(temporary.path().join("data/gear/z/duplicate-empty.json5")).unwrap();
     alter(temporary.path(), "data/gear/test.json5", |source| { source["pieces"][0]["name2"] = json!("No empty piece"); });
     assert_data_error(temporary.path(), "data/gear/test.json5", "$.pieces");
