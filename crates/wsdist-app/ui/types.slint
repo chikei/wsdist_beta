@@ -1,0 +1,34 @@
+export enum InputWidgetKind { entry, combo, checkbox, label }
+
+export struct InputRow {
+    key: string,
+    label: string,
+    control-kind: InputWidgetKind,
+    text: string,
+    checked: bool,
+    choices: [string],
+    selection: int,
+    enabled: bool,
+    visible: bool,
+    tooltip: string,
+}
+
+export struct GearSlotRow {
+    slot: int,
+    label: string,
+    name: string,
+    icon: image,
+    tooltip: string,
+}
+
+export struct GearChoiceRow {
+    id: int,
+    name: string,
+    checked: bool,
+    tooltip: string,
+}
+
+export struct StatDisplayRow {
+    label: string,
+    value: string,
+}

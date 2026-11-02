@@ -11,3 +11,4 @@ defaults.txt
 *.spec
 venv10/*
 venv/*
+/target/

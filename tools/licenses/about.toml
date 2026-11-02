@@ -1,0 +1,26 @@
+# Used only by pinned cargo-about 0.8.2 during native packaging.
+# OR expressions prefer MIT; every term of AND expressions is retained.
+# Slint uses its royalty-free application license, not the GPL alternative.
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "MPL-2.0",
+    "OFL-1.1",
+    "OFL-1.1-RFN",
+    "CC-BY-ND-4.0",
+    "LicenseRef-Slint-Royalty-free-2.0",
+]
+ignore-build-dependencies = false
+ignore-dev-dependencies = true
+ignore-transitive-dependencies = false
+no-clearly-defined = true
+workarounds = ["rustix"]
+
+# Local application code has no license grant; do not fabricate one for notices.
+[private]
+ignore = true

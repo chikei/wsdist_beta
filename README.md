@@ -1,26 +1,244 @@
-# wsdist_beta
- 
-GUI application for simulating damage dealt with various spells and abilities using user-defined gear sets.
+# WSDist
 
-You may run the code with as a simple Python file:
+Native Rust/Slint desktop application for FFXI damage calculations, gear
+optimization and simulations. Four tabs: **Quicklook**, **Optimize**,
+**Simulate**, and **Player Stats**. The application does not require Python,
+Qt, NumPy, Numba or Matplotlib.
 
-    python gui_main.py
+## Portable application
 
-or you may simple double-click the gui_main.exe executable. Note that if you try to double-click the executable and it crashes before you can read the error, then you'll need to open a Windows Powershell, navigate to the executable file location, and type "gui_main.exe" to run it from the powershell to read the error causing the crash.
+Native CI produces complete bundles:
 
-If you choose to use the executable version of this application, then I recommend downloading the application from the actions page for this repository (https://github.com/IzaKastra/wsdist_beta/actions), which contains the executable and necessary files for running it in one simple download. "kastra_ffxi_sim-full" contains all necessary files to run the application. "kastra_ffxi_sim-executable-only" contains only the executable and will not run without the other necessary files. These files from the Actions page were created on GitHub servers using the commands found in the "workflow file" and are therefore considered as "probably safe to run."
+- `wsdist-linux-x86_64.tar.gz`
+- `wsdist-windows-x86_64.zip`
 
+Extract the entire archive into a writable directory and launch
+`wsdist-gui` (Linux) or `wsdist-gui.exe` (Windows). Keep `data/`,
+`defaults.json`, `item_list.csv`, `icons32/` and the license notices beside the
+executable. Launching from another working directory is supported; missing
+resources produce a visible startup error rather than loading another directory.
+Windows bundles use the static MSVC CRT. Linux bundles use the system's
+fontconfig, FreeType, fonts and X11/Wayland libraries; CI builds on Ubuntu 24.04.
+An interactive Linux inventory file chooser also needs an XDG Desktop Portal
+implementation such as GTK, GNOME or KDE.
 
+The archive and its `.sha256` file are uploaded only after the native numerical,
+GUI and extracted-archive CI gates pass. Workflow definitions are not evidence
+that a particular Windows build has already been executed; see [VERIFY.md](VERIFY.md)
+for the exercised verification and remaining manual checks.
 
-Note that the .exe application will not notice any changes made to the .py files (except gear.py and enemies.py). If you wish to make changes to any other file, then you will need to run the gui_main.py version of the code.
+## Workflows
 
-I prefer that all issues are reported as issues on the GitHub page. I rarely check FFXIAH, so I may be delayed when responding to posts there.
+- **Quicklook:** select a job/profile, abilities, enemy and party buffs; edit the
+  independent Quicklook equipment set. Use **Quicklook TP**, **Quicklook WS**,
+  **Quicklook Spell** or **Simulate WS** explicitly. Editing does not recompute
+  the last displayed results or Player Stats.
+- **Optimize:** check candidates independently for each slot, apply the bulk
+  selection filters or import a Windower inventory file, choose metrics and
+  search options, then run **Optimize WS**, **Optimize Spell** or **Optimize TP**.
+  When a job ends, its progress window closes. Successful jobs show the final set
+  and computed values in a Quicklook-style result window. Worker failures show
+  the full error there, including insufficient candidate selection, without
+  replacing the last successful result. Cancellation opens no result window.
+  Intermediate and final output still appear in the console. **Equip best set**
+  is enabled only for an actual returned player. Unsatisfied damage-taken
+  constraints remain visible in the final report.
+- **Simulate:** maintain separate TP and WS equipment sets; run the full
+  7200-second DPS simulation, a 20000-sample WS distribution, or the TP/WS stat
+  comparison. Reports and charts open in independent windows.
+- **Player Stats:** explicitly refresh from Quicklook, TP or WS gear. Reports
+  preserve the existing source-specific display units and haste caps.
 
+Quicklook and Optimize result windows include a **Calculation process** that
+lists each formula followed by the same formula with the evaluated values
+substituted. Steps are grouped into separate Accuracy and hits, Damage, TP,
+Time, Result and Optimizer sections. Random terms keep labeled placeholders such
+as `[random hit roll: U(0,1)]`; the heading marks expected values or a sampled
+result. **Simulate WS** keeps observed hit outcomes above its calculation
+process. Optimization details follow the retained scored output; a separate
+post-reorder restart comparison has its own block. Viewing a report does not
+rerun calculations or draw new rolls.
 
+Formulas use BG Wiki's
+[Weapon Skill Damage](https://www.bg-wiki.com/ffxi/Weapon_Skill_Damage),
+[Magic Damage](https://www.bg-wiki.com/ffxi/Magic_Damage),
+[Physical Damage](https://www.bg-wiki.com/ffxi/Physical_Damage), and
+[Tactical Points](https://www.bg-wiki.com/ffxi/Tactical_Points) notation, written
+with the evaluator's implemented rounding and factor order; the display does not
+change damage or TP calculations. The TP section covers TP delay, Store TP,
+first-hit versus additional-hit WS returns, Regain and spell/ranged TP sources
+such as Occult Acumen and Recycle; the Time section covers haste and time to WS.
 
-GUI preview images:
+At 760×440, the UI preserves the original three input columns, four buff columns,
+equipment grid beside its candidate list, and grouped Stats columns. The main
+tabs use a fixed 704px rail with 680px content rows: controls, dropdowns, buttons,
+candidate lists and Stats columns keep their widths when the window grows.
+Content stays left-aligned; only the available height and vertical scrolling
+expand. Equipment cards are 48×48px with centered 28×28px icon canvases. Long
+Stats labels/values wrap vertically instead of widening their columns.
+Stacked sections use 2px vertical gaps. Input rows have no extra vertical gutter;
+equipment options use 26px rows without shrinking the dropdowns, entries or
+checkboxes. Compact section heights avoid leaving the saved row space blank.
+Quicklook's first input row fits the enemy grid, with the Special Toggles scroll
+area ending at the same bottom edge. The Active Buffs row fits its tallest column.
+In Quicklook's Active Buffs, the WHM skill and Geomancy Bubble Potency fields
+stack their labels above full-width inputs, matching Active Food.
+Dropdown options match the selected-value display's row height, text padding and
+vertical centering, including the compact Resistance rank control.
+Missing or unreadable icon assets leave the image blank; the slot button and item
+details remain usable. App-owned scroll views reserve an 18px vertical scrollbar
+lane with a persistent 14px thumb and contrasting track whenever content overflows.
+Drag the thumb, click the track to page, or use the mouse wheel; report text retains
+native selection and copying.
+Report and optimizer-progress text select the system's monospace font family when
+available. Fonts are not bundled, and other interface fonts are unchanged.
+The preferred window size is 760×900; the minimum remains 720×440.
 
-<img src="https://i.imgur.com/XI1MpKP.png" alt="Quicklook tab preview" width="527" height="677">
-<img src="https://i.imgur.com/2ASbWhA.png" alt="Optimize tab preview" width="527" height="677">
-<img src="https://i.imgur.com/ti7dczS.png" alt="Simulations tab preview" width="527" height="677">
-<img src="https://i.imgur.com/NbXwpWf.png" alt="Player Stats tab preview" width="527" height="677">
+Candidate lists use 20px rows and reserve an extra two-row (40px) height budget
+for item details. Details show the item name once above stats-only text, without
+a separate grouping caption.
+The three equipment sets have independent slot grids, variant lists, icons and
+item details. Copy actions support Quicklook ↔ TP and Quicklook ↔ WS;
+clipboard exports use the actual selected source. Closing a result/chart window
+does not close the application. One calculation runs at a time; inputs freeze
+while it runs, while tab navigation and Close remain available. Cancel/Close
+joins the owned workers without publishing a partial result.
+
+`Ctrl+1` through `Ctrl+4` select tabs. `q` closes the application only outside
+text editing. The TP entry accepts 1000–3000 with mouse-wheel steps of 100.
+Use **File > Save Defaults** to save both the current job and default profile;
+there is no exit autosave. **Settings** retains the unpersisted Damage Limit
+(DPS) and Verbose Swaps toggles. **Help > About Slint** supplies framework
+attribution.
+
+Sampled actions, simulations and optimizer ordering use native ChaCha8 random
+streams. An optimizer seed in `0–2000000000` resets both the action/choice stream
+and the independent pDIF stream; a blank seed keeps their current positions.
+Startup without an explicit seed uses OS entropy. Fixed native seeds are
+reproducible, but do not reproduce the former Python/MT19937 sequences.
+
+## Profiles and editable data
+
+Existing JSON profiles retain their original setting names, unknown keys and
+all three sets of equipment references. Copy an existing `defaults.json` into
+the bundle to retain those profiles. The verified cutover removed the Python
+application, runtime configuration and `defaults.pkl`; `defaults.json`, CSV and
+icons were retained byte-for-byte. Rust does not execute Python catalogs or load
+pickle. Convert any external pickle-only settings to JSON with the original
+application before adopting the native build.
+
+Edit gear fragments beneath `data/gear/`, or the fixed catalogs
+`data/enemies.json5`, `data/buffs.json5` and `data/pup-attachments.json5`, then
+select **File > Reload Data**. JSON5 supports comments, unquoted identifier keys
+and trailing commas. Gear discovery recursively loads regular files with the
+exact lowercase `.json5` extension; symlinked files/directories are not followed.
+The old `data/gear.json5` and `.json` catalogs are not loaded as fallbacks.
+Profile settings in `defaults.json` remain strict JSON.
+
+Gear files are organized by weapon skill, armor slot, accessory family and
+named armor set. For example, `data/gear/sets/nyame.json5` contains all five Nyame
+armor pieces and their ranks/paths together; Hattori, Malignance and other named
+sets also have one file per family. File paths are organizational only: moving a
+record between files does not change its slots or saved variant-name reference.
+
+To add gear, append a record to an appropriate file or create a new file such as
+`data/gear/custom/my-gear.json5`:
+
+```json5
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "My Custom Helm",
+      jobs: ["nin"],
+      slots: ["head"],
+      stats: { DEX: 10, Accuracy: 20 },
+    },
+  ],
+}
+```
+
+Every fragment has the same versioned `pieces` array. Each record requires
+`name`, `jobs`, `slots` and `stats`; no ID, symbol registry or separate membership
+list is authored. `name2` defaults to `name`; provide a distinct `name2` for each
+selectable rank/augment variant. `type` and `skill_type` default to `"None"`,
+`dmg` and `delay` to `0`, and `rank`/`wsc` to `null`. Weapons supply their weapon
+metadata explicitly. Existing `name`/`name2` values can affect item-specific
+calculation rules, so preserve them when reorganizing existing gear.
+
+Use multiple physical slot names for shared items, such as
+`slots: ["main", "sub"]` or `["ring1", "ring2"]`. Food uses `slots: ["food"]`;
+`slots: []` deliberately keeps a record out of selectable lists. Selectable
+variant names must be unique across all fragments, as must food base names.
+`custom/` is additive, not an override layer. Prefer lowercase portable paths;
+case-only fragment-path collisions are rejected. Slot/food menus sort by
+variant name independently of file placement; generated numeric IDs are
+catalog-local and are not saved as equipment references.
+
+Reload validates every fragment, the other catalogs and the CSV before
+committing, retains current selections by item variant name, reports removed
+items, and resets session-local H2H metadata. Invalid data identifies its source
+file and leaves the previous catalog, selections and session metadata intact.
+This is an atomic in-memory replacement, not a filesystem snapshot of concurrent
+editor writes. Malformed profile JSON is reported and never silently overwritten.
+
+`WSDIST_DATA_DIR` explicitly overrides the entire resource root. Otherwise the
+executable's directory is authoritative, not the process working directory.
+
+## Build and verification
+
+Install Rust through rustup; `rust-toolchain.toml` pins Rust **1.92.0**. The
+workspace uses edition 2024, Slint **1.16.0** and committed locked dependencies.
+Linux build prerequisites include a C/C++ linker, pkg-config, fontconfig/FreeType
+development files and the native X11/Wayland/xkbcommon libraries. On Windows use
+a native x64 MSVC build environment.
+
+```sh
+cargo build --locked --release -p wsdist-app --bin wsdist-gui
+WSDIST_DATA_DIR="$PWD" SLINT_BACKEND=winit-software target/release/wsdist-gui
+```
+
+On Windows PowerShell, set `$env:WSDIST_DATA_DIR=(Get-Location).Path` and launch
+`target/release/wsdist-gui.exe`. To create a native portable archive, install the
+build-only notice generator and run the platform's packaging tool:
+
+```sh
+cargo +1.92.0 install --locked cargo-about --version 0.8.2
+bash tools/package-linux.sh --output target/dist
+```
+
+Windows: `./tools/package-windows.ps1 -Output target/dist`. Packaging uses an
+allowlisted staging directory, target-filtered locked dependency notices and
+archive checksums; it does not ship reference fixtures, capture tools or caches.
+
+[VERIFY.md](VERIFY.md) documents the complete test commands, executable numerical
+verifier, real-backend screenshot smoke and extracted-archive proof. Frozen
+legacy, boundary and native case payloads use lossless bitcode with a checksummed
+Zstandard layer, one `.bitcode.zst` file per case. Readable JSON indexes retain
+original capture paths and SHA-256 provenance; runtime XXH3-128 checks cover the
+uncompressed bitcode. Editable catalogs use JSON5; profiles remain JSON.
+Fixtures deserialize directly into ordered native `wsdist_fixtures::Value`
+trees; typed inputs borrow those values without a `serde_json::Value` intermediary.
+Shared build-only codec, compression and hash code is optimized without
+optimizing application or parity-test logic. The test profile also optimizes
+only `rand_chacha` among RNG packages. See the
+[fixture storage contract](VERIFY.md#compressed-bitcode-fixture-storage) and
+[native RNG test profile](VERIFY.md#native-rng-test-profile-optimization).
+The full-corpus test and numerical verifier retain their verification-only
+MiMalloc allocator and optimized native-tree destruction; the production GUI
+allocator is unchanged. See the
+[fixture Value lifecycle controls](VERIFY.md#fixture-value-lifecycle).
+Legacy formulas and recorded-draw numerical results are preserved, including
+known analytical/sampled discrepancies. Generator-dependent searches and
+simulations use separately hash-checked native fixed-seed goldens. Parity and
+independent internal checks do **not** establish accuracy against live-game data.
+
+## Provenance
+
+Third-party notices, exact dependency source links, Slint license/asset
+attributions and Rust standard-library notices accompany each archive. No new
+license is granted for project code, game data or item images; redistribution
+permissions remain separate. See `tools/licenses/PROVENANCE.txt`.
+
+Report issues through the repository's GitHub issue tracker, with the affected
+operation, inputs and visible error/report.

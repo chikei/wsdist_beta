@@ -1,0 +1,401 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle AGI Crit Rate",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle AGI DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle AGI Dual Wield",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle AGI Store TP",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle AGI Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle CHR DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle CHR Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle DEX Crit Rate",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle DEX DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle DEX Dual Wield",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle DEX Store TP",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle INT DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle INT Store TP",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle MND DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle MND Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle STR Crit Rate",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle STR DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle VIT DA",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+        "Crit Damage": 5,
+      },
+    },
+    {
+      name: "Senuna's Mantle",
+      name2: "Senuna's Mantle VIT Weapon Skill Damage",
+      jobs: [
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+        "Crit Damage": 5,
+      },
+    },
+  ],
+}

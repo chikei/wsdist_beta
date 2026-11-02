@@ -1,0 +1,30 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Sacro Mantle",
+      jobs: [
+        "mnk",
+        "thf",
+        "bst",
+        "nin",
+        "pup",
+        "dnc",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 25,
+        AGI: 25,
+        Accuracy: 20,
+        Attack: 20,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        "Magic Accuracy": 20,
+        "Weapon Skill Damage": 6,
+        "Skillchain Bonus": 8,
+      },
+    },
+  ],
+}

@@ -1,0 +1,260 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape CHR DA",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape CHR Weapon Skill Damage",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape DEX Crit Rate",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape DEX DA",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape DEX Dual Wield",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape DEX Store TP",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape INT DA",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape INT Store TP",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape INT Weapon Skill Damage",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape MND DA",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape MND Weapon Skill Damage",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape STR Crit Rate",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape STR DA",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Intarabus's Cape",
+      name2: "Intarabus's Cape STR Weapon Skill Damage",
+      jobs: [
+        "brd",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

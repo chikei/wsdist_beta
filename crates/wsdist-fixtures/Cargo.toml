@@ -1,0 +1,14 @@
+[package]
+name = "wsdist-fixtures"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+bitcode.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+xxhash-rust.workspace = true
+zstd.workspace = true

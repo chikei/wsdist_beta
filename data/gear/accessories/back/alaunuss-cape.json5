@@ -1,0 +1,226 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape DEX Crit Rate",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape DEX DA",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape DEX Dual Wield",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape DEX Store TP",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape MND DA",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape MND Weapon Skill Damage",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape MND Weapon Skill Damage (Magic)",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape STR Crit Rate",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape STR DA",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape STR Weapon Skill Damage",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Alaunus's Cape",
+      name2: "Alaunus's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "whm",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+  ],
+}

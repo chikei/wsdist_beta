@@ -1,0 +1,41 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Murky Mantle",
+      name2: "Murky Mantle R30",
+      jobs: [
+        "war",
+        "mnk",
+        "whm",
+        "blm",
+        "rdm",
+        "thf",
+        "pld",
+        "drk",
+        "bst",
+        "brd",
+        "rng",
+        "smn",
+        "sam",
+        "nin",
+        "drg",
+        "blu",
+        "cor",
+        "pup",
+        "dnc",
+        "sch",
+        "geo",
+        "run",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        "Magic Damage": 58,
+        "Magic Accuracy": 25,
+        INT: 15,
+      },
+    },
+  ],
+}

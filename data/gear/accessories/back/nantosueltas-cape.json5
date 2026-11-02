@@ -1,0 +1,345 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape CHR DA",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape CHR Weapon Skill Damage",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape DEX Crit Rate",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape DEX DA",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape DEX Dual Wield",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape DEX Store TP",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape INT DA",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape INT Magic Attack",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Magic Attack": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape INT Store TP",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape INT Weapon Skill Damage",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape MND DA",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape MND Weapon Skill Damage",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape MND Weapon Skill Damage (Magic)",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape STR Crit Rate",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape STR DA",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape STR Weapon Skill Damage",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Nantosuelta's Cape",
+      name2: "Nantosuelta's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "geo",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+  ],
+}

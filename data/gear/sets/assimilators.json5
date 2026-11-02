@@ -1,0 +1,101 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Assimilator's Jubbah +3",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "body",
+      ],
+      stats: {
+        Evasion: 69,
+        "Magic Evasion": 84,
+        "Magic Defense": 7,
+        STR: 39,
+        DEX: 44,
+        VIT: 34,
+        AGI: 38,
+        INT: 33,
+        MND: 33,
+        CHR: 33,
+        Accuracy: 50,
+        "Gear Haste": 4,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Assimilator's Jubbah +4",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "body",
+      ],
+      stats: {
+        STR: 39,
+        DEX: 49,
+        VIT: 34,
+        AGI: 43,
+        INT: 33,
+        MND: 36,
+        CHR: 33,
+        Accuracy: 60,
+        "Magic Accuracy": 60,
+        Evasion: 109,
+        "Magic Evasion": 109,
+        "Magic Defense": 8,
+        "Gear Haste": 4,
+        "Weapon Skill Damage": 12,
+      },
+    },
+    {
+      name: "Assimilator's Shalwar +3",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "legs",
+      ],
+      stats: {
+        Evasion: 58,
+        "Magic Evasion": 89,
+        "Magic Defense": 6,
+        STR: 42,
+        VIT: 26,
+        AGI: 30,
+        INT: 43,
+        MND: 27,
+        CHR: 21,
+        "Magic Accuracy": 49,
+        "Gear Haste": 6,
+        "Magic Burst Damage": 10,
+      },
+    },
+    {
+      name: "Assimilator's Shalwar +4",
+      jobs: [
+        "blu",
+      ],
+      slots: [
+        "legs",
+      ],
+      stats: {
+        STR: 42,
+        VIT: 26,
+        AGI: 35,
+        INT: 43,
+        MND: 30,
+        CHR: 21,
+        Accuracy: 59,
+        "Magic Accuracy": 59,
+        Evasion: 98,
+        "Magic Evasion": 114,
+        "Magic Defense": 7,
+        "Gear Haste": 6,
+        "Magic Burst Damage": 10,
+      },
+    },
+  ],
+}

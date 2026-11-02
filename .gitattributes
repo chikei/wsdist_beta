@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Binary fixture evidence is byte-exact, including checkout line endings.
+*.bitcode.zst -text
+*.zip -text

@@ -1,0 +1,689 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Crit Rate",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Crit Rate (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Dual Wield",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Store TP",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Store TP (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Weapon Skill Damage (Magic)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape AGI Weapon Skill Damage (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape CHR DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape CHR Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        CHR: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Crit Rate",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Crit Rate (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Dual Wield",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Store TP",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Store TP (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape DEX Weapon Skill Damage (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape INT DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape INT Store TP",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape INT Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape MND DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape MND Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape MND Weapon Skill Damage (Magic)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        MND: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR Crit Rate",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR Crit Rate (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR Store TP (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape STR Weapon Skill Damage (Ranged)",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape VIT DA",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+    {
+      name: "Toutatis's Cape",
+      name2: "Toutatis's Cape VIT Weapon Skill Damage",
+      jobs: [
+        "thf",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+        "Sneak Attack Bonus": 10,
+        "TA Damage%": 20,
+      },
+    },
+  ],
+}

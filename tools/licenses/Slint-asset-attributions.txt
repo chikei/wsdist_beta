@@ -1,0 +1,31 @@
+Supplementary Slint 1.16.0 asset attributions
+
+ABOUTSLINT ARTWORK
+The unmodified MadeWithSlint-logo-dark.svg and MadeWithSlint-logo-light.svg
+artwork used by the AboutSlint widget is attributed by upstream REUSE.toml:
+Copyright © SixtyFPS GmbH <info@slint.dev>
+SPDX-License-Identifier: CC-BY-ND-4.0
+
+Source declaration:
+https://github.com/slint-ui/slint/blob/v1.16.0/REUSE.toml
+Artwork:
+https://github.com/slint-ui/slint/tree/v1.16.0/internal/compiler/widgets/common
+Full license text supplied with the compiler crate:
+crates/i-slint-compiler-1.16.0/LICENSES/CC-BY-ND-4.0.txt
+https://creativecommons.org/licenses/by-nd/4.0/
+The application uses Slint's supplied AboutSlint widget; this notice does not
+license the Slint name/logo as a trademark or imply endorsement of WSDist.
+
+INTER FONT
+The Inter variable font supplied by i-slint-common is attributed by its
+sharedfontique/Inter-VariableFont.ttf.license sidecar:
+SPDX-FileCopyrightText: Copyright 2020 The Inter Project Authors <https://fonts.google.com/specimen/Inter/license>
+SPDX-License-Identifier: OFL-1.1-RFN
+
+Source:
+https://github.com/slint-ui/slint/tree/v1.16.0/internal/common/sharedfontique
+The original sidecar is retained in the crate license documents. The full SIL
+Open Font License 1.1 text is included here as OFL-1.1-RFN.txt, from
+https://github.com/slint-ui/slint/blob/v1.16.0/LICENSES/OFL-1.1-RFN.txt .
+This conservative notice covers the bundled fallback font whether or not the
+running platform selects a system font instead. No font modifications are made.

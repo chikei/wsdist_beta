@@ -1,0 +1,309 @@
+import { Button, GroupBox } from "std-widgets.slint";
+import { ScrollView } from "scroll.slint";
+import { InputRow, GearSlotRow, GearChoiceRow } from "types.slint";
+import { ControlEditor } from "controls.slint";
+import { GearPanel } from "gear.slint";
+
+export component Optimize inherits Rectangle {
+    in property <[InputRow]> controls;
+    in property <[GearSlotRow]> slots;
+    in property <[GearChoiceRow]> items;
+    in property <int> active-slot;
+    in property <bool> inputs-enabled: true;
+    in property <bool> can-equip-best: false;
+
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+    callback slot-selected(string, int);
+    callback item-toggled(int, bool);
+    callback action(string);
+
+    private property <int> focus-count: 0;
+    private property <bool> editing-focus: root.inputs-enabled && root.visible && root.focus-count > 0;
+    changed editing-focus => { root.text-focus(root.editing-focus); }
+
+    function focus-changed(focused: bool) {
+        root.focus-count = max(0, root.focus-count + (focused ? 1 : -1));
+    }
+
+    ScrollView {
+        viewport-width: self.visible-width;
+        accessible-role: list;
+        accessible-label: "Optimize content";
+        scroll-label: self.accessible-label + " vertical scrollbar";
+
+        VerticalLayout {
+            x: 0px;
+            width: 692px;
+            horizontal-stretch: 0;
+            padding-left: 6px;
+            padding-right: 6px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            spacing: 2px;
+
+            GearPanel {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                source-key: "optimize";
+                slots: root.slots;
+                items: root.items;
+                active-slot: root.active-slot;
+                checkbox-mode: true;
+                equipped-width: 300px;
+                inputs-enabled: root.inputs-enabled;
+                min-height: 440px;
+                preferred-height: 440px;
+                vertical-stretch: 0;
+
+                slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                item-toggled(id, checked) => { root.item-toggled(id, checked); }
+
+                VerticalLayout {
+                    min-width: 300px;
+                    max-width: 300px;
+                    preferred-width: 300px;
+                    horizontal-stretch: 0;
+                    spacing: 2px;
+
+                    GridLayout {
+                        min-width: 282px;
+                        max-width: 282px;
+                        preferred-width: 282px;
+                        horizontal-stretch: 0;
+                        spacing: 2px;
+                        Row {
+                            Button {
+                                text: "Select all";
+                                accessible-label: "Select all candidates in current slot";
+                                enabled: root.inputs-enabled;
+                                min-height: 28px;
+                                preferred-height: 28px;
+                                min-width: 140px;
+                                max-width: 140px;
+                                preferred-width: 140px;
+                                horizontal-stretch: 0;
+                                clicked => { root.action("bulk-slot"); }
+                            }
+                            Button {
+                                text: "Unselect all";
+                                accessible-label: "Unselect all candidates in current slot";
+                                enabled: root.inputs-enabled;
+                                min-height: 28px;
+                                preferred-height: 28px;
+                                min-width: 140px;
+                                max-width: 140px;
+                                preferred-width: 140px;
+                                horizontal-stretch: 0;
+                                clicked => { root.action("bulk-unselect"); }
+                            }
+                        }
+                        Row {
+                            Button {
+                                text: "Select ALL";
+                                accessible-label: "Select all candidates in all slots";
+                                enabled: root.inputs-enabled;
+                                min-height: 28px;
+                                preferred-height: 28px;
+                                min-width: 140px;
+                                max-width: 140px;
+                                preferred-width: 140px;
+                                horizontal-stretch: 0;
+                                clicked => { root.action("bulk-all"); }
+                            }
+                            Button {
+                                text: "Select all File";
+                                accessible-label: "Select candidates from Windower inventory file";
+                                enabled: root.inputs-enabled;
+                                min-height: 28px;
+                                preferred-height: 28px;
+                                min-width: 140px;
+                                max-width: 140px;
+                                preferred-width: 140px;
+                                horizontal-stretch: 0;
+                                clicked => { root.action("inventory-import"); }
+                            }
+                        }
+                    }
+
+                    // desktop_inputs.rs registers the four filters and Nyame first.
+                    VerticalLayout {
+                        min-width: 300px;
+                        max-width: 300px;
+                        preferred-width: 300px;
+                        horizontal-stretch: 0;
+                        spacing: 0px;
+                        for index in 5: ControlEditor {
+                            min-width: 300px;
+                            max-width: 300px;
+                            preferred-width: 300px;
+                            horizontal-stretch: 0;
+                            control: root.controls[index];
+                            inputs-enabled: root.inputs-enabled;
+                            text-edited(key, text) => { root.text-edited(key, text); }
+                            editing-finished(key, text) => { root.editing-finished(key, text); }
+                            toggled(key, checked) => { root.toggled(key, checked); }
+                            wheel(key, direction) => { root.wheel(key, direction); }
+                            text-focus(focused) => { root.focus-changed(focused); }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                vertical-stretch: 0;
+                accessible-role: list;
+                accessible-label: "Selection filters, metrics & search options inputs";
+
+                HorizontalLayout {
+                    width: parent.width;
+                    horizontal-stretch: 0;
+                    spacing: 6px;
+
+                    GroupBox {
+                        title: "Requirements & metrics";
+                        content-padding: 0px;
+                        min-width: 336px;
+                        max-width: 336px;
+                        preferred-width: 336px;
+                        horizontal-stretch: 0;
+                        vertical-stretch: 0;
+                        VerticalLayout {
+                            spacing: 0px;
+                            alignment: start;
+                            vertical-stretch: 1;
+                            // EXTRA_INPUTS follows the eleven registered Optimize defaults.
+                            for index in 5: ControlEditor {
+                                min-width: 336px;
+                                max-width: 336px;
+                                preferred-width: 336px;
+                                horizontal-stretch: 0;
+                                control: root.controls[index + 11];
+                                inputs-enabled: root.inputs-enabled;
+                                text-edited(key, text) => { root.text-edited(key, text); }
+                                editing-finished(key, text) => { root.editing-finished(key, text); }
+                                toggled(key, checked) => { root.toggled(key, checked); }
+                                wheel(key, direction) => { root.wheel(key, direction); }
+                                text-focus(focused) => { root.focus-changed(focused); }
+                            }
+                        }
+                    }
+
+                    GroupBox {
+                        title: "Search options";
+                        content-padding: 0px;
+                        min-width: 338px;
+                        max-width: 338px;
+                        preferred-width: 338px;
+                        horizontal-stretch: 0;
+                        vertical-stretch: 0;
+                        VerticalLayout {
+                            spacing: 2px;
+
+                            VerticalLayout {
+                                min-width: 338px;
+                                max-width: 338px;
+                                preferred-width: 338px;
+                                horizontal-stretch: 0;
+                                spacing: 0px;
+                                for index in 2: ControlEditor {
+                                    min-width: 338px;
+                                    max-width: 338px;
+                                    preferred-width: 338px;
+                                    horizontal-stretch: 0;
+                                    control: root.controls[index + 16];
+                                    display-label: index == 1 ? "Similar results %" : root.controls[index + 16].label;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, text) => { root.text-edited(key, text); }
+                                    editing-finished(key, text) => { root.editing-finished(key, text); }
+                                    toggled(key, checked) => { root.toggled(key, checked); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
+                                }
+                                for index in 6: ControlEditor {
+                                    min-width: 338px;
+                                    max-width: 338px;
+                                    preferred-width: 338px;
+                                    horizontal-stretch: 0;
+                                    control: root.controls[index + 5];
+                                    display-label: index == 1 ? "Max swap slots" : index == 4 ? "Random seed" : index == 5 ? "Workers" : root.controls[index + 5].label;
+                                    inputs-enabled: root.inputs-enabled;
+                                    text-edited(key, text) => { root.text-edited(key, text); }
+                                    editing-finished(key, text) => { root.editing-finished(key, text); }
+                                    toggled(key, checked) => { root.toggled(key, checked); }
+                                    wheel(key, direction) => { root.wheel(key, direction); }
+                                    text-focus(focused) => { root.focus-changed(focused); }
+                                }
+                            }
+
+                            GridLayout {
+                                min-width: 334px;
+                                max-width: 334px;
+                                preferred-width: 334px;
+                                horizontal-stretch: 0;
+                                spacing: 2px;
+                                Row {
+                                    Button {
+                                        text: "Optimize WS";
+                                        enabled: root.inputs-enabled;
+                                        min-height: 28px;
+                                        preferred-height: 28px;
+                                        min-width: 166px;
+                                        max-width: 166px;
+                                        preferred-width: 166px;
+                                        horizontal-stretch: 0;
+                                        clicked => { root.action("optimize-ws"); }
+                                    }
+                                    Button {
+                                        text: "Optimize Spell";
+                                        enabled: root.inputs-enabled;
+                                        min-height: 28px;
+                                        preferred-height: 28px;
+                                        min-width: 166px;
+                                        max-width: 166px;
+                                        preferred-width: 166px;
+                                        horizontal-stretch: 0;
+                                        clicked => { root.action("optimize-spell"); }
+                                    }
+                                }
+                                Row {
+                                    Button {
+                                        text: "Optimize TP";
+                                        enabled: root.inputs-enabled;
+                                        min-height: 28px;
+                                        preferred-height: 28px;
+                                        min-width: 166px;
+                                        max-width: 166px;
+                                        preferred-width: 166px;
+                                        horizontal-stretch: 0;
+                                        clicked => { root.action("optimize-round"); }
+                                    }
+                                    Button {
+                                        text: "Equip best set";
+                                        enabled: root.inputs-enabled && root.can-equip-best;
+                                        min-height: 28px;
+                                        preferred-height: 28px;
+                                        min-width: 166px;
+                                        max-width: 166px;
+                                        preferred-width: 166px;
+                                        horizontal-stretch: 0;
+                                        clicked => { root.action("equip-best"); }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

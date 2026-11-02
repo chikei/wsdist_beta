@@ -1,0 +1,226 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle DEX Crit Rate",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle DEX DA",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle DEX Dual Wield",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle DEX Store TP",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle INT DA",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle INT Store TP",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle STR Crit Rate",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle STR DA",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle VIT DA",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Visucius's Mantle",
+      name2: "Visucius's Mantle VIT Weapon Skill Damage",
+      jobs: [
+        "pup",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        VIT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+  ],
+}

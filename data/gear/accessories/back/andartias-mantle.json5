@@ -1,0 +1,530 @@
+{
+  schema_version: 2,
+  pieces: [
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Crit Rate",
+      jobs: [
+        "nin",
+      ],
+      slots: [],
+      stats: {
+        AGI: 30,
+        Accuracy: 20,
+        Attack: 20,
+        "Crit Rate": 10,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Crit Rate",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Crit Rate (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI DA",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Dual Wield",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Store TP",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Store TP (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Weapon Skill Damage",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Weapon Skill Damage (Magic)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle AGI Weapon Skill Damage (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        AGI: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Crit Rate",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Crit Rate (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX DA",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Dual Wield",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Dual Wield": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Store TP",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Store TP (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Weapon Skill Damage",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Weapon Skill Damage (Magic)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle DEX Weapon Skill Damage (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        DEX: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle INT DA",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle INT Magic Attack",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Magic Attack": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle INT Store TP",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Store TP": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle INT Weapon Skill Damage",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        INT: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle INT Weapon Skill Damage (Magic)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        INT: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR Crit Rate",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Crit Rate": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR Crit Rate (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Crit Rate": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR DA",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        DA: 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR Store TP (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Store TP": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR Weapon Skill Damage",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        Accuracy: 20,
+        Attack: 20,
+        PDT: -10,
+        STR: 30,
+        "Weapon Skill Damage": 10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR Weapon Skill Damage (Magic)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Magic Accuracy": 20,
+        "Magic Damage": 20,
+        PDT: -10,
+      },
+    },
+    {
+      name: "Andartia's Mantle",
+      name2: "Andartia's Mantle STR Weapon Skill Damage (Ranged)",
+      jobs: [
+        "nin",
+      ],
+      slots: [
+        "back",
+      ],
+      stats: {
+        STR: 30,
+        "Weapon Skill Damage": 10,
+        "Ranged Accuracy": 20,
+        "Ranged Attack": 20,
+        PDT: -10,
+      },
+    },
+  ],
+}

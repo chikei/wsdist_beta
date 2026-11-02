@@ -1,0 +1,241 @@
+import { Button, Palette } from "std-widgets.slint";
+import { ScrollView } from "scroll.slint";
+import { InputRow, GearSlotRow, GearChoiceRow } from "types.slint";
+import { InputGroup } from "controls.slint";
+import { GearPanel } from "gear.slint";
+
+export component Simulate inherits Rectangle {
+    in property <[InputRow]> controls;
+    in property <[GearSlotRow]> tp-slots;
+    in property <[GearSlotRow]> ws-slots;
+    in property <[GearChoiceRow]> tp-items;
+    in property <[GearChoiceRow]> ws-items;
+    in property <int> tp-active-slot;
+    in property <int> ws-active-slot;
+    in property <bool> inputs-enabled: true;
+
+    callback text-edited(string, string);
+    callback editing-finished(string, string);
+    callback toggled(string, bool);
+    callback wheel(string, int);
+    callback text-focus(bool);
+    callback slot-selected(string, int);
+    callback item-selected(string, int);
+    callback action(string);
+    callback copy(string, string);
+
+    ScrollView {
+        viewport-width: self.visible-width;
+        accessible-role: list;
+        accessible-label: "Simulate content";
+        scroll-label: self.accessible-label + " vertical scrollbar";
+
+        VerticalLayout {
+            x: 0px;
+            width: 692px;
+            horizontal-stretch: 0;
+            padding-left: 6px;
+            padding-right: 6px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            spacing: 2px;
+
+            VerticalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                spacing: 2px;
+                vertical-stretch: 0;
+                Text {
+                    min-width: 680px;
+                    max-width: 680px;
+                    preferred-width: 680px;
+                    horizontal-stretch: 0;
+                    text: "Equipped TP set";
+                    color: Palette.foreground;
+                    vertical-stretch: 0;
+                }
+                GearPanel {
+                    min-width: 680px;
+                    max-width: 680px;
+                    preferred-width: 680px;
+                    horizontal-stretch: 0;
+                    source-key: "tp";
+                    slots: root.tp-slots;
+                    items: root.tp-items;
+                    active-slot: root.tp-active-slot;
+                    equipped-width: 260px;
+                    inputs-enabled: root.inputs-enabled;
+                    min-height: 300px;
+                    preferred-height: 300px;
+                    vertical-stretch: 0;
+
+                    slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                    item-selected(source, id) => { root.item-selected(source, id); }
+
+                    VerticalLayout {
+                        min-width: 260px;
+                        max-width: 260px;
+                        preferred-width: 260px;
+                        horizontal-stretch: 0;
+                        spacing: 2px;
+                        Button {
+                            text: "Copy to Quicklook";
+                            accessible-label: "Copy TP set to Quicklook";
+                            enabled: root.inputs-enabled;
+                            min-height: 28px;
+                            preferred-height: 28px;
+                            min-width: 260px;
+                            max-width: 260px;
+                            preferred-width: 260px;
+                            horizontal-stretch: 0;
+                            clicked => { root.copy("tp", "quicklook"); }
+                        }
+                        Button {
+                            text: "Copy to Clipboard";
+                            accessible-label: "Copy TP set to clipboard";
+                            enabled: root.inputs-enabled;
+                            min-height: 28px;
+                            preferred-height: 28px;
+                            min-width: 260px;
+                            max-width: 260px;
+                            preferred-width: 260px;
+                            horizontal-stretch: 0;
+                            clicked => { root.action("export-tp"); }
+                        }
+                    }
+                }
+            }
+
+            VerticalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                spacing: 2px;
+                vertical-stretch: 0;
+                Text {
+                    min-width: 680px;
+                    max-width: 680px;
+                    preferred-width: 680px;
+                    horizontal-stretch: 0;
+                    text: "Equipped WS set";
+                    color: Palette.foreground;
+                    vertical-stretch: 0;
+                }
+                GearPanel {
+                    min-width: 680px;
+                    max-width: 680px;
+                    preferred-width: 680px;
+                    horizontal-stretch: 0;
+                    source-key: "ws";
+                    slots: root.ws-slots;
+                    items: root.ws-items;
+                    active-slot: root.ws-active-slot;
+                    equipped-width: 260px;
+                    inputs-enabled: root.inputs-enabled;
+                    min-height: 300px;
+                    preferred-height: 300px;
+                    vertical-stretch: 0;
+
+                    slot-selected(source, slot) => { root.slot-selected(source, slot); }
+                    item-selected(source, id) => { root.item-selected(source, id); }
+
+                    VerticalLayout {
+                        min-width: 260px;
+                        max-width: 260px;
+                        preferred-width: 260px;
+                        horizontal-stretch: 0;
+                        spacing: 2px;
+                        Button {
+                            text: "Copy to Quicklook";
+                            accessible-label: "Copy WS set to Quicklook";
+                            enabled: root.inputs-enabled;
+                            min-height: 28px;
+                            preferred-height: 28px;
+                            min-width: 260px;
+                            max-width: 260px;
+                            preferred-width: 260px;
+                            horizontal-stretch: 0;
+                            clicked => { root.copy("ws", "quicklook"); }
+                        }
+                        Button {
+                            text: "Copy to Clipboard";
+                            accessible-label: "Copy WS set to clipboard";
+                            enabled: root.inputs-enabled;
+                            min-height: 28px;
+                            preferred-height: 28px;
+                            min-width: 260px;
+                            max-width: 260px;
+                            preferred-width: 260px;
+                            horizontal-stretch: 0;
+                            clicked => { root.action("export-ws"); }
+                        }
+                    }
+                }
+            }
+
+            InputGroup {
+                min-width: 336px;
+                max-width: 336px;
+                preferred-width: 336px;
+                horizontal-stretch: 0;
+                title: "Simulation options";
+                rows: root.controls;
+                inputs-enabled: root.inputs-enabled;
+                min-height: 32px + root.controls.length * 26px;
+                preferred-height: 32px + root.controls.length * 26px;
+                vertical-stretch: 0;
+
+                text-edited(key, text) => { root.text-edited(key, text); }
+                editing-finished(key, text) => { root.editing-finished(key, text); }
+                toggled(key, checked) => { root.toggled(key, checked); }
+                wheel(key, direction) => { root.wheel(key, direction); }
+                text-focus(focused) => { root.text-focus(focused); }
+            }
+
+            HorizontalLayout {
+                min-width: 680px;
+                max-width: 680px;
+                preferred-width: 680px;
+                horizontal-stretch: 0;
+                spacing: 4px;
+                vertical-stretch: 0;
+                Button {
+                    text: "Run DPS simulations";
+                    enabled: root.inputs-enabled;
+                    min-height: 28px;
+                    preferred-height: 32px;
+                    min-width: 176px;
+                    max-width: 176px;
+                    preferred-width: 176px;
+                    horizontal-stretch: 0;
+                    clicked => { root.action("dps"); }
+                }
+                Button {
+                    text: "Create WS damage distribution plot";
+                    enabled: root.inputs-enabled;
+                    min-height: 28px;
+                    preferred-height: 32px;
+                    min-width: 304px;
+                    max-width: 304px;
+                    preferred-width: 304px;
+                    horizontal-stretch: 0;
+                    clicked => { root.action("distribution"); }
+                }
+                Button {
+                    text: "Compare TP & WS stats";
+                    enabled: root.inputs-enabled;
+                    min-height: 28px;
+                    preferred-height: 32px;
+                    min-width: 192px;
+                    max-width: 192px;
+                    preferred-width: 192px;
+                    horizontal-stretch: 0;
+                    clicked => { root.action("compare"); }
+                }
+            }
+        }
+    }
+}
