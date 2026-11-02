@@ -13,7 +13,7 @@ use std::sync::atomic::AtomicBool;
 use crate::model::{CalcError, EvaluationContext, OptimizeRequest, OptimizeResult, Progress, RandomSource};
 use probe::{RawAction, RawOptimizeRequest, SearchTrace};
 
-pub use helpers::{MAX_SWAP_SLOTS, PARALLEL_CANDIDATE_THRESHOLD};
+pub use helpers::{MAX_SWAP_SLOTS, PARALLEL_CANDIDATE_THRESHOLD, subtle_blow_requirements};
 pub use prune::prune_candidates;
 
 pub fn optimize<R: RandomSource>(request: &OptimizeRequest, ctx: &mut EvaluationContext<R>, stop: &AtomicBool,
@@ -23,7 +23,8 @@ pub fn optimize<R: RandomSource>(request: &OptimizeRequest, ctx: &mut Evaluation
     action.spell_name = request.spell_name.clone();
     let raw = RawOptimizeRequest { player: request.player.clone(), enemy: request.enemy.clone(),
         action, candidates: request.candidates.clone(),
-        min_pdt: request.min_pdt, min_mdt: request.min_mdt, options: request.options.clone(),
+        min_pdt: request.min_pdt, min_mdt: request.min_mdt,
+        min_subtle_blow: request.min_subtle_blow, min_subtle_blow_ii: request.min_subtle_blow_ii, options: request.options.clone(),
         similar_results: request.similar_results, similar_percent: request.similar_percent,
         verbose_swaps: request.verbose_swaps, automatic_workers: None };
     // The app-facing accepted/similar records are retained by the driver. Full

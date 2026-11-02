@@ -374,14 +374,14 @@ fn optimizer_feasibility_warning_precedes_the_set_and_no_winner_cannot_look_equi
             stats: wsdist_fixtures::from_value(&input["enemy"]["normalized_stats"]).unwrap() },
         action, candidates: std::array::from_fn(|_| Vec::new()),
         ws_name: Arc::from(input["request"]["ws_name"].as_str().unwrap()), spell_name: Arc::from("None"),
-        min_pdt: -100.0, min_mdt: -100.0, options: OptimizeOptions::default(),
+        min_pdt: -100.0, min_mdt: -100.0, min_subtle_blow: 0.0, min_subtle_blow_ii: 0.0, options: OptimizeOptions::default(),
         similar_results: false, similar_percent: 1.0, verbose_swaps: false,
     };
     let mut result = OptimizeResult {
         gearset: player.gearset, player: Some(player), metric: number(&expected["legacy_output"][0]),
         legacy_output: expected["legacy_output"].as_array().unwrap().iter().map(number).collect(),
         calculation: Vec::new(), restart_calculation: Vec::new(),
-        pdt: -9.0, mdt: -9.0, feasible: false, termination: OptimizeTermination::UnchangedDtStages,
+        pdt: -9.0, mdt: -9.0, subtle_blow: 0.0, subtle_blow_ii: 0.0, feasible: false, termination: OptimizeTermination::UnchangedDtStages,
         accepted: Vec::new(), similar: Vec::new(), stages: 4, passes: 4, scored: 0, restarts: 1, invert: 1,
         warnings: Vec::new(),
     };
@@ -392,6 +392,16 @@ fn optimizer_feasibility_warning_precedes_the_set_and_no_winner_cannot_look_equi
     assert!(report.text.contains("PDT:-100") && report.text.contains("MDT:-100"));
     assert!(report.text.contains("PDT:-9") && report.text.contains("MDT:-9"));
     assert!(report.text.contains("673.4") && report.text.contains("45.0"));
+    assert!(!report.text.contains("Subtle Blow"), "a zero Subtle Blow minimum is no requirement");
+
+    let mut sb_request = request.clone();
+    sb_request.min_subtle_blow = 40.0;
+    result.subtle_blow = 25.0;
+    result.subtle_blow_ii = 10.0;
+    let report = reports::optimizer_report(&sb_request, &result, &catalog);
+    assert!(report.text.contains("Required PDT:-100 MDT:-100 Subtle Blow:40; achieved PDT:-9 MDT:-9 Subtle Blow:25."),
+        "an unmet Subtle Blow minimum is named beside its achieved total");
+    assert!(!report.text.contains("Subtle Blow II"), "only requested Subtle Blow channels are reported");
 
     result.player = None;
     result.termination = OptimizeTermination::NoWinner;

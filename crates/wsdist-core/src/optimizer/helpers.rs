@@ -98,6 +98,24 @@ pub fn dt_for_player(player: &Player) -> [f64; 2] {
      if mdt < -50.0 { -50.0 } else { mdt } + (stats.get(Stat::Mdt2) + stats.get(Stat::Dt2))]
 }
 
+/// Per-stage candidate bounds: damage taken at most `dt`, Subtle Blow at least `subtle_blow`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Thresholds { pub dt: [f64; 2], pub subtle_blow: [f64; 2] }
+
+impl Thresholds {
+    pub const NONE: Self = Self { dt: [f64::INFINITY; 2], subtle_blow: [f64::NEG_INFINITY; 2] };
+}
+
+/// Total Subtle Blow and Subtle Blow II from gear, traits and effects.
+pub fn subtle_blow_for_player(player: &Player) -> [f64; 2] {
+    [player.stats.get(Stat::SubtleBlow), player.stats.get(Stat::SubtleBlowIi)]
+}
+
+/// Subtle Blow floors for requested minima; a minimum of zero or less imposes none.
+pub fn subtle_blow_requirements(minimums: [f64; 2]) -> [f64; 2] {
+    minimums.map(|minimum| if minimum > 0.0 { minimum } else { f64::NEG_INFINITY })
+}
+
 pub fn can_use_fast_dt_gate(abilities: &Abilities) -> Result<bool, CalcError> {
     Ok(crate::math::python_int(abilities.aftermath(), "optimize", "Aftermath")? == 0.0)
 }

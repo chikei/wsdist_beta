@@ -96,13 +96,13 @@ impl ScoreScratch {
     }
 
     pub fn score<R: RandomSource>(&mut self, context: &ScoreContext, base: &InternedSet, groups: &[Group],
-        thresholds: [f64; 2], engine: &mut EvaluationContext<R>, stop: &AtomicBool,
+        thresholds: Thresholds, engine: &mut EvaluationContext<R>, stop: &AtomicBool,
         trace: &mut Option<SearchTrace>) -> Result<Vec<f64>, CalcError> {
         self.score_slices(context, base, &group_slices(groups), thresholds, engine, stop, trace)
     }
 
     pub(crate) fn score_slices<R: RandomSource>(&mut self, context: &ScoreContext, base: &InternedSet,
-        groups: &[GroupSlice<'_>], thresholds: [f64; 2], engine: &mut EvaluationContext<R>,
+        groups: &[GroupSlice<'_>], thresholds: Thresholds, engine: &mut EvaluationContext<R>,
         stop: &AtomicBool, trace: &mut Option<SearchTrace>) -> Result<Vec<f64>, CalcError> {
         // Candidate and warmup actions never contribute display calculations.
         // Restore the caller's observer even when scoring fails or is cancelled.
@@ -113,10 +113,11 @@ impl ScoreScratch {
     }
 
     fn score_candidates<R: RandomSource>(&mut self, context: &ScoreContext, base: &InternedSet,
-        groups: &[GroupSlice<'_>], thresholds: [f64; 2], engine: &mut EvaluationContext<R>,
+        groups: &[GroupSlice<'_>], thresholds: Thresholds, engine: &mut EvaluationContext<R>,
         stop: &AtomicBool, trace: &mut Option<SearchTrace>) -> Result<Vec<f64>, CalcError> {
         interrupted(stop)?;
         self.input.gearset = context.gearset(base);
+        let dt_limits = thresholds.dt;
         let base_dt = dt_sum(std::iter::once(context.buff_dt).chain(base.iter().map(|&id| context.dt_vectors[id])));
         let count = groups.iter().map(|group| group.candidates.len()).sum();
         let mut metrics = Vec::with_capacity(count);
@@ -134,8 +135,8 @@ impl ScoreScratch {
                     let mut dt = stripped;
                     for &id in items.as_slice() { for (total, added) in dt.iter_mut().zip(context.dt_vectors[id]) { *total += added; } }
                     let achieved = dt_totals(dt);
-                    if achieved[0] > thresholds[0] || achieved[1] > thresholds[1] {
-                        record(trace, || TraceEvent::FastDtRejection { combo: group.combo, items: *items, achieved, thresholds });
+                    if achieved[0] > dt_limits[0] || achieved[1] > dt_limits[1] {
+                        record(trace, || TraceEvent::FastDtRejection { combo: group.combo, items: *items, achieved, thresholds: dt_limits });
                         metrics.push(f64::NAN);
                         continue;
                     }
@@ -143,16 +144,18 @@ impl ScoreScratch {
                 build_player(&self.input, engine, &mut self.player)?;
                 let achieved = dt_for_player(&self.player);
                 let state = state_snapshot(trace, &engine.state);
-                record(trace, || TraceEvent::FullPlayerDt { combo: group.combo, items: *items, achieved, thresholds,
+                record(trace, || TraceEvent::FullPlayerDt { combo: group.combo, items: *items, achieved, thresholds: dt_limits,
                     player: Box::new(self.player.clone()), state: state.expect("enabled trace snapshot") });
-                if achieved[0] > thresholds[0] || achieved[1] > thresholds[1] { metrics.push(f64::NAN); continue; }
+                if achieved[0] > dt_limits[0] || achieved[1] > dt_limits[1] { metrics.push(f64::NAN); continue; }
+                let subtle_blow = subtle_blow_for_player(&self.player);
+                if subtle_blow[0] < thresholds.subtle_blow[0] || subtle_blow[1] < thresholds.subtle_blow[1] { metrics.push(f64::NAN); continue; }
                 metrics.push(self.metric_only(context, engine, trace)?);
             }
             for &slot in group.combo.as_slice() { self.input.gearset[slot] = context.pieces.pieces[base[slot]]; }
         }
         record(trace, || TraceEvent::ScoreChunk { base: *base,
             groups: groups.iter().map(|group| Group { combo: group.combo, candidates: group.candidates.to_vec() }).collect(),
-            thresholds, metrics: metrics.clone() });
+            thresholds: dt_limits, metrics: metrics.clone() });
         interrupted(stop)?;
         Ok(metrics)
     }
@@ -243,7 +246,7 @@ impl<R: RandomSource> Mapper<R> {
 
     pub fn is_parallel(&self) -> bool { self.pool.is_some() }
 
-    pub fn score(&mut self, base: &InternedSet, groups: &[Group], total: usize, thresholds: [f64; 2],
+    pub fn score(&mut self, base: &InternedSet, groups: &[Group], total: usize, thresholds: Thresholds,
         coordinator: &mut EvaluationContext<R>, scratch: &mut ScoreScratch, stop: &AtomicBool,
         trace: &mut Option<SearchTrace>) -> Result<Vec<f64>, CalcError> {
         interrupted(stop)?;
@@ -275,7 +278,7 @@ impl<R: RandomSource> Mapper<R> {
                 if !*warmed {
                     let candidates = [Tuple::new(&[warmup_ids[0]])];
                     let group = [GroupSlice { combo: Tuple::new(&[0]), candidates: &candidates }];
-                    scratch.score_slices(context, &warmup_ids, &group, [f64::INFINITY; 2], engine, stop, &mut None)?;
+                    scratch.score_slices(context, &warmup_ids, &group, Thresholds::NONE, engine, stop, &mut None)?;
                     *warmed = true;
                 }
                 scratch.score_slices(context, base, share, thresholds, engine, stop, &mut None)
@@ -284,7 +287,7 @@ impl<R: RandomSource> Mapper<R> {
             for result in results { metrics.extend(result?); }
             metrics
         };
-        record(trace, || TraceEvent::MapperScores { base: *base, groups: groups.to_vec(), total, thresholds, metrics: metrics.clone(),
+        record(trace, || TraceEvent::MapperScores { base: *base, groups: groups.to_vec(), total, thresholds: thresholds.dt, metrics: metrics.clone(),
             parallel: self.pool.is_some() && total >= 192 });
         interrupted(stop)?;
         Ok(metrics)

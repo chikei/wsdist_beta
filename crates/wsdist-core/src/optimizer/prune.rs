@@ -14,7 +14,7 @@ use crate::model::{
 use crate::stats::{STAT_COUNT, Stat};
 use crate::weaponskills::DStatFormula;
 
-use super::helpers::{dt_sum, dt_vector, piece_dt};
+use super::helpers::{dt_sum, dt_vector, piece_dt, subtle_blow_requirements};
 use super::legality::{jse_ear_names, optimizer_ws_type};
 
 /// Weapon slots stay whole: kind, skill, damage and delay drive legality and the action
@@ -29,8 +29,8 @@ const NAMED_EFFECTS: &[&str] = &[
     "Skulker's Vest", "Lanun Gants", "Horos Toe Shoes", "Cohort Cloak", "Crepuscular Cloak", "Twilight Cloak",
 ];
 
-/// Candidate pools without armor and accessories that cannot affect `request`'s score or
-/// damage-taken requirements.
+/// Candidate pools without armor and accessories that cannot affect `request`'s score,
+/// damage-taken requirements or Subtle Blow requirements.
 ///
 /// A slot that loses candidates keeps one of them as a score-neutral choice unless Empty is
 /// already a candidate, so every set of the original pools has an equally scored legal set in
@@ -127,6 +127,8 @@ struct Scope {
     scaling: Vec<Stat>,
     /// PDT and MDT requirements some candidate set could miss.
     dt: [bool; 2],
+    /// Subtle Blow and Subtle Blow II requirements.
+    subtle_blow: [bool; 2],
 }
 
 impl Scope {
@@ -137,6 +139,7 @@ impl Scope {
             flourish: [Ability::ClimacticFlourish, Ability::StrikingFlourish, Ability::TernaryFlourish]
                 .into_iter().any(|ability| abilities.enabled(ability)),
             dt: dt_binding(request, catalog),
+            subtle_blow: subtle_blow_requirements([request.min_subtle_blow, request.min_subtle_blow_ii]).map(f64::is_finite),
             ..Self::default()
         };
         match &request.action {
@@ -192,12 +195,14 @@ impl Scope {
         use Stat::*;
         let physical = self.melee || self.ranged;
         match stat {
-            // No optimizer path reads pets, the player's own defenses, Subtle Blow or skillchains.
+            // No optimizer path reads pets, the player's own defenses or skillchains.
             PetAgi | PetAccuracy | PetAttack | PetChr | PetCritRate | PetDa | PetDex | PetDt | PetDamageDealtPct
             | PetEvasion | PetGearHaste | PetInt | PetLevel | PetMdt | PetMnd | PetMagicAccuracy | PetMagicAttack
             | PetMagicDefense | PetMagicEvasion | PetPdt | PetRangedAccuracy | PetRangedAttack | PetStr | PetStoreTp
             | PetSubtleBlow | PetTpBonus | PetVit | AutomatonSkill | BloodPactDamage
-            | Evasion | EvasionSkill | MagicEvasion | MagicDefense | SubtleBlow | SubtleBlowIi | SkillchainBonus => false,
+            | Evasion | EvasionSkill | MagicEvasion | MagicDefense | SkillchainBonus => false,
+            SubtleBlow => self.subtle_blow[0],
+            SubtleBlowIi => self.subtle_blow[1],
             Pdt | Pdt2 => self.dt[0],
             Mdt | Mdt2 => self.dt[1],
             Dt | Dt2 => self.dt[0] || self.dt[1],

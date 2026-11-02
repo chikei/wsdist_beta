@@ -182,12 +182,13 @@ export component Optimize inherits Rectangle {
                             alignment: start;
                             vertical-stretch: 1;
                             // EXTRA_INPUTS follows the eleven registered Optimize defaults.
-                            for index in 5: ControlEditor {
+                            for index in 7: ControlEditor {
                                 min-width: 336px;
                                 max-width: 336px;
                                 preferred-width: 336px;
                                 horizontal-stretch: 0;
                                 control: root.controls[index + 11];
+                                display-label: index == 2 ? "Required SB" : index == 3 ? "Required SB II" : root.controls[index + 11].label;
                                 inputs-enabled: root.inputs-enabled;
                                 text-edited(key, text) => { root.text-edited(key, text); }
                                 editing-finished(key, text) => { root.editing-finished(key, text); }
@@ -220,8 +221,8 @@ export component Optimize inherits Rectangle {
                                     max-width: 338px;
                                     preferred-width: 338px;
                                     horizontal-stretch: 0;
-                                    control: root.controls[index + 16];
-                                    display-label: index == 1 ? "Similar results %" : root.controls[index + 16].label;
+                                    control: root.controls[index + 18];
+                                    display-label: index == 1 ? "Similar results %" : root.controls[index + 18].label;
                                     inputs-enabled: root.inputs-enabled;
                                     text-edited(key, text) => { root.text-edited(key, text); }
                                     editing-finished(key, text) => { root.editing-finished(key, text); }
@@ -249,7 +250,7 @@ export component Optimize inherits Rectangle {
                                     max-width: 338px;
                                     preferred-width: 338px;
                                     horizontal-stretch: 0;
-                                    control: root.controls[18];
+                                    control: root.controls[20];
                                     inputs-enabled: root.inputs-enabled;
                                     toggled(key, checked) => { root.toggled(key, checked); }
                                 }

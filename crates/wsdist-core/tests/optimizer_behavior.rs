@@ -216,13 +216,13 @@ fn raw_helper_unknown_ws_is_a_scoring_error_not_a_fake_id_or_rejected_candidate(
     let rules = LegalityRules::new(player.main_job, player.sub_job, "weapon skill", "", "", &[(SkillType::Katana, vec!["".into()])], &[]);
     let ctx = ScoreContext::new(player.clone(), support::enemy(&input["enemy"]), action, rules, pieces, &catalog.catalog, true);
     let groups = [Group { combo: Tuple::new(&[Slot::Head.index()]), candidates: vec![Tuple::new(&[ctx.pieces.id(gear)])] }];
-    let error = ScoreScratch::new(&ctx).score(&ctx, &ctx.ids(&player.gearset), &groups, [200.0; 2], &mut engine, &AtomicBool::new(false), &mut None).unwrap_err();
+    let error = ScoreScratch::new(&ctx).score(&ctx, &ctx.ids(&player.gearset), &groups, Thresholds { dt: [200.0; 2], ..Thresholds::NONE }, &mut engine, &AtomicBool::new(false), &mut None).unwrap_err();
     support::assert_error(&error, &Value::Object([("class".into(), Value::from("KeyError")), ("message".into(), Value::from("''"))].into_iter().collect()), "raw empty WS lookup");
     let ctx = std::sync::Arc::new(ctx);
     let ids = ctx.ids(&player.gearset);
     let groups = [Group { combo: Tuple::new(&[Slot::Head.index()]), candidates: vec![Tuple::new(&[ctx.pieces.id(gear)]); 192] }];
     let mut mapper = Mapper::new(ctx.clone(), ids, MapperConfig::production(2, 20_000), &mut None);
-    let error = mapper.score(&ids, &groups, 192, [200.0; 2], &mut engine,
+    let error = mapper.score(&ids, &groups, 192, Thresholds { dt: [200.0; 2], ..Thresholds::NONE }, &mut engine,
         &mut ScoreScratch::new(&ctx), &AtomicBool::new(false), &mut None).unwrap_err();
     support::assert_error(&error, &Value::Object([("class".into(), Value::from("KeyError")), ("message".into(), Value::from("''"))].into_iter().collect()), "pool warmup/scoring lookup error");
 }
@@ -316,7 +316,7 @@ fn zero_time_reciprocal_is_a_legacy_error_in_search_and_candidate_scoring() {
         let (ctx, ids, _) = adapter::score_context(&catalog, &score_input, &engine.state, "zero-time score");
         let gear = catalog.gear(&input["candidate_pools"]["head"][1]);
         let groups = [Group { combo: Tuple::new(&[Slot::Head.index()]), candidates: vec![Tuple::new(&[ctx.pieces.id(gear)])] }];
-        let error = ScoreScratch::new(&ctx).score(&ctx, &ids, &groups, [200.0; 2],
+        let error = ScoreScratch::new(&ctx).score(&ctx, &ids, &groups, Thresholds { dt: [200.0; 2], ..Thresholds::NONE },
             &mut engine, &AtomicBool::new(false), &mut trace).unwrap_err();
         support::assert_error(&error, &expected, "hot and diagnostic candidate scoring propagate the same arithmetic error");
     }

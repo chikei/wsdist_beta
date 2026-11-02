@@ -10,6 +10,7 @@ use wsdist_core::model::{
     DpsResult, HitEvent, OptimizeRequest, OptimizeResult, OptimizeTermination, PieceKind,
     Player, PlayerInput, Progress, Slot, WsSample,
 };
+use wsdist_core::optimizer::subtle_blow_requirements;
 use wsdist_core::stats::{Stat, Stats, STAT_COUNT};
 
 use crate::exchange::GearSource;
@@ -389,6 +390,16 @@ fn action_metric(action: &ActionRequest) -> &str {
     }
 }
 
+/// PDT and MDT, then each Subtle Blow channel with a requirement, as `Label:value` terms.
+fn requirement_terms(request: &OptimizeRequest, values: [f64; 4]) -> String {
+    let mut terms = format!("PDT:{} MDT:{}", scalar(values[0]), scalar(values[1]));
+    let required = subtle_blow_requirements([request.min_subtle_blow, request.min_subtle_blow_ii]);
+    for ((label, minimum), value) in ["Subtle Blow", "Subtle Blow II"].into_iter().zip(required).zip(&values[2..]) {
+        if minimum.is_finite() { let _ = write!(terms, " {label}:{}", scalar(*value)); }
+    }
+    terms
+}
+
 pub fn optimizer_report(request: &OptimizeRequest, result: &OptimizeResult, catalog: &Catalog) -> TextReport {
     let (header, decimals) = match &request.action {
         ActionRequest::Round { .. } => ("Melee TP set", 3),
@@ -398,9 +409,10 @@ pub fn optimizer_report(request: &OptimizeRequest, result: &OptimizeResult, cata
     let metric = action_metric(&request.action);
     let title = format!("Best   \"{metric}\"   \"{header}\"   set");
     let mut text = String::new();
+    let required = requirement_terms(request, [request.min_pdt, request.min_mdt, request.min_subtle_blow, request.min_subtle_blow_ii]);
+    let achieved = requirement_terms(request, [result.pdt, result.mdt, result.subtle_blow, result.subtle_blow_ii]);
     if !result.feasible {
-        let _ = writeln!(text, "WARNING: Unsatisfied damage-taken requirements.\nRequired PDT:{} MDT:{}; achieved PDT:{} MDT:{}.",
-            scalar(request.min_pdt), scalar(request.min_mdt), scalar(result.pdt), scalar(result.mdt));
+        let _ = writeln!(text, "WARNING: Unsatisfied requirements.\nRequired {required}; achieved {achieved}.");
     }
     for warning in &result.warnings { let _ = writeln!(text, "{warning}"); }
     if result.player.is_none() {
@@ -436,10 +448,10 @@ pub fn optimizer_report(request: &OptimizeRequest, result: &OptimizeResult, cata
         OptimizeTermination::Converged => "Converged", OptimizeTermination::IterationLimit => "Iteration limit",
         OptimizeTermination::UnchangedDtStages => "Three unchanged DT stages",
         OptimizeTermination::NoWinner => "No winning improvement (legacy sentinel retained)",
-        OptimizeTermination::UnsatisfiedDt => "Unsatisfied DT",
+        OptimizeTermination::UnsatisfiedDt => "Unsatisfied requirements",
     };
-    let _ = writeln!(text, "Termination: {termination}\nDT stages: {}; passes: {}; scored: {}; restarts: {}\nAchieved PDT:{} MDT:{}; feasible: {}\nAccepted improvements: {}",
-        result.stages, result.passes, result.scored, result.restarts, scalar(result.pdt), scalar(result.mdt), result.feasible, result.accepted.len());
+    let _ = writeln!(text, "Termination: {termination}\nDT stages: {}; passes: {}; scored: {}; restarts: {}\nAchieved {achieved}; feasible: {}\nAccepted improvements: {}",
+        result.stages, result.passes, result.scored, result.restarts, result.feasible, result.accepted.len());
     if request.verbose_swaps || request.player.abilities.enabled(wsdist_core::model::Ability::VerboseSwaps) {
         for (index, accepted) in result.accepted.iter().enumerate() {
             let _ = writeln!(text, "\nAccepted set {}: metric {}; PDT:{} MDT:{}", index + 1,
