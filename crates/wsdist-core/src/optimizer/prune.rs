@@ -8,13 +8,13 @@ use std::sync::Arc;
 use crate::actions::optimizer_spell_type;
 use crate::catalog::Catalog;
 use crate::model::{
-    Ability, ActionRequest, CandidatePools, GearId, Job, MetricKind, OptimizeRequest, Slot, SpellType, WsType,
-    is_artifact_armor, set_bonus_stats,
+    Ability, ActionRequest, CandidatePools, GearId, Job, MINIMUM_STATS, MetricKind, OptimizeRequest, Slot, SpellType,
+    WsType, is_artifact_armor, set_bonus_stats,
 };
 use crate::stats::{STAT_COUNT, Stat};
 use crate::weaponskills::DStatFormula;
 
-use super::helpers::{dt_sum, dt_vector, piece_dt, subtle_blow_requirements};
+use super::helpers::{dt_sum, dt_vector, piece_dt, stat_requirements};
 use super::legality::{jse_ear_names, optimizer_ws_type};
 
 /// Weapon slots stay whole: kind, skill, damage and delay drive legality and the action
@@ -30,7 +30,7 @@ const NAMED_EFFECTS: &[&str] = &[
 ];
 
 /// Candidate pools without armor and accessories that cannot affect `request`'s score,
-/// damage-taken requirements or Subtle Blow requirements.
+/// damage-taken requirements or required minimum stats.
 ///
 /// A slot that loses candidates keeps one of them as a score-neutral choice unless Empty is
 /// already a candidate, so every set of the original pools has an equally scored legal set in
@@ -127,8 +127,8 @@ struct Scope {
     scaling: Vec<Stat>,
     /// PDT and MDT requirements some candidate set could miss.
     dt: [bool; 2],
-    /// Subtle Blow and Subtle Blow II requirements.
-    subtle_blow: [bool; 2],
+    /// [`MINIMUM_STATS`] with a requested minimum.
+    required: Vec<Stat>,
 }
 
 impl Scope {
@@ -139,7 +139,8 @@ impl Scope {
             flourish: [Ability::ClimacticFlourish, Ability::StrikingFlourish, Ability::TernaryFlourish]
                 .into_iter().any(|ability| abilities.enabled(ability)),
             dt: dt_binding(request, catalog),
-            subtle_blow: subtle_blow_requirements([request.min_subtle_blow, request.min_subtle_blow_ii]).map(f64::is_finite),
+            required: MINIMUM_STATS.into_iter().zip(stat_requirements(request.min_stats))
+                .filter_map(|(stat, minimum)| minimum.is_finite().then_some(stat)).collect(),
             ..Self::default()
         };
         match &request.action {
@@ -194,15 +195,15 @@ impl Scope {
     fn relevant(&self, stat: Stat) -> bool {
         use Stat::*;
         let physical = self.melee || self.ranged;
+        // A required minimum counts whatever the target reads.
+        if self.required.contains(&stat) { return true; }
         match stat {
-            // No optimizer path reads pets, the player's own defenses or skillchains.
+            // No optimizer path reads pets, the player's own defenses, Subtle Blow or skillchains.
             PetAgi | PetAccuracy | PetAttack | PetChr | PetCritRate | PetDa | PetDex | PetDt | PetDamageDealtPct
             | PetEvasion | PetGearHaste | PetInt | PetLevel | PetMdt | PetMnd | PetMagicAccuracy | PetMagicAttack
             | PetMagicDefense | PetMagicEvasion | PetPdt | PetRangedAccuracy | PetRangedAttack | PetStr | PetStoreTp
             | PetSubtleBlow | PetTpBonus | PetVit | AutomatonSkill | BloodPactDamage
-            | Evasion | EvasionSkill | MagicEvasion | MagicDefense | SkillchainBonus => false,
-            SubtleBlow => self.subtle_blow[0],
-            SubtleBlowIi => self.subtle_blow[1],
+            | Evasion | EvasionSkill | MagicEvasion | MagicDefense | SubtleBlow | SubtleBlowIi | SkillchainBonus => false,
             Pdt | Pdt2 => self.dt[0],
             Mdt | Mdt2 => self.dt[1],
             Dt | Dt2 => self.dt[0] || self.dt[1],

@@ -123,7 +123,7 @@ pub fn optimize_pass<R: RandomSource>(context: &Arc<ScoreContext>, mapper: &mut 
 #[derive(Clone, Debug)]
 pub struct RawOptimizeRequest {
     pub player: PlayerInput, pub enemy: Enemy, pub action: RawAction, pub candidates: CandidatePools,
-    pub min_pdt: f64, pub min_mdt: f64, pub min_subtle_blow: f64, pub min_subtle_blow_ii: f64, pub options: OptimizeOptions,
+    pub min_pdt: f64, pub min_mdt: f64, pub min_stats: [f64; MINIMUM_STATS.len()], pub options: OptimizeOptions,
     pub similar_results: bool, pub similar_percent: f64, pub verbose_swaps: bool,
     /// Captured runtime CPU width for auto-worker probe replay only.
     pub automatic_workers: Option<usize>,
@@ -188,7 +188,7 @@ pub fn optimize_raw<R: RandomSource>(request: &RawOptimizeRequest, engine: &mut 
         }
         return Ok(OptimizeResult { gearset: request.player.gearset, player: None, metric: best_metric, legacy_output: Vec::new(),
             calculation: Vec::new(), restart_calculation: Vec::new(),
-            pdt: f64::NAN, mdt: f64::NAN, subtle_blow: f64::NAN, subtle_blow_ii: f64::NAN,
+            pdt: f64::NAN, mdt: f64::NAN, stat_totals: [f64::NAN; MINIMUM_STATS.len()],
             feasible: false, termination: OptimizeTermination::NoWinner,
             accepted: all_accepted, similar: Vec::new(), stages, passes, scored,
             restarts: options.restart_count as usize, invert: 1, warnings });
@@ -272,12 +272,11 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
     let mut old_achieved = achieved;
     let requirements = [request.min_pdt, request.min_mdt];
     let mut thresholds = [200.0; 2];
-    // Subtle Blow channels without a requirement never bound a stage or count as stage progress.
-    let sb_requirements = subtle_blow_requirements([request.min_subtle_blow, request.min_subtle_blow_ii]);
-    let sb_required = sb_requirements.map(f64::is_finite);
-    let mut sb_achieved = [f64::NEG_INFINITY; 2];
-    let mut old_sb_achieved = sb_achieved;
-    let mut sb_floors = [f64::NEG_INFINITY; 2];
+    // Minimum stats without a requirement never bound a stage or count as stage progress.
+    let stat_minimums = stat_requirements(request.min_stats);
+    let mut stat_achieved = [f64::NEG_INFINITY; MINIMUM_STATS.len()];
+    let mut old_stat_achieved = stat_achieved;
+    let mut stat_floors = [f64::NEG_INFINITY; MINIMUM_STATS.len()];
     let mut unchanged = 0;
     let mut best_metric = 0.0001;
     let mut output = vec![0.0; 3];
@@ -288,7 +287,7 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
     let mut termination = OptimizeTermination::Converged;
     let mut best_set = starting;
     while achieved[0] > requirements[0] || achieved[1] > requirements[1]
-        || sb_achieved[0] < sb_requirements[0] || sb_achieved[1] < sb_requirements[1] {
+        || stat_achieved.iter().zip(&stat_minimums).any(|(total, minimum)| total < minimum) {
         interrupted(stop)?;
         stages += 1;
         record(trace, || TraceEvent::DtStage { thresholds, prior_achieved: achieved, ids: best_ids, unchanged });
@@ -311,7 +310,7 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
             let mut neighborhood = Neighborhood::new(combos, pools.clone(), trace);
             let result = optimize_pass(&context, &mut mapper, &mut neighborhood,
                 PassInput { ids: best_ids, metric: best_metric, output, invert, next_best_percent: request.similar_percent,
-                    thresholds: Thresholds { dt: thresholds, subtle_blow: sb_floors }, stage: stages, pass: pass + 1, scored_before: scored,
+                    thresholds: Thresholds { dt: thresholds, stats: stat_floors }, stage: stages, pass: pass + 1, scored_before: scored,
                     verbose_swaps: request.verbose_swaps || request.player.abilities.enabled(Ability::VerboseSwaps) },
                 engine, &mut scratch, stop, progress, trace)?;
             best_ids = result.ids; best_metric = result.metric; output = result.output;
@@ -323,9 +322,9 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
         scratch.input.gearset = best_set;
         build_player(&scratch.input, engine, &mut scratch.player)?;
         achieved = dt_for_player(&scratch.player);
-        let sb = subtle_blow_for_player(&scratch.player);
-        sb_achieved = std::array::from_fn(|index| if sb_required[index] { sb[index] } else { f64::NEG_INFINITY });
-        if achieved == old_achieved && sb_achieved == old_sb_achieved {
+        let totals = stat_totals(&scratch.player);
+        stat_achieved = std::array::from_fn(|index| if stat_minimums[index].is_finite() { totals[index] } else { f64::NEG_INFINITY });
+        if achieved == old_achieved && stat_achieved == old_stat_achieved {
             unchanged += 1;
             if unchanged >= 3 {
                 record(trace, || TraceEvent::UnsatisfiedDt { achieved, unchanged });
@@ -334,12 +333,12 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
             }
         } else { unchanged = 0; }
         old_achieved = achieved;
-        old_sb_achieved = sb_achieved;
+        old_stat_achieved = stat_achieved;
         thresholds = std::array::from_fn(|index| {
             let next = achieved[index] - options.dt_step;
             if next > requirements[index] { next } else { requirements[index] }
         });
-        sb_floors = std::array::from_fn(|index| (sb_achieved[index] + options.dt_step).min(sb_requirements[index]));
+        stat_floors = std::array::from_fn(|index| (stat_achieved[index] + options.dt_step).min(stat_minimums[index]));
         record(trace, || TraceEvent::DtStageEnd { achieved, next_thresholds: thresholds, unchanged, metric: best_metric });
         progress(Progress { stage: stages, pass: stage_pass, scored, best_metric, pdt: achieved[0], mdt: achieved[1], message: None });
     }
@@ -351,9 +350,9 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
     scratch.input.gearset = best_set;
     build_player(&scratch.input, engine, &mut scratch.player)?;
     let final_achieved = dt_for_player(&scratch.player);
-    let final_sb = subtle_blow_for_player(&scratch.player);
+    let final_stats = stat_totals(&scratch.player);
     let feasible = final_achieved[0] <= requirements[0] && final_achieved[1] <= requirements[1]
-        && final_sb[0] >= sb_requirements[0] && final_sb[1] >= sb_requirements[1];
+        && final_stats.iter().zip(&stat_minimums).all(|(total, minimum)| total >= minimum);
     if !feasible {
         if termination != OptimizeTermination::UnchangedDtStages { termination = OptimizeTermination::UnsatisfiedDt; }
         let warning = "Unable to find a set which satisfies the conditions better than the current set. Exiting.".to_owned();
@@ -395,7 +394,7 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
     interrupted(stop)?;
     Ok(OptimizeResult { gearset: best_set, player: Some(scratch.player), metric: best_metric, legacy_output: output,
         calculation: scratch.calculation, restart_calculation: Vec::new(),
-        pdt: final_achieved[0], mdt: final_achieved[1], subtle_blow: final_sb[0], subtle_blow_ii: final_sb[1],
+        pdt: final_achieved[0], mdt: final_achieved[1], stat_totals: final_stats,
         feasible, termination, accepted, similar,
         stages, passes, scored, restarts: 1, invert, warnings })
 }

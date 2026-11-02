@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use serde::{Serialize, Serializer};
 
 use crate::catalog::Catalog;
-use crate::model::{Abilities, CalcError, GearId, ModelState, OptimizeOptions, Player, RandomSource};
+use crate::model::{Abilities, CalcError, GearId, MINIMUM_STATS, ModelState, OptimizeOptions, Player, RandomSource};
 use crate::stats::{Stat, Stats};
 
 pub const MAX_SWAP_SLOTS: usize = 4;
@@ -98,21 +98,21 @@ pub fn dt_for_player(player: &Player) -> [f64; 2] {
      if mdt < -50.0 { -50.0 } else { mdt } + (stats.get(Stat::Mdt2) + stats.get(Stat::Dt2))]
 }
 
-/// Per-stage candidate bounds: damage taken at most `dt`, Subtle Blow at least `subtle_blow`.
+/// Per-stage candidate bounds: damage taken at most `dt`, each of [`MINIMUM_STATS`] at least `stats`.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Thresholds { pub dt: [f64; 2], pub subtle_blow: [f64; 2] }
+pub struct Thresholds { pub dt: [f64; 2], pub stats: [f64; MINIMUM_STATS.len()] }
 
 impl Thresholds {
-    pub const NONE: Self = Self { dt: [f64::INFINITY; 2], subtle_blow: [f64::NEG_INFINITY; 2] };
+    pub const NONE: Self = Self { dt: [f64::INFINITY; 2], stats: [f64::NEG_INFINITY; MINIMUM_STATS.len()] };
 }
 
-/// Total Subtle Blow and Subtle Blow II from gear, traits and effects.
-pub fn subtle_blow_for_player(player: &Player) -> [f64; 2] {
-    [player.stats.get(Stat::SubtleBlow), player.stats.get(Stat::SubtleBlowIi)]
+/// Totals of [`MINIMUM_STATS`] from gear, traits and effects.
+pub fn stat_totals(player: &Player) -> [f64; MINIMUM_STATS.len()] {
+    MINIMUM_STATS.map(|stat| player.stats.get(stat))
 }
 
-/// Subtle Blow floors for requested minima; a minimum of zero or less imposes none.
-pub fn subtle_blow_requirements(minimums: [f64; 2]) -> [f64; 2] {
+/// Floors for requested [`MINIMUM_STATS`] minima; a minimum of zero or less imposes none.
+pub fn stat_requirements(minimums: [f64; MINIMUM_STATS.len()]) -> [f64; MINIMUM_STATS.len()] {
     minimums.map(|minimum| if minimum > 0.0 { minimum } else { f64::NEG_INFINITY })
 }
 

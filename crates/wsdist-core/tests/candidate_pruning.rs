@@ -5,11 +5,11 @@ use std::sync::Arc;
 
 use wsdist_core::actions::{evaluate_action, optimizer_spell_type, resolve_spell_name};
 use wsdist_core::model::{
-    Ability, Abilities, ActionRequest, BuffInputs, CandidatePools, Enemy, EvaluationContext, GearId, Job, Metric,
-    OptimizeOptions, OptimizeRequest, Player, PlayerInput, RandomSource, Slot, SpellRequest, WsRequest,
+    Ability, Abilities, ActionRequest, BuffInputs, CandidatePools, Enemy, EvaluationContext, GearId, Job, MINIMUM_STATS,
+    Metric, OptimizeOptions, OptimizeRequest, Player, PlayerInput, RandomSource, Slot, SpellRequest, WsRequest,
 };
-use wsdist_core::optimizer::probe::{dt_for_player, optimizer_ws_type, subtle_blow_for_player};
-use wsdist_core::optimizer::prune_candidates;
+use wsdist_core::optimizer::probe::{dt_for_player, optimizer_ws_type, stat_totals};
+use wsdist_core::optimizer::{prune_candidates, stat_requirements};
 use wsdist_core::rng::RandomSources;
 use wsdist_core::weaponskills::resolve_name;
 use wsdist_core::{Catalog, aggregate_buffs, build_enemy, build_player};
@@ -25,42 +25,45 @@ struct Target {
     abilities: &'static [Ability],
     action: Action,
     dt: [f64; 2],
-    subtle_blow: [f64; 2],
+    /// Minimum totals of `MINIMUM_STATS`.
+    minimums: [f64; MINIMUM_STATS.len()],
 }
+
+const NO_MINIMUMS: [f64; MINIMUM_STATS.len()] = [0.0; MINIMUM_STATS.len()];
 
 const TARGETS: &[Target] = &[
     Target { main: Job::War, sub: Job::Sam, weapons: &[(Slot::Main, "Naegling"), (Slot::Sub, "Blurred Shield +1")],
-        abilities: &[Ability::Berserk], action: Action::Ws("Savage Blade", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::Berserk], action: Action::Ws("Savage Blade", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::War, sub: Job::Sam, weapons: &[(Slot::Main, "Naegling"), (Slot::Sub, "Blurred Shield +1")],
-        abilities: &[], action: Action::Ws("Savage Blade", "TP return"), dt: [-30.0, -20.0], subtle_blow: [0.0, 0.0] },
-    // Subtle Blow gear otherwise carries only melee stats, which a spell never reads.
+        abilities: &[], action: Action::Ws("Savage Blade", "TP return"), dt: [-30.0, -20.0], minimums: NO_MINIMUMS },
+    // Subtle Blow and Double Attack gear otherwise carries only melee stats, which a spell never reads.
     Target { main: Job::Drk, sub: Job::Sam, weapons: &[(Slot::Main, "Apocalypse")],
-        abilities: &[], action: Action::Spell("Fire IV", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [5.0, 5.0] },
+        abilities: &[], action: Action::Spell("Fire IV", "Damage dealt"), dt: [0.0, 0.0], minimums: [5.0, 5.0, 5.0] },
     Target { main: Job::Thf, sub: Job::Dnc, weapons: &[(Slot::Main, "Tauret"), (Slot::Sub, "Gleti's Knife")],
         abilities: &[Ability::SneakAttack, Ability::TrickAttack, Ability::ClimacticFlourish],
-        action: Action::Ws("Rudra's Storm", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        action: Action::Ws("Rudra's Storm", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Thf, sub: Job::Nin, weapons: &[(Slot::Main, "Tauret"), (Slot::Sub, "Gleti's Knife")],
-        abilities: &[], action: Action::Ws("Aeolian Edge", "Magic accuracy"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[], action: Action::Ws("Aeolian Edge", "Magic accuracy"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Nin, sub: Job::War, weapons: &[(Slot::Main, "Kikoku"), (Slot::Sub, "Hitaki"), (Slot::Ammo, "Seki Shuriken")],
-        abilities: &[], action: Action::Ws("Blade: Chi", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[], action: Action::Ws("Blade: Chi", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Sam, sub: Job::War, weapons: &[(Slot::Main, "Masamune"), (Slot::Sub, "Utu Grip")],
-        abilities: &[Ability::Hasso], action: Action::Round("Time to WS"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::Hasso], action: Action::Round("Time to WS"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Nin, sub: Job::War, weapons: &[(Slot::Main, "Kikoku"), (Slot::Sub, "Hitaki"), (Slot::Ammo, "Seki Shuriken")],
-        abilities: &[], action: Action::Round("DPS"), dt: [-50.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[], action: Action::Round("DPS"), dt: [-50.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Rdm, sub: Job::Nin, weapons: &[(Slot::Main, "Naegling"), (Slot::Sub, "Daybreak")],
-        abilities: &[Ability::EnSpell], action: Action::Round("Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::EnSpell], action: Action::Round("Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Rng, sub: Job::War, weapons: &[(Slot::Main, "Malevolence"), (Slot::Ranged, "Fomalhaut"), (Slot::Ammo, "Chrono Bullet")],
-        abilities: &[Ability::Sharpshot], action: Action::Ws("Last Stand", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::Sharpshot], action: Action::Ws("Last Stand", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Cor, sub: Job::Nin, weapons: &[(Slot::Main, "Naegling"), (Slot::Ranged, "Death Penalty"), (Slot::Ammo, "Chrono Bullet")],
-        abilities: &[], action: Action::Ws("Leaden Salute", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[], action: Action::Ws("Leaden Salute", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Blm, sub: Job::Rdm, weapons: &[(Slot::Main, "Laevateinn"), (Slot::Sub, "Khonsu")],
-        abilities: &[Ability::MagicBurst], action: Action::Spell("Fire VI", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::MagicBurst], action: Action::Spell("Fire VI", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Nin, sub: Job::War, weapons: &[(Slot::Main, "Kikoku"), (Slot::Sub, "Hitaki")],
-        abilities: &[Ability::Futae], action: Action::Spell("Raiton: San", "Damage dealt"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::Futae], action: Action::Spell("Raiton: San", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Cor, sub: Job::Nin, weapons: &[(Slot::Main, "Naegling"), (Slot::Ranged, "Death Penalty"), (Slot::Ammo, "Chrono Bullet")],
-        abilities: &[], action: Action::Spell("Fire Shot", "TP return"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[], action: Action::Spell("Fire Shot", "TP return"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::Rng, sub: Job::War, weapons: &[(Slot::Main, "Malevolence"), (Slot::Ranged, "Fomalhaut"), (Slot::Ammo, "Chrono Bullet")],
-        abilities: &[Ability::Barrage], action: Action::Spell("Ranged Attack", "TP > Damage"), dt: [0.0, 0.0], subtle_blow: [0.0, 0.0] },
+        abilities: &[Ability::Barrage], action: Action::Spell("Ranged Attack", "TP > Damage"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
 ];
 
 fn catalog() -> Arc<Catalog> {
@@ -98,7 +101,7 @@ fn request(catalog: &Catalog, target: &Target, with_empty: bool) -> OptimizeRequ
             spell_type: optimizer_spell_type(name), metric: Metric::new(metric) }), "None", name),
     };
     OptimizeRequest { player, enemy, action, candidates, ws_name: Arc::from(ws_name), spell_name: Arc::from(spell_name),
-        min_pdt: target.dt[0], min_mdt: target.dt[1], min_subtle_blow: target.subtle_blow[0], min_subtle_blow_ii: target.subtle_blow[1],
+        min_pdt: target.dt[0], min_mdt: target.dt[1], min_stats: target.minimums,
         options: OptimizeOptions::default(),
         similar_results: false, similar_percent: 0.0, verbose_swaps: false }
 }
@@ -109,17 +112,18 @@ fn label(target: &Target) -> String {
     format!("{:?}/{:?} {action}", target.main, target.sub)
 }
 
-/// Score and per-channel PDT, MDT, Subtle Blow and Subtle Blow II feasibility, with identical random draws.
+/// Score and per-channel PDT, MDT and minimum-stat feasibility, with identical random draws.
 fn evaluate(request: &OptimizeRequest, enemy: &Enemy, gearset: [GearId; Slot::COUNT],
-    context: &mut EvaluationContext<RandomSources>, player: &mut Player) -> (f64, [bool; 4]) {
+    context: &mut EvaluationContext<RandomSources>, player: &mut Player) -> (f64, Vec<bool>) {
     let input = PlayerInput { gearset, ..request.player.clone() };
     build_player(&input, context, player).unwrap();
     context.random.reseed(11);
     let metric = evaluate_action(player, enemy, &request.action, context).unwrap().metric;
     let dt = dt_for_player(player);
-    let subtle_blow = subtle_blow_for_player(player);
-    (metric, [dt[0] <= request.min_pdt, dt[1] <= request.min_mdt,
-        subtle_blow[0] >= request.min_subtle_blow, subtle_blow[1] >= request.min_subtle_blow_ii])
+    // Some gear has negative Double Attack, so a zero minimum must impose nothing rather than `>= 0`.
+    let feasible = [dt[0] <= request.min_pdt, dt[1] <= request.min_mdt].into_iter()
+        .chain(stat_totals(player).into_iter().zip(stat_requirements(request.min_stats)).map(|(total, floor)| total >= floor)).collect();
+    (metric, feasible)
 }
 
 #[test]

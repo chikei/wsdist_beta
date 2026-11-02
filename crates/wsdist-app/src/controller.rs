@@ -9,11 +9,11 @@ use fontique::{Collection, GenericFamily};
 use serde_json::{Map, Value};
 use slint::{ComponentHandle, SharedString, Timer, TimerMode, VecModel};
 use wsdist_core::buffs::parse_integer_text;
-use wsdist_core::model::{CalcError, EvaluationContext, Gearset, Job, OptimizeOptions, Slot};
+use wsdist_core::model::{CalcError, EvaluationContext, Gearset, Job, MINIMUM_STATS, OptimizeOptions, Slot};
 use wsdist_core::rng::RandomSources;
 
 use crate::charts::ChartBuffer;
-use crate::desktop_inputs::{EXTRA_INPUTS, INPUT_PRESENTATION};
+use crate::desktop_inputs::{EXTRA_INPUTS, INPUT_PRESENTATION, MINIMUM_STAT_KEYS};
 use crate::desktop_models::{DesktopModels, ExtraControls, extra_controls};
 use crate::exchange::{BulkAction, BulkFilters, ClipboardOwner, GearSource, IconProvider, ImportOutcome, import_inventory_file, select_bulk};
 use crate::jobs::{AnalyticalKind, GuiAction, JobCompletion, WorkRequest, WorkResult, WorkerCoordinator, WorkerEvent};
@@ -352,8 +352,7 @@ impl DesktopController {
                 GuiAction::Optimize {
                     kind, metric: Arc::from(self.control_text(metric_key)), candidates: self.ui.gear.candidate_pools(),
                     min_pdt: self.wheel_integer("optimize_tab.pdt_requirements_entry")?, min_mdt: self.wheel_integer("optimize_tab.mdt_requirements_entry")?,
-                    min_subtle_blow: self.wheel_integer("optimize_tab.subtle_blow_requirements_entry")?,
-                    min_subtle_blow_ii: self.wheel_integer("optimize_tab.subtle_blow_ii_requirements_entry")?,
+                    min_stats: self.minimum_stats()?,
                     options: self.optimizer_options()?, similar_results: self.extra_checked("optimize_tab.show_similar_results_checkbox"),
                     similar_percent: self.integer("optimize_tab.show_similar_results_entry")?, verbose_swaps: self.ui.verbose_swaps,
                     prune: self.extra_checked("optimize_tab.prune_candidates_checkbox"),
@@ -385,6 +384,12 @@ impl DesktopController {
             restart_count: integer("defaults_optimizer_restart_count_entry")?, seed,
             dt_step: self.wheel_integer("defaults_optimizer_dt_step_entry")?, workers: integer("defaults_optimizer_workers_entry")?,
         })
+    }
+
+    fn minimum_stats(&self) -> AppResult<[f64; MINIMUM_STATS.len()]> {
+        let mut minimums = [0.0; MINIMUM_STATS.len()];
+        for (minimum, key) in minimums.iter_mut().zip(MINIMUM_STAT_KEYS) { *minimum = self.wheel_integer(key)?; }
+        Ok(minimums)
     }
 
     fn control_text(&self, key: &str) -> &str {

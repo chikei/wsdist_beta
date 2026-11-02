@@ -9,7 +9,7 @@ use crate::weaponskills::resolve_name;
 
 pub use super::helpers::{DtVector, Group, GroupSlice, InternedPieces, InternedSet, Thresholds, Tuple, can_use_fast_dt_gate,
     dt_for_player, dt_sum, dt_totals, dt_vector, group_slices, intern_pieces, normalize_options,
-    restart_options, slot_combos, split_groups, subtle_blow_for_player};
+    restart_options, slot_combos, split_groups, stat_totals};
 pub use super::legality::{LegalityRules, RESTRICTED_WS, SearchKind, WS_MENUS, jse_ear_names, optimizer_ws_type};
 pub use super::neighborhood::{Cursor, Neighborhood};
 pub use super::scoring::{LegacyEvaluation, Mapper, MapperConfig, ScoreContext, ScoreScratch};

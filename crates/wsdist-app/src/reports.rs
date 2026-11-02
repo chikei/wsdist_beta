@@ -7,10 +7,10 @@ use std::io::{self, Write as _};
 use wsdist_core::Catalog;
 use wsdist_core::model::{
     ActionRequest, ActionResult, AttackKind, AttackProc, CalculationSection, CalculationStep, DistributionResult,
-    DpsResult, HitEvent, OptimizeRequest, OptimizeResult, OptimizeTermination, PieceKind,
+    DpsResult, HitEvent, MINIMUM_STATS, OptimizeRequest, OptimizeResult, OptimizeTermination, PieceKind,
     Player, PlayerInput, Progress, Slot, WsSample,
 };
-use wsdist_core::optimizer::subtle_blow_requirements;
+use wsdist_core::optimizer::stat_requirements;
 use wsdist_core::stats::{Stat, Stats, STAT_COUNT};
 
 use crate::exchange::GearSource;
@@ -390,12 +390,11 @@ fn action_metric(action: &ActionRequest) -> &str {
     }
 }
 
-/// PDT and MDT, then each Subtle Blow channel with a requirement, as `Label:value` terms.
-fn requirement_terms(request: &OptimizeRequest, values: [f64; 4]) -> String {
-    let mut terms = format!("PDT:{} MDT:{}", scalar(values[0]), scalar(values[1]));
-    let required = subtle_blow_requirements([request.min_subtle_blow, request.min_subtle_blow_ii]);
-    for ((label, minimum), value) in ["Subtle Blow", "Subtle Blow II"].into_iter().zip(required).zip(&values[2..]) {
-        if minimum.is_finite() { let _ = write!(terms, " {label}:{}", scalar(*value)); }
+/// PDT and MDT, then each of `MINIMUM_STATS` with a requirement, as `Label:value` terms.
+fn requirement_terms(request: &OptimizeRequest, dt: [f64; 2], stats: [f64; MINIMUM_STATS.len()]) -> String {
+    let mut terms = format!("PDT:{} MDT:{}", scalar(dt[0]), scalar(dt[1]));
+    for ((stat, minimum), value) in MINIMUM_STATS.into_iter().zip(stat_requirements(request.min_stats)).zip(stats) {
+        if minimum.is_finite() { let _ = write!(terms, " {}:{}", stat.name(), scalar(value)); }
     }
     terms
 }
@@ -409,8 +408,8 @@ pub fn optimizer_report(request: &OptimizeRequest, result: &OptimizeResult, cata
     let metric = action_metric(&request.action);
     let title = format!("Best   \"{metric}\"   \"{header}\"   set");
     let mut text = String::new();
-    let required = requirement_terms(request, [request.min_pdt, request.min_mdt, request.min_subtle_blow, request.min_subtle_blow_ii]);
-    let achieved = requirement_terms(request, [result.pdt, result.mdt, result.subtle_blow, result.subtle_blow_ii]);
+    let required = requirement_terms(request, [request.min_pdt, request.min_mdt], request.min_stats);
+    let achieved = requirement_terms(request, [result.pdt, result.mdt], result.stat_totals);
     if !result.feasible {
         let _ = writeln!(text, "WARNING: Unsatisfied requirements.\nRequired {required}; achieved {achieved}.");
     }

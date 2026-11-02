@@ -54,8 +54,8 @@ pub fn raw_request(catalog: &FrozenCatalog, input: &Value, state: &ModelState, l
     RawOptimizeRequest { player: catalog.player(&input["player"], state, label), enemy: support::enemy(&input["enemy"]),
         action: raw_action(&input["request"]), candidates: pools(catalog, &input["candidate_pools"]),
         min_pdt: number(&input["thresholds"]["pdt"]), min_mdt: number(&input["thresholds"]["mdt"]),
-        // The legacy corpus predates Subtle Blow requirements.
-        min_subtle_blow: 0.0, min_subtle_blow_ii: 0.0,
+        // The legacy corpus predates minimum-stat requirements.
+        min_stats: [0.0; MINIMUM_STATS.len()],
         options: wsdist_fixtures::from_value(&input["options"]).unwrap(), similar_results: true,
         similar_percent: number(&input["next_best_percent"]), verbose_swaps: input["verbose_swaps"].as_bool().unwrap(), automatic_workers: None }
 }
@@ -64,7 +64,7 @@ pub fn request(catalog: &FrozenCatalog, input: &Value, state: &ModelState, label
     let raw = raw_request(catalog, input, state, label);
     OptimizeRequest { player: raw.player, enemy: raw.enemy, action: raw.action.resolve().unwrap(),
         ws_name: raw.action.ws_name, spell_name: raw.action.spell_name, candidates: raw.candidates,
-        min_pdt: raw.min_pdt, min_mdt: raw.min_mdt, min_subtle_blow: raw.min_subtle_blow, min_subtle_blow_ii: raw.min_subtle_blow_ii,
+        min_pdt: raw.min_pdt, min_mdt: raw.min_mdt, min_stats: raw.min_stats,
         options: raw.options, similar_results: raw.similar_results,
         similar_percent: raw.similar_percent, verbose_swaps: raw.verbose_swaps }
 }
@@ -76,7 +76,7 @@ pub fn groups(value: &Value) -> Vec<Group> {
         candidates: group[1].as_array().unwrap().iter().map(tuple).collect() }).collect()
 }
 pub fn thresholds(value: &Value) -> Thresholds {
-    Thresholds { dt: [number(&value["pdt"]), number(&value["mdt"])], subtle_blow: [f64::NEG_INFINITY; 2] }
+    Thresholds { dt: [number(&value["pdt"]), number(&value["mdt"])], ..Thresholds::NONE }
 }
 pub fn floats(value: &Value) -> Vec<f64> { value.as_array().unwrap().iter().map(number).collect() }
 pub fn assert_floats(actual: &[f64], expected: &Value, label: &str) {

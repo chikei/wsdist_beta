@@ -36,23 +36,23 @@ for the exercised verification and remaining manual checks.
 - **Optimize:** check candidates independently for each slot, apply the bulk
   selection filters or import a Windower inventory file, choose metrics and
   search options, then run **Optimize WS**, **Optimize Spell** or **Optimize TP**.
-  **Required SB** and **Required SB II** (default 0, meaning no requirement)
-  set minimum Subtle Blow and Subtle Blow II totals from gear, traits and
-  buffs; like the PDT/MDT requirements, the search tightens them stage by
-  stage, stepping by the DT search step.
+  **Required SB**, **Required SB II** and **Required DA %** (default 0,
+  meaning no requirement) set minimum Subtle Blow, Subtle Blow II and Double
+  Attack totals from gear, traits and buffs; like the PDT/MDT requirements, the
+  search tightens them stage by stage, stepping by the DT search step.
   **Prune irrelevant equipment** (checked by default) first drops armor and
   accessory candidates without any stat that the chosen weapon skill, spell or
-  TP metric reads, or that the PDT/MDT and Subtle Blow requirements can need;
-  one dropped piece per slot stays as a neutral choice, and weapon, ranged and
-  ammo candidates are never pruned. The progress window reports how many
-  candidates were dropped.
+  TP metric reads, or that the PDT/MDT, Subtle Blow and Double Attack
+  requirements can need; one dropped piece per slot stays as a neutral choice,
+  and weapon, ranged and ammo candidates are never pruned. The progress window
+  reports how many candidates were dropped.
   When a job ends, its progress window closes. Successful jobs show the final set
   and computed values in a Quicklook-style result window. Worker failures show
   the full error there, including insufficient candidate selection, without
   replacing the last successful result. Cancellation opens no result window.
   Intermediate and final output still appear in the console. **Equip best set**
-  is enabled only for an actual returned player. Unsatisfied damage-taken and
-  Subtle Blow requirements remain visible in the final report.
+  is enabled only for an actual returned player. Unsatisfied damage-taken,
+  Subtle Blow and Double Attack requirements remain visible in the final report.
 - **Simulate:** maintain separate TP and WS equipment sets; run the full
   7200-second DPS simulation, a 20000-sample WS distribution, or the TP/WS stat
   comparison. Reports and charts open in independent windows.

@@ -13,7 +13,7 @@ use wsdist_app::jobs::{
 use wsdist_app::state::CalculationInputs;
 use wsdist_core::Catalog;
 use wsdist_core::model::{
-    CalcError, CalculationSection, CalculationStep, CandidatePools, Enemy, EvaluationContext, HitEvent, OptimizeOptions,
+    CalcError, CalculationSection, CalculationStep, CandidatePools, Enemy, EvaluationContext, HitEvent, MINIMUM_STATS, OptimizeOptions,
     Player, PlayerStage, PlayerStageSnapshot, Progress, RandomSource, RandomStream,
     SkillType, Slot, WsType,
 };
@@ -165,7 +165,7 @@ fn optimize_action(case: &Value, catalog: &Catalog) -> GuiAction {
     GuiAction::Optimize {
         kind: AnalyticalKind::Ws, metric: Arc::from(input["request"]["input_metric"].as_str().unwrap()),
         candidates, min_pdt: number(&input["thresholds"]["pdt"]),
-        min_mdt: number(&input["thresholds"]["mdt"]), min_subtle_blow: 0.0, min_subtle_blow_ii: 0.0,
+        min_mdt: number(&input["thresholds"]["mdt"]), min_stats: [0.0; MINIMUM_STATS.len()],
         options: wsdist_fixtures::from_value::<OptimizeOptions>(&input["options"]).unwrap(),
         similar_results: false, similar_percent: number(&input["next_best_percent"]),
         verbose_swaps: false, prune: false,

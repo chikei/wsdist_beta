@@ -516,13 +516,16 @@ impl Default for OptimizeOptions {
 
 pub type CandidatePools = [Vec<GearId>; Slot::COUNT];
 
+/// Stats an optimize request can require a minimum total of, from gear, traits and effects.
+pub const MINIMUM_STATS: [Stat; 3] = [Stat::SubtleBlow, Stat::SubtleBlowIi, Stat::Da];
+
 #[derive(Clone, Debug)]
 pub struct OptimizeRequest {
     pub player: PlayerInput, pub enemy: Enemy, pub action: ActionRequest, pub candidates: CandidatePools,
     pub ws_name: Arc<str>, pub spell_name: Arc<str>,
     pub min_pdt: f64, pub min_mdt: f64,
-    /// Minimum total Subtle Blow and Subtle Blow II; zero or less means no requirement.
-    pub min_subtle_blow: f64, pub min_subtle_blow_ii: f64,
+    /// Minimum totals of [`MINIMUM_STATS`], in order; zero or less means no requirement.
+    pub min_stats: [f64; MINIMUM_STATS.len()],
     pub options: OptimizeOptions,
     pub similar_results: bool, pub similar_percent: f64, pub verbose_swaps: bool,
 }
@@ -553,7 +556,9 @@ pub struct OptimizeResult {
     pub calculation: Vec<CalculationStep>,
     /// The selected restart's separate post-reorder comparison, when restarts ran.
     pub restart_calculation: Vec<CalculationStep>,
-    pub pdt: f64, pub mdt: f64, pub subtle_blow: f64, pub subtle_blow_ii: f64,
+    pub pdt: f64, pub mdt: f64,
+    /// Totals of [`MINIMUM_STATS`] on the returned player.
+    pub stat_totals: [f64; MINIMUM_STATS.len()],
     pub feasible: bool, pub termination: OptimizeTermination,
     pub accepted: Vec<AcceptedCandidate>, pub similar: Vec<SimilarSwap>,
     pub stages: usize, pub passes: usize, pub scored: usize, pub restarts: usize, pub invert: i8,

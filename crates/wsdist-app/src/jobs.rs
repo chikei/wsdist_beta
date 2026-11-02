@@ -9,7 +9,7 @@ use std::thread::{self, JoinHandle};
 use wsdist_core::actions::{evaluate_action, gui_spell_type, resolve_spell_name, sample_ws};
 use wsdist_core::model::{
     ActionRequest, ActionResult, CalcError, CandidatePools, DistributionRequest, DistributionResult, DpsRequest,
-    DpsResult, EvaluationContext, HitEvent, Metric, OptimizeOptions, OptimizeRequest, OptimizeResult, Player,
+    DpsResult, EvaluationContext, HitEvent, MINIMUM_STATS, Metric, OptimizeOptions, OptimizeRequest, OptimizeResult, Player,
     PlayerInput, PlayerStage, Progress, SpellRequest, WsRequest, WsSample, build_player,
 };
 use wsdist_core::optimizer::{optimize, prune_candidates};
@@ -43,9 +43,8 @@ pub enum GuiAction {
         candidates: CandidatePools,
         min_pdt: f64,
         min_mdt: f64,
-        /// Minimum Subtle Blow and Subtle Blow II; zero means no requirement.
-        min_subtle_blow: f64,
-        min_subtle_blow_ii: f64,
+        /// Minimum totals of `MINIMUM_STATS`; zero means no requirement.
+        min_stats: [f64; MINIMUM_STATS.len()],
         options: OptimizeOptions,
         similar_results: bool,
         similar_percent: f64,
@@ -429,7 +428,7 @@ fn execute(request: WorkRequest, context: &mut Engine, stop: &AtomicBool,
             let ws_player = player(&ws, context, stop, operation)?;
             compare(&quicklook, tp_player, ws_player, context, stop, operation)
         }
-        GuiAction::Optimize { kind, metric, candidates, min_pdt, min_mdt, min_subtle_blow, min_subtle_blow_ii, options,
+        GuiAction::Optimize { kind, metric, candidates, min_pdt, min_mdt, min_stats, options,
             similar_results, similar_percent, verbose_swaps, prune } => {
             if !candidates.iter().any(|pool| pool.len() > 1) {
                 return Err(CalcError::legacy("Optimize", "candidate selection", "AssertionError",
@@ -458,8 +457,7 @@ fn execute(request: WorkRequest, context: &mut Engine, stop: &AtomicBool,
                 }
             };
             let mut request = OptimizeRequest { player: quicklook.player, enemy: quicklook.enemy, action,
-                candidates, ws_name: quicklook.ws_name, spell_name: quicklook.spell_name, min_pdt, min_mdt,
-                min_subtle_blow, min_subtle_blow_ii,
+                candidates, ws_name: quicklook.ws_name, spell_name: quicklook.spell_name, min_pdt, min_mdt, min_stats,
                 options, similar_results, similar_percent, verbose_swaps };
             let mut progress = |progress| { let _ = sender.send(Message::Progress(progress)); };
             if prune {
