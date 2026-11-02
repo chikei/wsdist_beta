@@ -354,6 +354,7 @@ impl DesktopController {
                     min_pdt: self.wheel_integer("optimize_tab.pdt_requirements_entry")?, min_mdt: self.wheel_integer("optimize_tab.mdt_requirements_entry")?,
                     options: self.optimizer_options()?, similar_results: self.extra_checked("optimize_tab.show_similar_results_checkbox"),
                     similar_percent: self.integer("optimize_tab.show_similar_results_entry")?, verbose_swaps: self.ui.verbose_swaps,
+                    prune: self.extra_checked("optimize_tab.prune_candidates_checkbox"),
                 }
             }
             "dps" => GuiAction::Dps { tp: target(GearSource::Tp), ws: target(GearSource::Ws), plot: self.ui.plot_dps },

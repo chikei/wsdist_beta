@@ -234,11 +234,7 @@ impl Builder<'_> {
         for bonus in tables::ARMOR_BONUSES {
             let mut count = 0;
             for slot in Slot::ALL.iter().copied() {
-                let name = &catalog.piece(self.out.gearset[slot.index()]).name;
-                if !name.contains(bonus.name) { continue; }
-                if bonus.plus1 && !name.contains("+1") { continue; }
-                if bonus.slots.is_some_and(|slots| !slots.contains(&slot)) { continue; }
-                count += 1;
+                if joins_set_bonus(bonus, &catalog.piece(self.out.gearset[slot.index()]).name, slot) { count += 1; }
             }
             let count = count.min(bonus.max_pieces);
             let value = if count >= 2 {
@@ -249,9 +245,8 @@ impl Builder<'_> {
         }
         let prefix = tables::AF_PREFIX[self.out.main_job as usize].as_bytes();
         let mut af_count = 0;
-        for slot in [Slot::Head, Slot::Body, Slot::Hands, Slot::Legs, Slot::Feet] {
-            let name = catalog.piece(self.out.gearset[slot.index()]).name.as_bytes();
-            if name.windows(prefix.len()).any(|window| window.eq_ignore_ascii_case(prefix)) { af_count += 1; }
+        for slot in ARTIFACT_SLOTS {
+            if contains_ignore_ascii_case(catalog.piece(self.out.gearset[slot.index()]).name.as_bytes(), prefix) { af_count += 1; }
         }
         let af_count = af_count.min(5);
         let mut regal_count = 0;
@@ -711,6 +706,30 @@ impl Builder<'_> {
         self.set(Stat::DelayReduction, if reduction < 0.8 { reduction } else { 0.8 });
         Ok(())
     }
+}
+
+const ARTIFACT_SLOTS: [Slot; 5] = [Slot::Head, Slot::Body, Slot::Hands, Slot::Legs, Slot::Feet];
+
+#[inline]
+fn joins_set_bonus(bonus: &tables::ArmorBonus, name: &str, slot: Slot) -> bool {
+    name.contains(bonus.name) && (!bonus.plus1 || name.contains("+1"))
+        && bonus.slots.is_none_or(|slots| slots.contains(&slot))
+}
+
+#[inline]
+fn contains_ignore_ascii_case(name: &[u8], prefix: &[u8]) -> bool {
+    name.windows(prefix.len()).any(|window| window.eq_ignore_ascii_case(prefix))
+}
+
+/// Stats `name` can add from `slot` through a name-keyed armor set bonus.
+pub(crate) fn set_bonus_stats(name: &str, slot: Slot) -> impl Iterator<Item = Stat> + '_ {
+    tables::ARMOR_BONUSES.iter().filter(move |bonus| joins_set_bonus(bonus, name, slot))
+        .flat_map(|bonus| bonus.stats.iter().copied())
+}
+
+/// Whether `name` in `slot` counts as `job` artifact armor for the Regal Ring/Earring bonus.
+pub(crate) fn is_artifact_armor(name: &str, slot: Slot, job: Job) -> bool {
+    ARTIFACT_SLOTS.contains(&slot) && contains_ignore_ascii_case(name.as_bytes(), tables::AF_PREFIX[job as usize].as_bytes())
 }
 
 #[inline]

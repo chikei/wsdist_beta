@@ -3,6 +3,7 @@
 mod helpers;
 mod legality;
 mod neighborhood;
+mod prune;
 mod scoring;
 mod search;
 pub mod probe;
@@ -13,6 +14,7 @@ use crate::model::{CalcError, EvaluationContext, OptimizeRequest, OptimizeResult
 use probe::{RawAction, RawOptimizeRequest, SearchTrace};
 
 pub use helpers::{MAX_SWAP_SLOTS, PARALLEL_CANDIDATE_THRESHOLD};
+pub use prune::prune_candidates;
 
 pub fn optimize<R: RandomSource>(request: &OptimizeRequest, ctx: &mut EvaluationContext<R>, stop: &AtomicBool,
     progress: &mut dyn FnMut(Progress)) -> Result<OptimizeResult, CalcError> {

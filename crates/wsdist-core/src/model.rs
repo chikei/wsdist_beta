@@ -246,6 +246,7 @@ pub struct EnemyInput {
 
 mod player;
 pub use player::{build_player, get_skill_accuracy};
+pub(crate) use player::{is_artifact_armor, set_bonus_stats};
 
 /// Primary: action rolls, resist, optimizer choice/shuffle. Pdif: pDIF kernel rolls.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

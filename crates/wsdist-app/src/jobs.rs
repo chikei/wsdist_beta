@@ -12,7 +12,7 @@ use wsdist_core::model::{
     DpsResult, EvaluationContext, HitEvent, Metric, OptimizeOptions, OptimizeRequest, OptimizeResult, Player,
     PlayerInput, PlayerStage, Progress, SpellRequest, WsRequest, WsSample, build_player,
 };
-use wsdist_core::optimizer::optimize;
+use wsdist_core::optimizer::{optimize, prune_candidates};
 use wsdist_core::rng::RandomSources;
 use wsdist_core::simulation::{sample_distribution, simulate_dps};
 use wsdist_core::weaponskills::resolve_name;
@@ -47,6 +47,8 @@ pub enum GuiAction {
         similar_results: bool,
         similar_percent: f64,
         verbose_swaps: bool,
+        /// Drop armor and accessories whose stats cannot change the score before searching.
+        prune: bool,
     },
     Dps { tp: PlayerInput, ws: PlayerInput, plot: bool },
     Distribution { ws: PlayerInput },
@@ -425,7 +427,7 @@ fn execute(request: WorkRequest, context: &mut Engine, stop: &AtomicBool,
             compare(&quicklook, tp_player, ws_player, context, stop, operation)
         }
         GuiAction::Optimize { kind, metric, candidates, min_pdt, min_mdt, options,
-            similar_results, similar_percent, verbose_swaps } => {
+            similar_results, similar_percent, verbose_swaps, prune } => {
             if !candidates.iter().any(|pool| pool.len() > 1) {
                 return Err(CalcError::legacy("Optimize", "candidate selection", "AssertionError",
                     "At least two items must be selected in at least one slot to find the best set.").into());
@@ -452,10 +454,17 @@ fn execute(request: WorkRequest, context: &mut Engine, stop: &AtomicBool,
                         spell_type, metric: Metric::new(metric) })
                 }
             };
-            let request = OptimizeRequest { player: quicklook.player, enemy: quicklook.enemy, action,
+            let mut request = OptimizeRequest { player: quicklook.player, enemy: quicklook.enemy, action,
                 candidates, ws_name: quicklook.ws_name, spell_name: quicklook.spell_name, min_pdt, min_mdt,
                 options, similar_results, similar_percent, verbose_swaps };
             let mut progress = |progress| { let _ = sender.send(Message::Progress(progress)); };
+            if prune {
+                let total: usize = request.candidates.iter().map(Vec::len).sum();
+                request.candidates = prune_candidates(&request, &context.catalog);
+                let removed = total - request.candidates.iter().map(Vec::len).sum::<usize>();
+                progress(Progress { stage: 0, pass: 0, scored: 0, best_metric: 0.0001, pdt: 200.0, mdt: 200.0,
+                    message: Some(format!("Pruned {removed} of {total} candidates without stats relevant to this optimization.")) });
+            }
             context.calculation_trace = Some(Vec::new());
             let result = optimize(&request, context, stop, &mut progress)?;
             check_cancel(stop, operation)?;

@@ -168,7 +168,7 @@ fn optimize_action(case: &Value, catalog: &Catalog) -> GuiAction {
         min_mdt: number(&input["thresholds"]["mdt"]),
         options: wsdist_fixtures::from_value::<OptimizeOptions>(&input["options"]).unwrap(),
         similar_results: false, similar_percent: number(&input["next_best_percent"]),
-        verbose_swaps: false,
+        verbose_swaps: false, prune: false,
     }
 }
 

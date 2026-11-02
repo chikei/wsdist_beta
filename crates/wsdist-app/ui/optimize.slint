@@ -243,6 +243,16 @@ export component Optimize inherits Rectangle {
                                     wheel(key, direction) => { root.wheel(key, direction); }
                                     text-focus(focused) => { root.focus-changed(focused); }
                                 }
+                                // EXTRA_INPUTS appends the prune checkbox after the similar-results pair.
+                                ControlEditor {
+                                    min-width: 338px;
+                                    max-width: 338px;
+                                    preferred-width: 338px;
+                                    horizontal-stretch: 0;
+                                    control: root.controls[18];
+                                    inputs-enabled: root.inputs-enabled;
+                                    toggled(key, checked) => { root.toggled(key, checked); }
+                                }
                             }
 
                             GridLayout {

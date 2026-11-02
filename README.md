@@ -36,6 +36,11 @@ for the exercised verification and remaining manual checks.
 - **Optimize:** check candidates independently for each slot, apply the bulk
   selection filters or import a Windower inventory file, choose metrics and
   search options, then run **Optimize WS**, **Optimize Spell** or **Optimize TP**.
+  **Prune irrelevant equipment** (checked by default) first drops armor and
+  accessory candidates without any stat that the chosen weapon skill, spell or
+  TP metric reads, or that the PDT/MDT requirements can need; one dropped piece
+  per slot stays as a neutral choice, and weapon, ranged and ammo candidates are
+  never pruned. The progress window reports how many candidates were dropped.
   When a job ends, its progress window closes. Successful jobs show the final set
   and computed values in a Quicklook-style result window. Worker failures show
   the full error there, including insufficient candidate selection, without
