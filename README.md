@@ -49,25 +49,25 @@ for the exercised verification and remaining manual checks.
 - **Player Stats:** explicitly refresh from Quicklook, TP or WS gear. Reports
   preserve the existing source-specific display units and haste caps.
 
-Quicklook and Optimize result windows include a numbered **Calculation process**
-with the evaluated inputs, intermediate stages and damage/TP/timing formulas.
-Random terms use labeled placeholders such as `[random hit roll: U(0,1)]`;
-analytical expectations are distinguished from sampled rolls. **Simulate WS**
-keeps observed hit outcomes above its calculation process. Optimization details
-follow the retained scored output and identify any separate post-reorder restart
-comparison. Viewing a report does not rerun calculations or draw new rolls.
+Quicklook and Optimize result windows include a **Calculation process** that
+lists each formula followed by the same formula with the evaluated values
+substituted. Steps are grouped into separate Accuracy and hits, Damage, TP,
+Time, Result and Optimizer sections. Random terms keep labeled placeholders such
+as `[random hit roll: U(0,1)]`; the heading marks expected values or a sampled
+result. **Simulate WS** keeps observed hit outcomes above its calculation
+process. Optimization details follow the retained scored output; a separate
+post-reorder restart comparison has its own block. Viewing a report does not
+rerun calculations or draw new rolls.
 
-Named equations use BG Wiki's
+Formulas use BG Wiki's
 [Weapon Skill Damage](https://www.bg-wiki.com/ffxi/Weapon_Skill_Damage),
 [Magic Damage](https://www.bg-wiki.com/ffxi/Magic_Damage),
 [Physical Damage](https://www.bg-wiki.com/ffxi/Physical_Damage), and
-[Tactical Points](https://www.bg-wiki.com/ffxi/Tactical_Points) notation, followed
-by worked substitutions. Wiki reference forms and the evaluator's implemented
-rounding, factor order, or omitted factors are labeled separately; adopting the
-notation does not change damage or TP calculations.
-TP details include modified delay, the delay-to-TP table, Store TP, first-hit
-versus additional-hit WS returns, Regain, time to WS, and applicable spell/ranged
-TP sources such as Occult Acumen and Recycle.
+[Tactical Points](https://www.bg-wiki.com/ffxi/Tactical_Points) notation, written
+with the evaluator's implemented rounding and factor order; the display does not
+change damage or TP calculations. The TP section covers TP delay, Store TP,
+first-hit versus additional-hit WS returns, Regain and spell/ranged TP sources
+such as Occult Acumen and Recycle; the Time section covers haste and time to WS.
 
 At 760×440, the UI preserves the original three input columns, four buff columns,
 equipment grid beside its candidate list, and grouped Stats columns. The main

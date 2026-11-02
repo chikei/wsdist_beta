@@ -13,7 +13,7 @@ use wsdist_app::jobs::{
 use wsdist_app::state::CalculationInputs;
 use wsdist_core::Catalog;
 use wsdist_core::model::{
-    CalcError, CalculationStep, CandidatePools, Enemy, EvaluationContext, HitEvent, OptimizeOptions,
+    CalcError, CalculationSection, CalculationStep, CandidatePools, Enemy, EvaluationContext, HitEvent, OptimizeOptions,
     Player, PlayerStage, PlayerStageSnapshot, Progress, RandomSource, RandomStream,
     SkillType, Slot, WsType,
 };
@@ -278,8 +278,8 @@ fn single_ws_recovers_both_advanced_streams_and_restores_the_callers_observers()
                     [Slot::ALL[index].name()]["skill_type"].as_str().unwrap()).unwrap()),
         }]);
         context.calculation_trace = Some(vec![CalculationStep {
-            label: "Retained observer", equation: Some("Prior = retained value"),
-            formula: "prior = {prior}", values: vec![("prior", 37.5)],
+            section: CalculationSection::Result, label: "Retained observer",
+            lines: &[("Prior", "{prior}")], values: vec![("prior", 37.5)],
         }]);
         let saved_calculation = context.calculation_trace.clone();
         let saved_trace = wsdist_fixtures::to_value(context.action_trace.as_ref().unwrap()).unwrap();

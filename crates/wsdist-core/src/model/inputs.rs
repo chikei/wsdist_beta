@@ -546,7 +546,10 @@ pub struct SimilarSwap { pub slot: Slot, pub gear: GearId, pub metric: f64, pub 
 #[derive(Clone, Debug)]
 pub struct OptimizeResult {
     pub gearset: Gearset, pub player: Option<Player>, pub metric: f64, pub legacy_output: Vec<f64>,
+    /// Retained scored output's steps followed by optimizer provenance.
     pub calculation: Vec<CalculationStep>,
+    /// The selected restart's separate post-reorder comparison, when restarts ran.
+    pub restart_calculation: Vec<CalculationStep>,
     pub pdt: f64, pub mdt: f64, pub feasible: bool, pub termination: OptimizeTermination,
     pub accepted: Vec<AcceptedCandidate>, pub similar: Vec<SimilarSwap>,
     pub stages: usize, pub passes: usize, pub scored: usize, pub restarts: usize, pub invert: i8,

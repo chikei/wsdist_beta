@@ -1091,6 +1091,29 @@ The same scale-neutral binary served both runs. Evidence:
 was removed after proof; these are focused TP popup checks, not a rerun of the
 complete native workflow.
 
+#### Concise sectioned form
+
+Calculation steps now carry a `CalculationSection` and `(formula, worked)` line
+pairs. Reports group steps into Accuracy and hits, Damage, TP, Time, Result and
+Optimizer sections, print each formula, and align its value-substituted
+right-hand side under the first `=`. Reference-only prose steps were removed;
+`[random ...]` placeholders remain in sampled formulas. An optimizer's selected
+post-reorder restart comparison is kept in `OptimizeResult::restart_calculation`
+and rendered as its own block, so its stages do not merge into the retained
+output's sections.
+
+`env -u SLINT_SCALE_FACTOR cargo test --locked --workspace -- --test-threads=1`
+passed with zero failures, including the round, spell and optimizer trace
+regressions (unchanged results, RNG continuation, reconciled operands, 12
+integer spell stages, observer restoration). A disposable renderer dump covered
+51 analytical/sampled WS, TP-round, spell and two-restart optimizer reports
+through the production `append_calculation` and worker paths: no operand was
+missing, and total report text fell from 567,354 to 196,039 bytes (34.6%).
+The complete native UI smoke at 100% scale passed with 165 screenshots
+(`target/ui-smoke-concise-calc-100/report.json`); the `03-analytic-report` and
+`04-single-ws-trace` popups were inspected for section headings and monospace
+alignment. The dump test was removed after proof.
+
 ## Native packaging and extracted launch
 
 ```sh

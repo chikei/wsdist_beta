@@ -52,15 +52,15 @@ impl ScoreContext {
         if self.action.action_type.as_ref() == "attack round" { output.push(result.seconds_per_round.expect("round output timing")); }
         output.push(f64::from(result.invert));
         if engine.calculation_trace.is_some() {
-            engine.record_calculation("Action evaluation output",
-                "Damage = {damage}; TP return = {tp_return}.",
+            engine.record_step(CalculationSection::Optimizer, "Action evaluation output",
+                &[("Damage", "{damage}"), ("TP return", "{tp_return}")],
                 &[("damage", result.damage), ("tp_return", result.tp_return)]);
             if let Some(seconds) = result.seconds_per_round {
-                engine.record_calculation("Action evaluation timing",
-                    "Seconds per attack round = {seconds}.", &[("seconds", seconds)]);
+                engine.record_step(CalculationSection::Optimizer, "Action evaluation timing",
+                    &[("Seconds per round", "{seconds}")], &[("seconds", seconds)]);
             }
-            engine.record_calculation("Optimizer metric transformation",
-                "score = {action_metric}^{invert}; use 0.0001 if score <= 0; resulting score = {score}.",
+            engine.record_step(CalculationSection::Optimizer, "Optimizer metric transformation",
+                &[("Score = Metric^Invert (0.0001 if ≤ 0)", "{action_metric}^{invert} = {score}")],
                 &[("action_metric", result.metric), ("invert", f64::from(result.invert)), ("score", metric)]);
         }
         let evaluation = LegacyEvaluation { metric, output, invert: result.invert,

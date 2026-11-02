@@ -278,14 +278,31 @@ pub struct HitEvent {
     pub tp_return: f64,
 }
 
-/// A display-only equation captured from an existing calculation.
-/// `equation` holds an optional named formula; `{operands}` in `formula`
-/// are substituted by the report renderer. Random terms remain placeholders.
+/// Report group of a calculation step. TP and damage stay separate; shared hit
+/// counts, timing, the selected result and optimizer provenance have their own groups.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CalculationSection { Hits, Damage, Tp, Time, Result, Optimizer }
+
+impl CalculationSection {
+    pub const ALL: [Self; 6] = [Self::Hits, Self::Damage, Self::Tp, Self::Time, Self::Result, Self::Optimizer];
+
+    pub const fn title(self) -> &'static str {
+        match self {
+            Self::Hits => "Accuracy and hits", Self::Damage => "Damage", Self::Tp => "TP",
+            Self::Time => "Time", Self::Result => "Result", Self::Optimizer => "Optimizer",
+        }
+    }
+}
+
+/// A display-only equation captured from an existing calculation. Each line is
+/// `(formula, worked)`: a symbolic formula and the same right-hand side with
+/// `{operand}` placeholders that the report substitutes from `values`.
+/// Random terms remain `[random ...]` placeholders.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CalculationStep {
+    pub section: CalculationSection,
     pub label: &'static str,
-    pub equation: Option<&'static str>,
-    pub formula: &'static str,
+    pub lines: &'static [(&'static str, &'static str)],
     pub values: Vec<(&'static str, f64)>,
 }
 
@@ -308,16 +325,10 @@ impl<R: RandomSource> EvaluationContext<R> {
     pub fn record_hit(&mut self, event: HitEvent) {
         if let Some(trace) = &mut self.action_trace { trace.push(event); }
     }
-    pub fn record_calculation(&mut self, label: &'static str, formula: &'static str,
-        values: &[(&'static str, f64)]) {
+    pub fn record_step(&mut self, section: CalculationSection, label: &'static str,
+        lines: &'static [(&'static str, &'static str)], values: &[(&'static str, f64)]) {
         if let Some(trace) = &mut self.calculation_trace {
-            trace.push(CalculationStep { label, equation: None, formula, values: values.to_vec() });
-        }
-    }
-    pub fn record_equation(&mut self, label: &'static str, equation: &'static str,
-        formula: &'static str, values: &[(&'static str, f64)]) {
-        if let Some(trace) = &mut self.calculation_trace {
-            trace.push(CalculationStep { label, equation: Some(equation), formula, values: values.to_vec() });
+            trace.push(CalculationStep { section, label, lines, values: values.to_vec() });
         }
     }
 }

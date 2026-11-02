@@ -6,7 +6,7 @@ use std::io::{self, Write as _};
 
 use wsdist_core::Catalog;
 use wsdist_core::model::{
-    ActionRequest, ActionResult, AttackKind, AttackProc, CalculationStep, DistributionResult,
+    ActionRequest, ActionResult, AttackKind, AttackProc, CalculationSection, CalculationStep, DistributionResult,
     DpsResult, HitEvent, OptimizeRequest, OptimizeResult, OptimizeTermination, PieceKind,
     Player, PlayerInput, Progress, Slot, WsSample,
 };
@@ -240,41 +240,54 @@ pub fn analytical_report(name: &str, display: &AnalyticalDisplay) -> TextReport 
 
 /// Render equations captured by the evaluator, without evaluating combat again.
 pub fn append_calculation(text: &mut String, steps: &[CalculationStep], sampled: bool) {
+    append_calculation_block(text, if sampled { "Calculation process (sampled)" }
+        else { "Calculation process (expected values)" }, steps);
+}
+
+/// Steps are grouped by section in capture order. A formula's worked line is
+/// aligned under its first `=`; a formula without `=` names a single value.
+fn append_calculation_block(text: &mut String, title: &str, steps: &[CalculationStep]) {
     if steps.is_empty() { return; }
-    text.push_str("\nCalculation process\n-------------------\n");
-    text.push_str(if sampled {
-        "Sampled result; observed hit outcomes are listed above.\n"
-    } else {
-        "Analytical result: expected values, not a particular random roll.\n"
-    });
-    text.push_str("Named formulas use BG Wiki terminology; worked lines retain this evaluator's arithmetic.\n\
-        [random ...] marks a random-number placeholder, not a fixed roll.\n\
-        U(a,b) means a uniform random draw; E[X] denotes an analytical expectation.\n\
-        floor(x) rounds down; trunc(x) discards the fractional part.\n\
-        Equation values are rounded to at most 6 decimal places.\n");
-    for (index, step) in steps.iter().enumerate() {
-        let _ = writeln!(text, "\n{}. {}", index + 1, step.label);
-        if let Some(equation) = step.equation {
-            for line in equation.lines() { let _ = writeln!(text, "   {line}"); }
-            text.push_str("   With current inputs: ");
-        } else {
-            text.push_str("   ");
+    let _ = writeln!(text, "\n{title}\n{}", "=".repeat(title.chars().count()));
+    for section in CalculationSection::ALL {
+        for (index, step) in steps.iter().filter(|step| step.section == section).enumerate() {
+            if index == 0 {
+                let heading = section.title();
+                let _ = writeln!(text, "\n{heading}\n{}", "-".repeat(heading.chars().count()));
+            }
+            let _ = writeln!(text, "{}. {}", index + 1, step.label);
+            for &(formula, worked) in step.lines {
+                text.push_str("   ");
+                text.push_str(formula);
+                if !worked.is_empty() {
+                    if let Some(equals) = formula.find(" = ") {
+                        text.push('\n');
+                        text.extend(std::iter::repeat_n(' ', 4 + formula[..equals].chars().count()));
+                    } else {
+                        text.push(' ');
+                    }
+                    text.push_str("= ");
+                    append_worked(text, worked, &step.values);
+                }
+                text.push('\n');
+            }
         }
-        let mut formula = step.formula;
-        while let Some(open) = formula.find('{') {
-            text.push_str(&formula[..open]);
-            let rest = &formula[open + 1..];
-            let close = rest.find('}').expect("calculation operand must have a closing brace");
-            let name = &rest[..close];
-            let value = step.values.iter().find(|(key, _)| *key == name)
-                .expect("calculation operand must be captured by the evaluator").1;
-            append_calculation_value(text, value);
-            formula = &rest[close + 1..];
-        }
-        text.push_str(formula);
-        text.push('\n');
     }
     text.push('\n');
+}
+
+fn append_worked(text: &mut String, mut worked: &str, values: &[(&'static str, f64)]) {
+    while let Some(open) = worked.find('{') {
+        text.push_str(&worked[..open]);
+        let rest = &worked[open + 1..];
+        let close = rest.find('}').expect("calculation operand must have a closing brace");
+        let name = &rest[..close];
+        let value = values.iter().find(|(key, _)| *key == name)
+            .expect("calculation operand must be captured by the evaluator").1;
+        append_calculation_value(text, value);
+        worked = &rest[close + 1..];
+    }
+    text.push_str(worked);
 }
 
 fn append_calculation_value(text: &mut String, value: f64) {
@@ -417,6 +430,7 @@ pub fn optimizer_report(request: &OptimizeRequest, result: &OptimizeResult, cata
         }
         text.push_str("==============================================================\n==============================================================\n");
         append_calculation(&mut text, &result.calculation, false);
+        append_calculation_block(&mut text, "Post-reorder restart comparison (expected values)", &result.restart_calculation);
     }
     let termination = match result.termination {
         OptimizeTermination::Converged => "Converged", OptimizeTermination::IterationLimit => "Iteration limit",

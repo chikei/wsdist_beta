@@ -8,7 +8,7 @@ mod native_support;
 
 use std::sync::atomic::AtomicBool;
 
-use wsdist_core::model::{CalculationStep, OptimizeResult, Slot};
+use wsdist_core::model::{CalculationSection, CalculationStep, OptimizeResult, Slot};
 use wsdist_core::optimizer::probe::{SearchTrace, TraceEvent, optimize_raw};
 
 use optimizer_support as adapter;
@@ -33,8 +33,8 @@ fn traced_fixture(id: &str) -> (support::FrozenCatalog, OptimizeResult, SearchTr
     assert!(baseline.calculation.is_empty());
     assert!(baseline_run.engine.calculation_trace.is_none());
 
-    let observer = CalculationStep { label: "Caller observer", equation: Some("Caller = prior value"),
-        formula: "caller = {caller}", values: vec![("caller", 17.0)] };
+    let observer = CalculationStep { section: CalculationSection::Result, label: "Caller observer",
+        lines: &[("Caller", "{caller}")], values: vec![("caller", 17.0)] };
     let mut engine = adapter::context(&catalog, &input["seeds"]);
     engine.calculation_trace = Some(vec![observer.clone()]);
     let mut trace = Some(SearchTrace::default());
@@ -56,7 +56,7 @@ fn traced_fixture(id: &str) -> (support::FrozenCatalog, OptimizeResult, SearchTr
     assert_eq!(retained_observer.len(), 1, "candidate evaluations must not write into the caller observer");
     assert_eq!(retained_observer.as_slice(), std::slice::from_ref(&observer),
         "candidate scoring must preserve the caller's complete equation observer");
-    assert!(result.calculation.iter().all(|step| step.label != observer.label));
+    assert!(result.calculation.iter().chain(&result.restart_calculation).all(|step| step.label != observer.label));
     (catalog, result, trace.unwrap())
 }
 
@@ -74,7 +74,8 @@ fn calculations_follow_the_earliest_restart_winner_without_overwriting_the_calle
     assert_eq!(value(output, "damage"), result.legacy_output[0]);
     assert_eq!(value(output, "tp_return"), result.legacy_output[1]);
     assert_eq!(value(step(&result, "Restart winner score"), "score"), result.metric);
-    assert_eq!(result.calculation.iter().filter(|step| step.label == "Action evaluation output").count(), 2,
+    let count = |steps: &[CalculationStep]| steps.iter().filter(|step| step.label == "Action evaluation output").count();
+    assert_eq!((count(&result.calculation), count(&result.restart_calculation)), (1, 1),
         "retain one accepted output and its separate restart comparison, not all candidates/restarts");
 }
 
@@ -86,12 +87,11 @@ fn calculations_retain_pre_reorder_damage_and_tp_with_the_scored_earring_provena
     assert_eq!(value(output, "tp_return"), result.legacy_output[1]);
     assert_eq!(value(step(&result, "Single-start search score"), "score"), result.metric);
     let provenance = step(&result, "Retained output provenance");
-    assert!(provenance.formula.contains("runtime catalog-local index"));
-    assert!(provenance.formula.contains("These indices identify this loaded catalog only."));
     assert_ne!(value(provenance, "scored_ear1"), value(provenance, "scored_ear2"));
     assert_eq!(value(provenance, "scored_ear1"), value(provenance, "final_ear2"));
     assert_eq!(value(provenance, "scored_ear2"), value(provenance, "final_ear1"));
     assert_eq!(value(provenance, "final_ear1"), result.gearset[Slot::Ear1.index()].index() as f64);
     assert_eq!(value(provenance, "final_ear2"), result.gearset[Slot::Ear2.index()].index() as f64);
     assert_eq!(result.calculation.iter().filter(|step| step.label == "Action evaluation output").count(), 1);
+    assert!(result.restart_calculation.is_empty(), "a single start has no post-reorder restart comparison");
 }

@@ -90,9 +90,10 @@ pub fn optimize_pass<R: RandomSource>(context: &Arc<ScoreContext>, mapper: &mut 
             let evaluation = scratch.with_output(context, &best_ids, engine, trace)?;
             if engine.calculation_trace.is_some() {
                 scratch.calculation.push(CalculationStep {
+                    section: CalculationSection::Optimizer,
                     label: "Accepted improvement",
-                    equation: None,
-                    formula: "DT stage {stage}, pass {pass}: a metric-only candidate evaluation selected this set with score {selection_score}. The separate evaluation supplying the retained damage/TP has score {output_score}.",
+                    lines: &[("DT stage", "{stage}"), ("Pass", "{pass}"),
+                        ("Selection score", "{selection_score}"), ("Output score", "{output_score}")],
                     values: vec![("stage", input.stage as f64), ("pass", input.pass as f64),
                         ("selection_score", metric), ("output_score", evaluation.metric)],
                 });
@@ -152,26 +153,27 @@ pub fn optimize_raw<R: RandomSource>(request: &RawOptimizeRequest, engine: &mut 
             action.ws_type = optimizer_ws_type(&action.ws_name);
             action.spell_type = optimizer_spell_type(&action.spell_name);
             let context = post_reorder_context(request, action, engine)?;
-            let (evaluation, mut calculation) = capture_calculation(engine, |engine| context.evaluate(player, engine, trace))?;
+            let (evaluation, calculation) = capture_calculation(engine, |engine| context.evaluate(player, engine, trace))?;
             interrupted(stop)?;
             let improved = evaluation.metric > best_metric;
             record(trace, || TraceEvent::RestartComparison { restart: index, metric: evaluation.metric, incumbent: best_metric, improved });
             if improved {
                 if engine.calculation_trace.is_some() {
                     result.calculation.push(CalculationStep {
+                        section: CalculationSection::Optimizer,
                         label: "Post-reorder restart selection",
-                        equation: None,
-                        formula: "The following calculations are the existing post-reorder comparison for restart {restart}, selecting it with score {selection_score}. They do not replace the retained damage/TP above; its single-start search score was {single_start_score}.",
+                        lines: &[("Restart", "{restart}"), ("Selection score", "{selection_score}"),
+                            ("Single-start score", "{single_start_score}")],
                         values: vec![("restart", (index + 1) as f64), ("selection_score", evaluation.metric),
                             ("single_start_score", result.metric)],
                     });
-                    result.calculation.append(&mut calculation);
                     result.calculation.push(CalculationStep {
+                        section: CalculationSection::Optimizer,
                         label: "Restart winner score",
-                        equation: None,
-                        formula: "Reported optimizer score = {score}, from this restart's post-reorder comparison; reported damage/TP remain the earlier retained legacy output.",
+                        lines: &[("Reported score", "{score}")],
                         values: vec![("score", evaluation.metric)],
                     });
+                    result.restart_calculation = calculation;
                 }
                 best_metric = evaluation.metric;
                 best = Some(result);
@@ -185,7 +187,7 @@ pub fn optimize_raw<R: RandomSource>(request: &RawOptimizeRequest, engine: &mut 
             return Ok(best);
         }
         return Ok(OptimizeResult { gearset: request.player.gearset, player: None, metric: best_metric, legacy_output: Vec::new(),
-            calculation: Vec::new(),
+            calculation: Vec::new(), restart_calculation: Vec::new(),
             pdt: f64::NAN, mdt: f64::NAN, feasible: false, termination: OptimizeTermination::NoWinner,
             accepted: all_accepted, similar: Vec::new(), stages, passes, scored,
             restarts: options.restart_count as usize, invert: 1, warnings });
@@ -347,18 +349,19 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
     if engine.calculation_trace.is_some() {
         if scratch.calculation.is_empty() {
             scratch.calculation.push(CalculationStep {
+                section: CalculationSection::Optimizer,
                 label: "Legacy output sentinel",
-                equation: None,
-                formula: "No accepted output evaluation was retained; legacy damage = {damage} and TP return = {tp_return} remain their initial display placeholders.",
+                lines: &[("Damage", "{damage}"), ("TP return", "{tp_return}")],
                 values: vec![("damage", output[0]), ("tp_return", output[1])],
             });
         } else {
             let scored_ear1 = context.pieces.pieces[best_ids[Slot::Ear1.index()]];
             let scored_ear2 = context.pieces.pieces[best_ids[Slot::Ear2.index()]];
             scratch.calculation.push(CalculationStep {
+                section: CalculationSection::Optimizer,
                 label: "Retained output provenance",
-                equation: None,
-                formula: "Damage and TP above use the last accepted scored set before final earring ordering: ear1 runtime catalog-local index = {scored_ear1}; ear2 runtime catalog-local index = {scored_ear2}. The returned set has ear1 runtime catalog-local index = {final_ear1}; ear2 runtime catalog-local index = {final_ear2}. These indices identify this loaded catalog only. The retained damage/TP are not recomputed for that final ordering.",
+                lines: &[("Scored ear1, ear2 index", "{scored_ear1}, {scored_ear2}"),
+                    ("Returned ear1, ear2 index", "{final_ear1}, {final_ear2}")],
                 values: vec![("scored_ear1", scored_ear1.index() as f64),
                     ("scored_ear2", scored_ear2.index() as f64),
                     ("final_ear1", best_set[Slot::Ear1.index()].index() as f64),
@@ -366,9 +369,9 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
             });
         }
         scratch.calculation.push(CalculationStep {
+            section: CalculationSection::Optimizer,
             label: "Single-start search score",
-            equation: None,
-            formula: "Final single-start search score = {score}, not a new evaluation of the final ordered set. A DT-stage boundary can reset the search score without replacing retained damage/TP.",
+            lines: &[("Single-start score", "{score}")],
             values: vec![("score", best_metric)],
         });
     }
@@ -377,7 +380,7 @@ fn single_start<R: RandomSource>(request: &RawOptimizeRequest, options: &Optimiz
         achieved_before_reorder: achieved, unchanged, starting, filtered: candidates, player: Box::new(scratch.player.clone()), state: state.expect("enabled trace snapshot") });
     interrupted(stop)?;
     Ok(OptimizeResult { gearset: best_set, player: Some(scratch.player), metric: best_metric, legacy_output: output,
-        calculation: scratch.calculation,
+        calculation: scratch.calculation, restart_calculation: Vec::new(),
         pdt: final_achieved[0], mdt: final_achieved[1], feasible, termination, accepted, similar,
         stages, passes, scored, restarts: 1, invert, warnings })
 }
