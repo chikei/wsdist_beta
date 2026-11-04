@@ -147,7 +147,7 @@ impl ScoreScratch {
                 record(trace, || TraceEvent::FullPlayerDt { combo: group.combo, items: *items, achieved, thresholds: dt_limits,
                     player: Box::new(self.player.clone()), state: state.expect("enabled trace snapshot") });
                 if achieved[0] > dt_limits[0] || achieved[1] > dt_limits[1] { metrics.push(f64::NAN); continue; }
-                if MINIMUM_STATS.iter().zip(thresholds.stats).any(|(&stat, floor)| self.player.stats.get(stat) < floor) {
+                if MINIMUM_STATS.iter().zip(thresholds.stats).any(|(stat, floor)| stat.total(&self.player.stats) < floor) {
                     metrics.push(f64::NAN);
                     continue;
                 }

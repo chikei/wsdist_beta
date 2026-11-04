@@ -109,7 +109,23 @@ pub fn assert_wsc(actual: &[WscContribution], expected: &Value, path: &str) {
     }
 }
 
+/// Main-job Ninja innate Subtle Blow is 32 here, after the Python oracle's 40 was captured.
+pub const LEGACY_NINJA_SUBTLE_BLOW_EXCESS: f64 = 8.0;
+
+/// The oracle's `stat` for a `main_job` player where this model computes `value`.
+pub fn legacy_value(main_job: &str, stat: Stat, value: f64) -> f64 {
+    if main_job == Job::Nin.name() && stat == Stat::SubtleBlow { value + LEGACY_NINJA_SUBTLE_BLOW_EXCESS } else { value }
+}
+
+/// The oracle's Player Stats display for a main-job Ninja where this model displays `display`.
+pub fn legacy_ninja_display(mut display: Value) -> Value {
+    let total: f64 = display[Stat::SubtleBlow.name()].as_str().unwrap().parse().unwrap();
+    display[Stat::SubtleBlow.name()] = Value::from((total + LEGACY_NINJA_SUBTLE_BLOW_EXCESS).to_string());
+    display
+}
+
 pub fn assert_sheet(stats: &Stats, wsc: &[WscContribution], wyvern: bool, expected: &Value, path: &str) {
+    let main_job = expected["main_job"].as_str().unwrap();
     let source = &expected["stats"];
     let rows: Vec<(&str, &Value)> = if let Some(rows) = source.as_array() {
         rows.iter().map(|row| (row[0].as_str().unwrap(), &row[1])).collect()
@@ -124,7 +140,7 @@ pub fn assert_sheet(stats: &Stats, wsc: &[WscContribution], wyvern: bool, expect
     assert_eq!(stats.len(), rows.len(), "{path}: sparse presence/count");
     for (index, ((stat, value), (name, expected))) in stats.ordered().zip(rows).enumerate() {
         assert_eq!(stat.name(), name, "{path}.stats[{index}]: first differing insertion-order/presence key");
-        assert_number(value, expected, &format!("{path}.stats[{index}:{name}]"));
+        assert_number(legacy_value(main_job, stat, value), expected, &format!("{path}.stats[{index}:{name}]"));
     }
     assert_wsc(wsc, &expected["wsc"], &format!("{path}.wsc"));
     assert_eq!(wyvern, expected["wyvern_bonus_attack"].as_bool().unwrap(), "{path}.wyvern_bonus_attack");

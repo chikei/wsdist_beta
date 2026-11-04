@@ -36,9 +36,9 @@ const TARGETS: &[Target] = &[
         abilities: &[Ability::Berserk], action: Action::Ws("Savage Blade", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },
     Target { main: Job::War, sub: Job::Sam, weapons: &[(Slot::Main, "Naegling"), (Slot::Sub, "Blurred Shield +1")],
         abilities: &[], action: Action::Ws("Savage Blade", "TP return"), dt: [-30.0, -20.0], minimums: NO_MINIMUMS },
-    // Subtle Blow and Double Attack gear otherwise carries only melee stats, which a spell never reads.
+    // Subtle Blow (II) and Double Attack gear otherwise carries only melee stats, which a spell never reads.
     Target { main: Job::Drk, sub: Job::Sam, weapons: &[(Slot::Main, "Apocalypse")],
-        abilities: &[], action: Action::Spell("Fire IV", "Damage dealt"), dt: [0.0, 0.0], minimums: [5.0, 5.0, 5.0] },
+        abilities: &[], action: Action::Spell("Fire IV", "Damage dealt"), dt: [0.0, 0.0], minimums: [5.0, 5.0] },
     Target { main: Job::Thf, sub: Job::Dnc, weapons: &[(Slot::Main, "Tauret"), (Slot::Sub, "Gleti's Knife")],
         abilities: &[Ability::SneakAttack, Ability::TrickAttack, Ability::ClimacticFlourish],
         action: Action::Ws("Rudra's Storm", "Damage dealt"), dt: [0.0, 0.0], minimums: NO_MINIMUMS },

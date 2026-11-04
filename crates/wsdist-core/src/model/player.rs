@@ -214,7 +214,7 @@ impl Builder<'_> {
         }
         if self.out.main_job == Job::Nin {
             self.add(Stat::StoreTp, 10.0);
-            self.add(Stat::SubtleBlow, 10.0);
+            self.add(Stat::SubtleBlow, 2.0);
         }
         Ok(())
     }

@@ -2,7 +2,8 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use wsdist_fixtures::{Value, to_value};
-use wsdist_core::model::{CandidatePools, GearId, Gearset, LegacyF64, Player, RandomSource, RandomStream, SimilarSwap, Slot};
+use wsdist_core::model::{CandidatePools, GearId, Gearset, Job, LegacyF64, Player, RandomSource, RandomStream, SimilarSwap, Slot};
+use wsdist_core::{Stat, Stats};
 use wsdist_core::optimizer::probe::{LegacyEvaluation, SearchTrace, TraceEvent};
 use wsdist_core::rng::RandomSources;
 
@@ -252,6 +253,24 @@ fn normalize_native_gear(observation: &mut Value) {
     field(observation, "steps", |steps| each(steps, normalize_native_gear));
 }
 
+/// Goldens were captured while main-job Ninja innate Subtle Blow was 8 higher.
+fn correct_ninja_subtle_blow(value: &mut Value) {
+    match value {
+        Value::Object(fields) => {
+            if fields.get("main_job").and_then(Value::as_str) == Some(Job::Nin.name()) {
+                if let Some(total) = fields.get_mut("stats").and_then(Value::as_object_mut).and_then(|stats| stats.get_mut(Stat::SubtleBlow.name())) {
+                    let mut corrected = Stats::default();
+                    corrected.set(Stat::SubtleBlow, crate::support::number(total) - crate::support::LEGACY_NINJA_SUBTLE_BLOW_EXCESS);
+                    *total = to_value(&corrected).unwrap()[Stat::SubtleBlow.name()].clone();
+                }
+            }
+            for field in fields.values_mut() { correct_ninja_subtle_blow(field); }
+        }
+        Value::Array(items) => for item in items { correct_ninja_subtle_blow(item); },
+        _ => {}
+    }
+}
+
 pub fn expect_native(id: &str, legacy_sha256: &str, actual: &Value) {
     static INDEX: LazyLock<Value> = LazyLock::new(|| {
         let index = wsdist_fixtures::read_json_value(&Path::new(NATIVE_ROOT).join("index.json")).expect("native golden index");
@@ -267,6 +286,7 @@ pub fn expect_native(id: &str, legacy_sha256: &str, actual: &Value) {
     assert_eq!(doc["legacy_case"]["path"], entry["legacy_path"], "{id}: native golden legacy path");
     assert_eq!(doc["legacy_case"]["sha256"], entry["legacy_sha256"], "{id}: native golden legacy source SHA-256");
     normalize_native_gear(&mut doc["observation"]);
+    correct_ninja_subtle_blow(&mut doc["observation"]);
     assert_json_eq(actual, &doc["observation"], id);
 }
 

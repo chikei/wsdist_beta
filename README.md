@@ -36,13 +36,15 @@ for the exercised verification and remaining manual checks.
 - **Optimize:** check candidates independently for each slot, apply the bulk
   selection filters or import a Windower inventory file, choose metrics and
   search options, then run **Optimize WS**, **Optimize Spell** or **Optimize TP**.
-  **Required SB**, **Required SB II** and **Required DA %** (default 0,
-  meaning no requirement) set minimum Subtle Blow, Subtle Blow II and Double
-  Attack totals from gear, traits and buffs; like the PDT/MDT requirements, the
-  search tightens them stage by stage, stepping by the DT search step.
+  **Combined Subtle Blow** and **Required DA %** (default 0, meaning no
+  requirement) set minimum totals from gear, traits and buffs. Combined Subtle
+  Blow is Subtle Blow plus Subtle Blow II, each counting up to 50 and together
+  up to 75; main-job MNK, DNC and NIN bring 35, 33 and 32 Subtle Blow. Like the
+  PDT/MDT requirements, the search tightens them stage by stage, stepping by the
+  DT search step.
   **Prune irrelevant equipment** (checked by default) first drops armor and
   accessory candidates without any stat that the chosen weapon skill, spell or
-  TP metric reads, or that the PDT/MDT, Subtle Blow and Double Attack
+  TP metric reads, or that the PDT/MDT, Combined Subtle Blow and Double Attack
   requirements can need; one dropped piece per slot stays as a neutral choice,
   and weapon, ranged and ammo candidates are never pruned. The progress window
   reports how many candidates were dropped.
@@ -52,7 +54,7 @@ for the exercised verification and remaining manual checks.
   replacing the last successful result. Cancellation opens no result window.
   Intermediate and final output still appear in the console. **Equip best set**
   is enabled only for an actual returned player. Unsatisfied damage-taken,
-  Subtle Blow and Double Attack requirements remain visible in the final report.
+  Combined Subtle Blow and Double Attack requirements remain visible in the final report.
 - **Simulate:** maintain separate TP and WS equipment sets; run the full
   7200-second DPS simulation, a 20000-sample WS distribution, or the TP/WS stat
   comparison. Reports and charts open in independent windows.

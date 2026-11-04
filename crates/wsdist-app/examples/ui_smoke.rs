@@ -25,6 +25,9 @@ use wsdist_fixtures::Value as FixtureValue;
 
 #[path = "../tests/resource_support/mod.rs"]
 mod resource_support;
+#[path = "../../wsdist-core/tests/legacy_player/support.rs"]
+#[allow(dead_code)]
+mod legacy_support;
 
 type Result<T, E = Box<dyn Error>> = std::result::Result<T, E>;
 
@@ -2073,7 +2076,7 @@ async fn workflow(desktop: &Desktop, output: &Path, fixtures: &Path, index: &Fix
     for (step, label) in [(1, "Quicklook Gear Stats"), (2, "TP Gear Stats"), (3, "WS Gear Stats")] {
         compute(desktop, label).await?;
         let expected = &frozen["steps"][step]["state"]["displayed_stats"];
-        if FixtureValue::Object(displayed_stats(desktop)) != *expected { return Err(format!("Frozen {label} display differs").into()); }
+        if legacy_support::legacy_ninja_display(FixtureValue::Object(displayed_stats(desktop))) != *expected { return Err(format!("Frozen {label} display differs").into()); }
         snapshot(&desktop.window, output, &format!("02-stats-source-{step}"), &mut screenshots)?;
         let mut rectangles = Vec::new();
         record_stats_geometry(desktop, &mut stats_baseline, &mut rectangles).await?;

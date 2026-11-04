@@ -108,7 +108,7 @@ impl Thresholds {
 
 /// Totals of [`MINIMUM_STATS`] from gear, traits and effects.
 pub fn stat_totals(player: &Player) -> [f64; MINIMUM_STATS.len()] {
-    MINIMUM_STATS.map(|stat| player.stats.get(stat))
+    MINIMUM_STATS.map(|stat| stat.total(&player.stats))
 }
 
 /// Floors for requested [`MINIMUM_STATS`] minima; a minimum of zero or less imposes none.

@@ -131,6 +131,11 @@ kernel results bit-for-bit.
 - Strict tapes check stream, operation, parameter bits, variate, order and full
   consumption; they never fall back to a generator.
 - The report's maximum-error scope is the fields actually compared by adapters.
+- One deliberate model change postdates the frozen evidence: main-job Ninja
+  innate Subtle Blow is 32, not the captured 40. Sheet, native-golden and
+  Player Stats display comparisons apply that single 8-point offset
+  (`LEGACY_NINJA_SUBTLE_BLOW_EXCESS` in `legacy_player/support.rs`); every
+  other captured value is compared unchanged.
   Exact/nonfinite assertions and RNG/search coverage are recorded separately;
   an inert controller/provenance record is not claimed as numerical execution.
 

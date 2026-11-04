@@ -13,7 +13,7 @@ use wsdist_core::Catalog;
 #[path = "../legacy_player/support.rs"]
 #[allow(dead_code)]
 mod player_support;
-pub use player_support::{assert_number, document_json, number};
+pub use player_support::{LEGACY_NINJA_SUBTLE_BLOW_EXCESS, assert_number, document_json, number};
 pub use player_support::observation;
 
 #[derive(Deserialize)]

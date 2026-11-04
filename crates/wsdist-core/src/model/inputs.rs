@@ -516,8 +516,36 @@ impl Default for OptimizeOptions {
 
 pub type CandidatePools = [Vec<GearId>; Slot::COUNT];
 
-/// Stats an optimize request can require a minimum total of, from gear, traits and effects.
-pub const MINIMUM_STATS: [Stat; 3] = [Stat::SubtleBlow, Stat::SubtleBlowIi, Stat::Da];
+/// A total an optimize request can require a minimum of, from gear, traits and effects.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MinimumStat {
+    /// Subtle Blow and Subtle Blow II under their caps; see [`combined_subtle_blow`].
+    CombinedSubtleBlow,
+    DoubleAttack,
+}
+
+impl MinimumStat {
+    pub const fn name(self) -> &'static str {
+        match self { Self::CombinedSubtleBlow => "Combined Subtle Blow", Self::DoubleAttack => Stat::Da.name() }
+    }
+
+    /// Sheet stats the total reads.
+    pub const fn stats(self) -> &'static [Stat] {
+        match self { Self::CombinedSubtleBlow => &[Stat::SubtleBlow, Stat::SubtleBlowIi], Self::DoubleAttack => &[Stat::Da] }
+    }
+
+    pub fn total(self, stats: &Stats) -> f64 {
+        match self { Self::CombinedSubtleBlow => combined_subtle_blow(stats), Self::DoubleAttack => stats.get(Stat::Da) }
+    }
+}
+
+/// Subtle Blow and Subtle Blow II each count up to 50, and together up to 75.
+pub fn combined_subtle_blow(stats: &Stats) -> f64 {
+    (stats.get(Stat::SubtleBlow).min(50.0) + stats.get(Stat::SubtleBlowIi).min(50.0)).min(75.0)
+}
+
+/// Totals an optimize request can require a minimum of.
+pub const MINIMUM_STATS: [MinimumStat; 2] = [MinimumStat::CombinedSubtleBlow, MinimumStat::DoubleAttack];
 
 #[derive(Clone, Debug)]
 pub struct OptimizeRequest {

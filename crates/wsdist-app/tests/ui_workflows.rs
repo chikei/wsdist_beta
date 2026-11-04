@@ -324,7 +324,7 @@ fn real_slint_controller_keeps_results_lazy_freezes_busy_inputs_and_retains_corr
     assert_eq!(desktop.window.get_tp_return().as_str(), format!("{} {}", display["tp_label"].as_str().unwrap(), display["tp"].as_str().unwrap()));
     desktop.window.invoke_action("stats-ws".into());
     finish(&desktop, 2);
-    assert_eq!(stats(&desktop), fixture["expected"]["value"]["steps"][3]["state"]["displayed_stats"]);
+    assert_eq!(ui_support::support::legacy_ninja_display(stats(&desktop)), fixture["expected"]["value"]["steps"][3]["state"]["displayed_stats"]);
     let stale_stats = stats(&desktop);
     let stale_damage = desktop.window.get_damage();
     let stale_tp = desktop.window.get_tp_return();

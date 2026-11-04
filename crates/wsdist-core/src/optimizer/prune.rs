@@ -127,7 +127,7 @@ struct Scope {
     scaling: Vec<Stat>,
     /// PDT and MDT requirements some candidate set could miss.
     dt: [bool; 2],
-    /// [`MINIMUM_STATS`] with a requested minimum.
+    /// Sheet stats read by [`MINIMUM_STATS`] with a requested minimum.
     required: Vec<Stat>,
 }
 
@@ -140,7 +140,7 @@ impl Scope {
                 .into_iter().any(|ability| abilities.enabled(ability)),
             dt: dt_binding(request, catalog),
             required: MINIMUM_STATS.into_iter().zip(stat_requirements(request.min_stats))
-                .filter_map(|(stat, minimum)| minimum.is_finite().then_some(stat)).collect(),
+                .filter(|(_, minimum)| minimum.is_finite()).flat_map(|(stat, _)| stat.stats().iter().copied()).collect(),
             ..Self::default()
         };
         match &request.action {

@@ -395,12 +395,14 @@ fn optimizer_feasibility_warning_precedes_the_set_and_no_winner_cannot_look_equi
     assert!(!report.text.contains("Subtle Blow") && !report.text.contains("DA:"), "a zero minimum is no requirement");
 
     let mut stat_request = request.clone();
-    stat_request.min_stats = [40.0, 0.0, 30.0];
-    result.stat_totals = [25.0, 10.0, 20.0];
+    stat_request.min_stats = [40.0, 30.0];
+    result.stat_totals = [25.0, 20.0];
     let report = reports::optimizer_report(&stat_request, &result, &catalog);
-    assert!(report.text.contains("Required PDT:-100 MDT:-100 Subtle Blow:40 DA:30; achieved PDT:-9 MDT:-9 Subtle Blow:25 DA:20."),
+    assert!(report.text.contains("Required PDT:-100 MDT:-100 Combined Subtle Blow:40 DA:30; achieved PDT:-9 MDT:-9 Combined Subtle Blow:25 DA:20."),
         "unmet minimum stats are named beside their achieved totals");
-    assert!(!report.text.contains("Subtle Blow II"), "only requested minimum stats are reported");
+    stat_request.min_stats = [0.0, 30.0];
+    let report = reports::optimizer_report(&stat_request, &result, &catalog);
+    assert!(report.text.contains("Required PDT:-100 MDT:-100 DA:30; achieved PDT:-9 MDT:-9 DA:20."), "only requested minimum stats are reported");
 
     result.player = None;
     result.termination = OptimizeTermination::NoWinner;
